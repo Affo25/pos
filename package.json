@@ -1,0 +1,17 @@
+{
+  "name": "datalitex",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "client": "npm --prefix frontend start",
+    "server": "npm --prefix backend start",
+    "dev": "concurrently \"npm run server-dev\" \"npm run client\"",
+    "server-dev": "npm --prefix backend run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  },
+  "dependencies": {
+    "multer": "^2.0.2"
+  }
+}
