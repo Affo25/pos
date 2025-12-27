@@ -4,7 +4,6 @@ const eventRoutes = require("./routes/eventRoutes");
 const nonAcademicRoutes = require("./routes/nonAcademicRoutes");
 const newRoutes = require("./routes/newRoutes");
 const noticeRoutes = require("./routes/noticeRoutes");
-const taskManagementRoutes = require("./routes/taskManagementRoutes");
 const classTypesRoutes = require("./routes/classTypesRoutes");
 const feeheadRoutes = require("./routes/feeheadRoutes");
 const accountheadsRoutes = require("./routes/accountheadsRoutes");

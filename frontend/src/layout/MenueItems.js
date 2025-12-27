@@ -48,7 +48,6 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
       pages: 'Pages',
       teachers: 'Teachers',
       kirlas: 'Kirlas',
-      clients: 'Clients',
       branchprofiles: 'BranchProfiles',
       faculties: 'Faculties',
       departments: 'Departments',
@@ -56,10 +55,8 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
       accountheads: 'Accountheads',
       feeheads: 'Feeheads',
       classtypes: 'ClassTypes',
-      notices: 'Notices',
-      newses: 'Newses',
-      nonacademics: 'NonAcademics',
-      events: 'Events',
+nonacademics: 'NonAcademics',
+      
     };
 
     return menuKeys[page] ? [menuKeys[page]] : [];
@@ -173,34 +170,7 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
             </Menu.Item>
           )}
         </Menu.SubMenu>
-        {canAccess('clients') && (
-          <Menu.Item key="Clients" icon={!topMenu && <FeatherIcon icon="user" />}>
-            <NavLink onClick={toggleCollapsed} to={`${path}clients`}>
-              Clients
-            </NavLink>
-          </Menu.Item>
-        )}
-        {canAccess('notices') && (
-          <Menu.Item key="Notices">
-            <NavLink onClick={toggleCollapsed} to={`${path}notices`}>
-              Notice
-            </NavLink>
-          </Menu.Item>
-        )}
-        {canAccess('newses') && (
-          <Menu.Item key="Newses">
-            <NavLink onClick={toggleCollapsed} to={`${path}news`}>
-              News
-            </NavLink>
-          </Menu.Item>
-        )}
-        {canAccess('events') && (
-          <Menu.Item key="Events">
-            <NavLink onClick={toggleCollapsed} to={`${path}events`}>
-              Events
-            </NavLink>
-          </Menu.Item>
-        )}
+     
         {canAccess('users') && (
           <Menu.Item key="Users" icon={!topMenu && <FeatherIcon icon="user-check" />}>
             <NavLink onClick={toggleCollapsed} to={`${path}users`}>
