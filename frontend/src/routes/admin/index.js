@@ -26,20 +26,7 @@ const Accountheads = lazy(() => import('../../container/AccountHeads/AccountHead
 const FeeHeads = lazy(() => import('../../container/FeeHeads/FeeHeads'));
 const Clients = lazy(() => import('../../container/Clients/Clients'));
 const Classtypes = lazy(() => import('../../container/ClassTypes/ClassTypes'));
-const Guardians = lazy(() => import('../../container/Guardians/Guardians'));
-const Staffs = lazy(() => import('../../container/Staffs/Staffs'));
-const Students = lazy(() => import('../../container/Students/Students'));
-const ClassLists = lazy(() => import('../../container/ClassLists/ClassLists'));
-const StudentSetup = lazy(() => import('../../container/Students/CreateStudent'));
-const ClasslistSetup = lazy(() => import('../../container/ClassLists/CreateClassList'));
-const Accounts = lazy(() => import('../../container/Accounts/Accounts'));
-const Transactions = lazy(() => import('../../container/Transactions/Transactions'));
-const ClassAttendances = lazy(() => import('../../container/ClassAttendances/ClassAttendances'));
-const FeeStructure = lazy(() => import('../../container/FeeStructures/FeeStructures'));
-const FeeCollection = lazy(() => import('../../container/FeeCollections/FeeCollections'));
-const TaskManagements = lazy(() => import('../../container/TaskManagements/TaskManagements'));
 const Notices = lazy(() => import('../../container/Notices/Notices'));
-const AttendanceStudent = lazy(() => import('../../container/Reports/AttendanceStudents'));
 
 function Admin() {
   const { path } = useRouteMatch();
@@ -84,21 +71,6 @@ function Admin() {
         {canAccess('feeheads') && <Route exact path={`${path}feeheads`} component={FeeHeads} />}
         {canAccess('clients') && <Route exact path={`${path}clients`} component={Clients} />}
         {canAccess('classtypes') && <Route exact path={`${path}classtypes`} component={Classtypes} />}
-        {canAccess('guardians') && <Route exact path={`${path}guardians`} component={Guardians} />}
-        {canAccess('staffs') && <Route exact path={`${path}staffs`} component={Staffs} />}
-        {canAccess('students') && <Route exact path={`${path}students`} component={Students} />}
-        {canAccess('classlists') && <Route exact path={`${path}classlists`} component={ClassLists} />}
-        {canAccess('accounts') && <Route exact path={`${path}accounts`} component={Accounts} />}
-        {canAccess('transactions') && <Route exact path={`${path}transactions`} component={Transactions} />}
-        {canAccess('classattendances') && <Route exact path={`${path}classattendances`} component={ClassAttendances} />}
-        {canAccess('feecollections') && <Route exact path={`${path}feecollections`} component={FeeCollection} />}
-        <Route exact path={`${path}students/studentSetup`} component={StudentSetup} />
-        <Route exact path={`${path}students/studentSetup/:id`} component={StudentSetup} />
-
-        <Route exact path={`${path}classlists/classlistSetup`} component={ClasslistSetup} />
-        <Route exact path={`${path}classlists/classlistsetup/:id`} component={ClasslistSetup} />
-        {canAccess('feestructures') && <Route exact path={`${path}feestructures`} component={FeeStructure} />}
-        {canAccess('taskmanagements') && <Route exact path={`${path}taskmanagements`} component={TaskManagements} />}
 
         <Route exact path={`${path}profile`} component={Profile} />
         {canAccess('notices') && <Route exact path={`${path}notices`} component={Notices} />}
@@ -107,7 +79,6 @@ function Admin() {
 
         {canAccess('nonacademics') && <Route exact path={`${path}nonacademics`} component={NonAcademics} />}
         {canAccess('events') && <Route exact path={`${path}events`} component={Events} />}
-        {canAccess('attendancestudents') && <Route exact path={`${path}attendancestudents`} component={AttendanceStudent} />}
       </Suspense>
     </Switch>
   );

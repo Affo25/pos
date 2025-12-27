@@ -33,16 +33,6 @@ import clientReducer from './clients/clientSlice';
 import selectedBranchReducer from './selectedBranch/selectedBranchSlice';
 
 import classtypeReducer from './classtypes/classtypeSlice';
-import guardianReducer from './guardians/guardianSlice';
-import staffReducer from './staffs/staffSlice';
-import studentReducer from './students/studentSlice';
-import classListReducer from './classLists/classListSlice';
-import accountReducer from './accounts/accountSlice';
-import transactionReducer from './transactions/transactionSlice';
-import classattendanceReducer from './classattendances/classattendanceSlice';
-import feestructureReducer from './feestructures/feestructureSlice';
-import feecollectionReducer from './feecollections/feecollectionSlice';
-import taskmanagementReducer from './taskmanagements/taskmanagementSlice';
 import noticeReducer from './notices/noticeSlice';
 import newseReducer from './newses/newseSlice';
 import nonacademicReducer from './nonacademics/nonacademicSlice';
@@ -89,16 +79,6 @@ const rootReducers = combineReducers({
   clients: clientReducer,
   seletedBranch: selectedBranchReducer,
   classtypes: classtypeReducer,
-  guardians: guardianReducer,
-  staffs: staffReducer,
-  students: studentReducer,
-  classLists: classListReducer,
-  accounts: accountReducer,
-  transactions: transactionReducer,
-  classattendances: classattendanceReducer,
-  feestructures: feestructureReducer,
-  feecollections: feecollectionReducer,
-  taskmanagements: taskmanagementReducer,
   notices: noticeReducer,
   newses: newseReducer,
   nonacademics: nonacademicReducer,

@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const insertDefaultBranch = require('./startup');
 
 const connectDB = async () => {
     try {
@@ -8,7 +7,6 @@ const connectDB = async () => {
             useUnifiedTopology: true,
         });
         console.log('✅ MongoDB connected');
-        await insertDefaultBranch();
     } catch (error) {
         console.error('❌ MongoDB connection failed:', error.message);
         process.exit(1);

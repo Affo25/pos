@@ -309,21 +309,10 @@ export const allowedPages = [
   'accountheads',
   'feeHeads',
   'classtypes',
-  'guardians',
-  'staffs',
-  'students',
-  'classLists',
-  'accounts',
-  'transactions',
-  'classattendances',
-  'feestructures',
-  'feecollections',
-  'taskmanagements',
   'notices',
   'newses',
   'nonacademics',
   'events',
-  'attendancestudents',
 ];
 
 export const userTypes = ['admin', 'user'];

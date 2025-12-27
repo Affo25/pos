@@ -4,17 +4,14 @@ import Cookies from 'js-cookie';
 import { NotificationManager } from 'react-notifications';
 import * as authService from './authService';
 import { loginStart, loginSuccess, loginFailure, logoutStart, logoutSuccess, logoutFailure } from './authSlice';
-import { clearStaffs } from '../staffs/staffSlice';
 import { clearBranchProfiles } from '../branchprofiles/branchprofileSlice';
 import { clearFaculties } from '../faculties/facultiesSlice';
 import { clearClassTypes } from '../classtypes/classtypeSlice';
 import { clearDepartments } from '../departments/departmentSlice';
 import { clearAccountheads } from '../accountheads/accountheadsSlice';
-import { clearGuardians } from '../guardians/guardianSlice';
 import { clearClients } from '../clients/clientSlice';
 import { clearSubjectss } from '../subjects/subjectsSlice';
 import { clearFeeHeads } from '../feeheads/feeheadsSlice';
-import { clearStudents } from '../students/studentSlice';
 
 function* loginUser({ payload }) {
   try {
@@ -38,7 +35,6 @@ function* logoutUser() {
     Cookies.remove('logedIn');
     Cookies.remove('token');
     localStorage.removeItem('loginData');
-    yield put(clearStaffs());
     yield put(clearSubjectss());
     yield put(clearFeeHeads());
     yield put(clearDepartments());
@@ -46,9 +42,7 @@ function* logoutUser() {
     yield put(clearFaculties());
     yield put(clearBranchProfiles());
     yield put(clearAccountheads());
-    yield put(clearGuardians());
     yield put(clearClients());
-    yield put(clearStudents());
     yield put(logoutSuccess());
     NotificationManager.success('Logout Successful', 'Success');
   } catch (error) {

@@ -1,7 +1,7 @@
 /* eslint-disable no-underscore-dangle */
 import { useDispatch, useSelector } from 'react-redux';
 import React, { useEffect } from 'react';
-import { Menu, Select } from 'antd';
+import { Menu } from 'antd';
 import { NavLink, useRouteMatch, useLocation } from 'react-router-dom';
 import FeatherIcon from 'feather-icons-react';
 import propTypes from 'prop-types';
@@ -56,21 +56,10 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
       accountheads: 'Accountheads',
       feeheads: 'Feeheads',
       classtypes: 'ClassTypes',
-      guardians: 'Guardians',
-      staffs: 'Staffs',
-      students: 'Students',
-      classlists: 'ClassLists',
-      accounts: 'Accounts',
-      transactions: 'Transactions',
-      classattendances: 'ClassAttendances',
-      feestructures: 'FeeStructures',
-      feecollections: 'FeeCollections',
-      taskmanagements: 'TaskManagements',
       notices: 'Notices',
       newses: 'Newses',
       nonacademics: 'NonAcademics',
       events: 'Events',
-      attendancestudents: 'AttendanceStudents',
     };
 
     return menuKeys[page] ? [menuKeys[page]] : [];
@@ -89,14 +78,14 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
     }
   }, [branchprofiles, selectedBranchId]);
 
-  const handleBranchChange = (value) => {
-    dispatch(setSelectedBranch(value));
-  };
+  // const handleBranchChange = (value) => {
+  //   dispatch(setSelectedBranch(value));
+  // };
 
   return (
     <>
       <div style={{ padding: '8px 15px' }}>
-        {branchprofiles.length > 0 && selectedBranchId ? (
+        {/* {branchprofiles.length > 0 && selectedBranchId ? (
           <Select
             value={selectedBranchId}
             onChange={handleBranchChange}
@@ -113,7 +102,7 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
           </Select>
         ) : (
           <span>Loading branches...</span>
-        )}
+        )} */}
       </div>
       <Menu
         mode={!topMenu || window.innerWidth <= 991 ? 'inline' : 'horizontal'}
@@ -184,99 +173,6 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
             </Menu.Item>
           )}
         </Menu.SubMenu>
-
-        <Menu.SubMenu key="Staff" title="Staff" icon={!topMenu && <FeatherIcon icon="layers" />}>
-          {canAccess('staffs') && (
-            <Menu.Item key="Staffs">
-              <NavLink onClick={toggleCollapsed} to={`${path}staffs`}>
-                Academic Staff
-              </NavLink>
-            </Menu.Item>
-          )}
-          {canAccess('nonacademics') && (
-            <Menu.Item key="NonAcademics">
-              <NavLink onClick={toggleCollapsed} to={`${path}NonAcademics`}>
-                Non Academic Staff
-              </NavLink>
-            </Menu.Item>
-          )}
-        </Menu.SubMenu>
-
-        {canAccess('guardians') && (
-          <Menu.Item key="Guardians" icon={!topMenu && <FeatherIcon icon="users" />}>
-            <NavLink onClick={toggleCollapsed} to={`${path}guardians`}>
-              Guardians
-            </NavLink>
-          </Menu.Item>
-        )}
-        {canAccess('students') && (
-          <Menu.Item key="Students">
-            <NavLink onClick={toggleCollapsed} to={`${path}students`}>
-              Students
-            </NavLink>
-          </Menu.Item>
-        )}
-        <Menu.SubMenu key="Classlist" title="Class List" icon={!topMenu && <FeatherIcon icon="layers" />}>
-          {canAccess('classlists') && (
-            <Menu.Item key="ClassLists">
-              <NavLink onClick={toggleCollapsed} to={`${path}classlists`}>
-                List
-              </NavLink>
-            </Menu.Item>
-          )}
-        </Menu.SubMenu>
-        <Menu.SubMenu key="Attendance" title="Attendance" icon={!topMenu && <FeatherIcon icon="layers" />}>
-          {canAccess('classattendances') && (
-            <Menu.Item key="ClassAttendances">
-              <NavLink onClick={toggleCollapsed} to={`${path}classattendances`}>
-                Class Attendance
-              </NavLink>
-            </Menu.Item>
-          )}
-        </Menu.SubMenu>
-        <Menu.SubMenu
-          key="Accounts Management"
-          title="Accounts Management"
-          icon={!topMenu && <FeatherIcon icon="layers" />}
-        >
-          {canAccess('accounts') && (
-            <Menu.Item key="Accounts">
-              <NavLink onClick={toggleCollapsed} to={`${path}accounts`}>
-                Accounts
-              </NavLink>
-            </Menu.Item>
-          )}
-          {canAccess('transactions') && (
-            <Menu.Item key="Transactions">
-              <NavLink onClick={toggleCollapsed} to={`${path}transactions`}>
-                Transactions
-              </NavLink>
-            </Menu.Item>
-          )}
-        </Menu.SubMenu>
-        <Menu.SubMenu key="FeeMangement" title="Fee Mangement" icon={!topMenu && <FeatherIcon icon="layers" />}>
-          {canAccess('feestructures') && (
-            <Menu.Item key="FeeStructures">
-              <NavLink onClick={toggleCollapsed} to={`${path}feestructures`}>
-                Fee Structures
-              </NavLink>
-            </Menu.Item>
-          )}
-          {canAccess('feecollections') && (
-            <Menu.Item key="FeeCollections">
-              <NavLink onClick={toggleCollapsed} to={`${path}feecollections`}>
-                Fee Collection
-              </NavLink>
-            </Menu.Item>
-          )}
-        </Menu.SubMenu>
-        {canAccess('taskmanagements') && (
-          <Menu.Item key="TaskManagements">
-            <NavLink onClick={toggleCollapsed} to={`${path}taskmanagements`}>
-              Task Managements
-            </NavLink>
-          </Menu.Item>
-        )}
         {canAccess('clients') && (
           <Menu.Item key="Clients" icon={!topMenu && <FeatherIcon icon="user" />}>
             <NavLink onClick={toggleCollapsed} to={`${path}clients`}>
@@ -305,15 +201,6 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
             </NavLink>
           </Menu.Item>
         )}
-        <Menu.SubMenu key="Reports" title="Reports" icon={!topMenu && <FeatherIcon icon="layers" />}>
-          {canAccess('attendancestudents') && (
-            <Menu.Item key="AttendanceStudents">
-              <NavLink onClick={toggleCollapsed} to={`${path}attendancestudents`}>
-                Attendance Students
-              </NavLink>
-            </Menu.Item>
-          )}
-        </Menu.SubMenu>
         {canAccess('users') && (
           <Menu.Item key="Users" icon={!topMenu && <FeatherIcon icon="user-check" />}>
             <NavLink onClick={toggleCollapsed} to={`${path}users`}>

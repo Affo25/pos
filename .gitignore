@@ -12,3 +12,5 @@ modern.jsonp
 resources/sass/.sass-cache/
 resources/.arch-internal-preview.css
 .arch-internal-preview.css
+/backend/node_modules
+/node_modules
