@@ -306,4 +306,18 @@ export const allowedPages = [
   'products',
 ];
 
+
+export const categories = [
+  { id: '1', name: 'Electronics' },
+  { id: '2', name: 'Clothing' },
+];
+
+export const subCategories = [
+  { id: '1', name: 'Mobile Phones', categoryId: '1' },
+  { id: '2', name: 'Laptops', categoryId: '1' },
+];
+
+
+
+
 export const userTypes = ['admin', 'user'];
