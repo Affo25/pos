@@ -1,9 +1,10 @@
 /* eslint-disable no-unused-vars */
-  import React, { useState, useEffect } from 'react';
+/* eslint-disable camelcase */
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Row, Col, Menu, message, Dropdown, Select } from 'antd';
+import { Row, Col, Menu, Dropdown, Select } from 'antd';
 import { Link } from 'react-router-dom';
-import { EditOutlined, DeleteOutlined, SettingOutlined, LinkOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import FeatherIcon from 'feather-icons-react';
 import { toast } from 'react-toastify';
 import { useHistory } from 'react-router-dom/cjs/react-router-dom.min';
@@ -15,28 +16,24 @@ import ProjectLists from '../../config/default/List';
 import { ProjectHeader, ProjectSorting } from '../../config/default/style';
 import { Main } from '../../config/default/styled';
 import { deleteProduct, fetchAllProducts } from '../../redux/products/productSlice';
-import { getComponentPermissions } from '../../config/utils/permission';
 
 function Products() {
   const history = useHistory();
   const dispatch = useDispatch();
   const { products, loading } = useSelector((state) => state.products);
-    const { login: user } = useSelector(state => state.auth);
-    const { canAdd, canEdit, canDelete } = getComponentPermissions(user, 'Products');
-    
   const [dataSource, setDataSource] = useState([]);
 
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
   });
+
   const [state, setState] = useState({
     notData: [],
     visible: false,
-    categoryActive: 'all',
     selectedProduct: null,
-    selectedProductId: null,
   });
+
   const [searchTerm, setSearchTerm] = useState('');
   const [sortStatus, setSortStatus] = useState('category');
 
@@ -85,18 +82,15 @@ function Products() {
 
   useEffect(() => {
     dispatch(fetchAllProducts());
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     if (products && Array.isArray(products)) {
       let filtered = [...products];
 
       if (searchTerm) {
-        filtered = filtered.filter(
-          (item) =>
-            item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.status.toLowerCase().includes(searchTerm.toLowerCase()),
-        );
+        const term = searchTerm.toLowerCase();
+        filtered = filtered.filter((item) => (item.name || '').toLowerCase().includes(term));
       }
 
       if (sortStatus !== 'category') {
@@ -104,26 +98,41 @@ function Products() {
       }
 
       filtered.sort((a, b) => {
-        if (searchTerm) {
-          if (a.name.toLowerCase().includes(searchTerm.toLowerCase())) return -1;
-          if (b.name.toLowerCase().includes(searchTerm.toLowerCase())) return 1;
-        }
+        if (!searchTerm) return 0;
+        const term = searchTerm.toLowerCase();
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        if (nameA.includes(term)) return -1;
+        if (nameB.includes(term)) return 1;
         return 0;
       });
-      
+
       const start = (pagination.current - 1) * pagination.pageSize;
       const end = start + pagination.pageSize;
       const paginatedData = filtered.slice(start, end);
-      
+
       const formatted = paginatedData.map((product) => {
-        const { _id, id, name, email, age, number, status } = product;
+        const {
+          _id,
+          id,
+          name,
+          sku,
+          unit,
+          cost_price,
+          selling_price,
+          total_stock,
+          status,
+        } = product;
+
         return {
           key: _id || id,
           id: _id || id,
           name,
-          email,
-          age,
-          number,
+          sku,
+          unit,
+          cost_price,
+          selling_price,
+          total_stock,
           status:
             status === 'active' ? (
               <span className="color-success">Active</span>
@@ -134,13 +143,13 @@ function Products() {
             <Dropdown
               overlay={
                 <Menu className="custom-dropdown-menu">
-                  <Menu.Item disabled={!canEdit} key="edit" className="custom-menu-item" onClick={() => handleEdit(product)}>
+                  <Menu.Item key="edit" className="custom-menu-item" onClick={() => handleEdit(product)}>
                     <div className="custom-action-btn edit-btn">
                       <EditOutlined className="action-icon" />
                       <span className="action-label">Edit</span>
                     </div>
                   </Menu.Item>
-                  <Menu.Item disabled={!canDelete} key="delete" className="custom-menu-item" onClick={() => handleDelete(_id || id)}>
+                  <Menu.Item key="delete" className="custom-menu-item" onClick={() => handleDelete(_id || id)}>
                     <div className="custom-action-btn delete-btn">
                       <DeleteOutlined className="action-icon" />
                       <span className="action-label">Delete</span>
@@ -158,6 +167,7 @@ function Products() {
           ),
         };
       });
+
       setDataSource(formatted);
     }
   }, [products, pagination, searchTerm, sortStatus]);
@@ -179,42 +189,15 @@ function Products() {
   };
 
   const columns = [
-    {
-      title: '#',
-      key: 'index',
-      render: (text, record, index) => (pagination.current - 1) * pagination.pageSize + index + 1,
-      width: 50,
-    },
-    {
-      title: 'Name',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
-    },
-    {
-      title: 'Age',
-      dataIndex: 'age',
-      key: 'age',
-    },
-    {
-      title: 'Number',
-      dataIndex: 'number',
-      key: 'number',
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-    },
-    {
-      title: 'Action',
-      dataIndex: 'action',
-      key: 'action',
-    },
+    { title: '#', key: 'index', render: (text, record, index) => (pagination.current - 1) * pagination.pageSize + index + 1, width: 50 },
+    { title: 'SKU', dataIndex: 'sku', key: 'sku' },
+    { title: 'Product Name', dataIndex: 'name', key: 'name' },
+    { title: 'Unit', dataIndex: 'unit', key: 'unit' },
+    { title: 'Cost Price', dataIndex: 'cost_price', key: 'cost_price' },
+    { title: 'Selling Price', dataIndex: 'selling_price', key: 'selling_price' },
+    { title: 'Total Stock', dataIndex: 'total_stock', key: 'total_stock' },
+    { title: 'Status', dataIndex: 'status', key: 'status' },
+    { title: 'Action', dataIndex: 'action', key: 'action' },
   ];
 
   return (
@@ -225,7 +208,7 @@ function Products() {
           title="Products"
           subTitle={<>{loading ? 'Loading...' : `${dataSource.length} Products`}</>}
           buttons={[
-            <Button disabled={!canAdd} onClick={showModal} key="1" type="primary" size="default">
+            <Button onClick={showModal} key="1" type="primary" size="default">
               <FeatherIcon icon="plus" size={16} /> Create Product
             </Button>,
           ]}
@@ -237,39 +220,35 @@ function Products() {
             <ProjectSorting>
               <div className="project-sort-bar">
                 <div className="project-sort-search">
-                  <AutoComplete onSearch={handleSearch} dataSource={notData} placeholder="Search products" patterns />
+                  <AutoComplete
+                    onSearch={handleSearch}
+                    dataSource={notData}
+                    placeholder="Search products"
+                    patterns
+                  />
                 </div>
                 <div className="sort-group">
                   <span style={{ display: 'flex', alignItems: 'center' }}>Sort By:</span>
                   <Select defaultValue="category" onChange={(value) => setSortStatus(value)}>
                     <Select.Option value="category">All</Select.Option>
-                    <Select.Option value="Active">Active</Select.Option>
-                    <Select.Option value="InActive">Inactive</Select.Option>
+                    <Select.Option value="active">Active</Select.Option>
+                    <Select.Option value="inactive">Inactive</Select.Option>
                   </Select>
                 </div>
               </div>
             </ProjectSorting>
-            <div>
-              <ProjectLists
-                columns={columns}
-                dataSource={dataSource}
-                loading={loading}
-                total={products?.length || 0}
-                pageSize={pagination.pageSize}
-                onChange={handlePageChange}
-                onShowSizeChange={handleSizeChange}
-              />
-            </div>
+            <ProjectLists
+              columns={columns}
+              dataSource={dataSource}
+              loading={loading}
+              total={products?.length || 0}
+              pageSize={pagination.pageSize}
+              onChange={handlePageChange}
+              onShowSizeChange={handleSizeChange}
+            />
           </Col>
         </Row>
-        <CreateProduct 
-          visible={visible} 
-          onCancel={onCancel} 
-          product={selectedProduct}
-          onSuccess={() => {
-            dispatch(fetchAllProducts());
-          }} 
-        />
+        <CreateProduct visible={visible} onCancel={onCancel} product={selectedProduct} />
       </Main>
     </>
   );
