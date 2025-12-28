@@ -81,7 +81,6 @@ import { create${featureName}, update${featureName} } from '../../redux/${featur
 import { BasicFormWrapper } from '../../config/default/styled';
 
 function Create${featureName}({ visible, onCancel, ${featureNameLower}, onSuccess }) {
-const { selectedBranchId } = useSelector((state) => state.seletedBranch);
   const [form] = Form.useForm();
   const dispatch = useDispatch();
 
@@ -105,7 +104,7 @@ const { selectedBranchId } = useSelector((state) => state.seletedBranch);
       const values = await form.validateFields();
       const ${featureNameLower}Data = {
         ${DEFAULT_FIELDS.map((field) => `${field}: values.${field}`).join(',\n        ')},
-         branch_id: selectedBranchId,
+       
       };
 
       if (${featureNameLower}) {
@@ -204,7 +203,7 @@ function ${featureNamePlural}() {
   const { ${featureNamePluralLower}, loading } = useSelector((state) => state.${featureNamePluralLower});
     const { login: user } = useSelector(state => state.auth);
     const { canAdd, canEdit, canDelete } = getComponentPermissions(user, '${featureNamePlural}');
-    const { selectedBranchId } = useSelector((state) => state.seletedBranch);
+    
   const [dataSource, setDataSource] = useState([]);
 
   const [pagination, setPagination] = useState({
@@ -237,7 +236,7 @@ function ${featureNamePlural}() {
   };
 
   const handleDelete = (id) => {
-    dispatch(delete${featureName}(id, selectedBranchId));
+    dispatch(delete${featureName}(id));
     toast.success('Deleted successfully 🎉', {
       position: 'top-right',
       autoClose: 3000,
@@ -265,10 +264,8 @@ function ${featureNamePlural}() {
   };
 
   useEffect(() => {
-    if (selectedBranchId) {
-    dispatch(fetchAll${featureNamePlural}(selectedBranchId));
-    }
-  }, [dispatch, selectedBranchId]);
+    dispatch(fetchAll${featureNamePlural}());
+  }, []);
 
   useEffect(() => {
     if (${featureNamePluralLower} && Array.isArray(${featureNamePluralLower})) {
@@ -426,8 +423,8 @@ function ${featureNamePlural}() {
                   <span style={{ display: 'flex', alignItems: 'center' }}>Sort By:</span>
                   <Select defaultValue="category" onChange={(value) => setSortStatus(value)}>
                     <Select.Option value="category">All</Select.Option>
-                    <Select.Option value="Active">active</Select.Option>
-                    <Select.Option value="InActive">inactive</Select.Option>
+                    <Select.Option value="Active">Active</Select.Option>
+                    <Select.Option value="InActive">Inactive</Select.Option>
                   </Select>
                 </div>
               </div>
@@ -450,7 +447,7 @@ function ${featureNamePlural}() {
           onCancel={onCancel} 
           ${featureNameLower}={selected${featureName}}
           onSuccess={() => {
-            dispatch(fetchAll${featureNamePlural}(selectedBranchId));
+            dispatch(fetchAll${featureNamePlural}());
           }} 
         />
       </Main>
@@ -475,10 +472,10 @@ import {
   fetch${featureNamePlural}Success,
 } from './${featureNameLower}Slice';
 
-function* fetchAll${featureNamePlural}({ payload: branchId }) {
+function* fetchAll${featureNamePlural}() {
   try {
     yield put(operationStart());
-    const ${featureNamePluralLower} = yield call(${featureNameLower}Service.fetchAll${featureNamePlural}, branchId);
+    const ${featureNamePluralLower} = yield call(${featureNameLower}Service.fetchAll${featureNamePlural});
     yield put(fetch${featureNamePlural}Success(${featureNamePluralLower}));
     yield put(operationSuccess());
   } catch (error) {
@@ -492,7 +489,7 @@ function* create${featureName}({ payload: ${featureNameLower}Data }) {
     yield put(operationStart());
     yield call(${featureNameLower}Service.create${featureName}, ${featureNameLower}Data);
     NotificationManager.success('${featureName} created successfully', 'Success');
-    yield call(fetchAll${featureNamePlural}, ${featureNameLower}Data.branch_id);
+    yield call(fetchAll${featureNamePlural});
     yield put(operationSuccess());
   } catch (error) {
     yield put(operationFailure(error.message));
@@ -513,13 +510,13 @@ function* update${featureName}({ payload: { id, data } }) {
   }
 }
 
-function* delete${featureName}({ payload: { id, branchId } }) {
+function* delete${featureName}({ payload: { id } }) {
   try {
     yield put(operationStart());
     yield call(${featureNameLower}Service.delete${featureName}, id);
     yield put(operationSuccess());
     NotificationManager.success('${featureName} deleted successfully', 'Success');
-    yield call(fetchAll${featureNamePlural}, { payload: branchId });
+    yield call(fetchAll${featureNamePlural});
   } catch (error) {
     yield put(operationFailure(error.message));
     NotificationManager.error(error.message, 'Error');
@@ -546,9 +543,9 @@ function generatePageService(featureName, featureNamePlural, featureNameLower, f
 const API_BASE_URL = '${apiEndpoint}';
 const getToken = () => Cookies.get('token');
 
-export const fetchAll${featureNamePlural} = async (branchId) => {
+export const fetchAll${featureNamePlural} = async () => {
   const token = getToken();
-  const url = branchId ? \`\${API_BASE_URL}?branch_id=\${branchId}\` : API_BASE_URL;
+  const url = API_BASE_URL;
 
   const response = await fetch(url, {
     headers: {
@@ -644,10 +641,10 @@ const ${featureNameLower}Slice = createSlice({
   },
 });
 
-const fetchAll${featureNamePlural} = (branchId) => ({ type: '${featureNamePluralLower}/fetchAll', payload: branchId });
+const fetchAll${featureNamePlural} = () => ({ type: '${featureNamePluralLower}/fetchAll'});
 const create${featureName} = (${featureNameLower}Data) => ({ type: '${featureNamePluralLower}/create', payload: ${featureNameLower}Data });
 const update${featureName} = (id, data) => ({ type: '${featureNamePluralLower}/update', payload: { id, data } });
-const delete${featureName} = (id, branchId) => ({ type: '${featureNamePluralLower}/delete',payload: { id, branchId } });
+const delete${featureName} = (id) => ({ type: '${featureNamePluralLower}/delete',payload:  id });
 
 export const {
   operationStart,
