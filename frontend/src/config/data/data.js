@@ -303,6 +303,7 @@ export const DATE_DEFAULT_OPTIONS = [
 export const allowedPages = [
   'branchProfiles',
   'faculties',
+  'products',
 ];
 
 export const userTypes = ['admin', 'user'];

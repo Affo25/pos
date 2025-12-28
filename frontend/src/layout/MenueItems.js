@@ -49,6 +49,7 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
       users: 'Users',
       pages: 'Pages',
       faculties: 'Faculties',
+      products: 'Products',
     };
 
     return menuKeys[page] ? [menuKeys[page]] : [];
@@ -99,8 +100,15 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
               </NavLink>
             </Menu.Item>
           )}
-        </Menu.SubMenu>
 
+        </Menu.SubMenu>
+        {canAccess('products') && (
+          <Menu.Item key="Products">
+            <NavLink onClick={toggleCollapsed} to={`${path}products`}>
+              Products
+            </NavLink>
+          </Menu.Item>
+        )}
         {canAccess('users') && (
           <Menu.Item key="Users" icon={!topMenu && <FeatherIcon icon="user-check" />}>
             <NavLink onClick={toggleCollapsed} to={`${path}users`}>
@@ -120,4 +128,3 @@ MenuItems.propTypes = {
 };
 
 export default MenuItems;
-// acha aik kam karo ka ager user login hato usy ya user ka <Menu.Item key="Users"  ya show he na ho

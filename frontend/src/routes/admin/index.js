@@ -4,6 +4,7 @@ import { Spin } from 'antd';
 import { Switch, Route, useRouteMatch } from 'react-router-dom';
 import withAdminLayout from '../../layout/withAdminLayout';
 
+const Products = lazy(() => import('../../container/Products/Products'));
 const Dashboard = lazy(() => import('../../container/dashboard'));
 const Calendars = lazy(() => import('../../container/Calendar'));
 const Myprofile = lazy(() => import('../../container/profile/myProfile/Index'));
@@ -16,14 +17,13 @@ const Faculties = lazy(() => import('../../container/Faculties/Faculties'));
 function Admin() {
   const { path } = useRouteMatch();
   const { login: user } = useSelector((state) => state.auth);
-  console.log(user);
 
   if (!user) return null;
 
   const allowedPages = user.allowed_pages || [];
 
   const canAccess = (page) => {
-    if (['superAdmin', 'admin', 'moderator'].includes(user.user_type)) {
+    if (['superAdmin', 'admin'].includes(user.user_type)) {
       return true;
     }
 
@@ -45,6 +45,7 @@ function Admin() {
         {canAccess('profile') && <Route path={`${path}profile/myProfile`} component={Myprofile} />}
         {canAccess('branchprofiles') && <Route exact path={`${path}branchprofiles`} component={BranchProfiles} />}
         {canAccess('faculties') && <Route exact path={`${path}faculties`} component={Faculties} />}
+        {canAccess('products') && <Route exact path={`${path}products`} component={Products} />}
         <Route exact path={`${path}profile`} component={Profile} />
       </Suspense>
     </Switch>

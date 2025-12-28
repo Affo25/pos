@@ -19,6 +19,7 @@ import firebaseAuth from './firebase/auth/reducers';
 import userReducer from './users/userSlice';
 import branchprofileReducer from './branchprofiles/branchprofileSlice';
 import facultiesReducer from './faculties/facultiesSlice';
+import productReducer from './products/productSlice';
 import selectedBranchReducer from './selectedBranch/selectedBranchSlice';
 
 const rootReducers = combineReducers({
@@ -49,6 +50,7 @@ const rootReducers = combineReducers({
   branchprofiles: branchprofileReducer,
   faculties: facultiesReducer,
   seletedBranch: selectedBranchReducer,
+  products: productReducer,
 });
 
 export default rootReducers;
