@@ -44,8 +44,7 @@ try {
 
 const ${modelName}Schema = new mongoose.Schema({
 ${generateFields(fields)},
- branch_id: { type: mongoose.Schema.Types.ObjectId, ref: 'BranchProfiles' },
-  client_id: { type: mongoose.Schema.Types.ObjectId, ref: 'clients', required: true },
+  admin_id: { type: mongoose.Schema.Types.ObjectId, ref: 'admins', required: true },
   created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
 }, { timestamps: true });
 
@@ -57,11 +56,11 @@ module.exports = mongoose.model('${modelName}', ${modelName}Schema);
 
 exports.create${modelName} = async (req, res) => {
   try {
-     const clientId =
-      req.user.user_type === 'client' ? req.user._id : req.user.client_id;
+     const adminId =
+      req.user.user_type === 'admin' ? req.user._id : req.user.admin_id;
     const data = {
       ...req.body,
-      client_id: clientId,
+      admin_id: adminId,
       created_by: req.user._id,
     };
 
@@ -75,18 +74,15 @@ exports.create${modelName} = async (req, res) => {
 
 exports.get${modelName}s = async (req, res) => {
   try {
-     const { branch_id } = req.query;
-    const clientId = req.user.user_type === 'client' ? req.user._id : req.user.client_id;
+    const adminId = req.user.user_type === 'admin' ? req.user._id : req.user.admin_id;
 
     const query = {
-      client_id: clientId,
+      admin_id: adminId,
     };
 
     if (req.user.user_type === 'user') {
       query.created_by = req.user.id;
     }
-
-    if (branch_id) query.branch_id = branch_id;
 
     const ${toFileName(modelName)}s = await ${modelName}.find(query);
     res.status(200).json(${toFileName(modelName)}s);
@@ -99,8 +95,8 @@ const checkFacultyAccess = async (id, user) => {
   const faculty = await ${modelName}.findById(id);
   if (!faculty) throw new Error('Faculty not found');
 
-  const loggedInClientId = user.user_type === 'client' ? user._id : user.client_id;
-  if (faculty.client_id.toString() !== loggedInClientId.toString()) {
+  const loggedInAdminId = user.user_type === 'admin' ? user._id : user.admin_id;
+  if (faculty.admin_id.toString() !== loggedInAdminId.toString()) {
     throw new Error('Unauthorized access');
   }
 

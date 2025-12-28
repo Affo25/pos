@@ -1,3 +1,4 @@
+const productsRoutes = require('./routes/productsRoutes');
 const path = require("path");
 
 const facultiesRoutes = require("./routes/facultiesRoutes");
@@ -25,4 +26,5 @@ app.use("/api/users", userRoutes);
 app.use("/api/branchProfiles", branchProfileRoutes);
 app.use("/api/faculties", facultiesRoutes);
 
+app.use('/api/productss', productsRoutes);
 module.exports = app;

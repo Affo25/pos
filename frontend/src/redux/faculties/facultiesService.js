@@ -33,16 +33,16 @@ export const createFaculties = async (facultiesData) => {
       body: JSON.stringify(facultiesData),
     });
 
-    console.log('📥 Response Status:', response.status);  // ✅ Add this
+    console.log('📥 Response Status:', response.status); 
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('❌ Error details:', errorData);  // ✅ Add this
+      console.error('❌ Error details:', errorData);  
       throw new Error(errorData.error || 'Failed to create faculties');
     }
 
     const result = await response.json();
-    console.log('✅ Success Response:', result);  // ✅ Add this
+    console.log('✅ Success Response:', result);  
     return result;
   } catch (error) {
     console.error('❌ Full error:', error);

@@ -99,7 +99,7 @@ function Clients() {
 
   useEffect(() => {
     dispatch(fetchAllClients());
-  }, [dispatch]);
+  }, []);
 
   useEffect(() => {
     if (clients && Array.isArray(clients)) {
