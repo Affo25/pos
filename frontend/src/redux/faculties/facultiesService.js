@@ -3,9 +3,9 @@ import Cookies from 'js-cookie';
 const API_BASE_URL = 'http://localhost:5000/api/faculties';
 const getToken = () => Cookies.get('token');
 
-export const fetchAllFaculties = async (branchId) => {
+export const fetchAllFaculties = async () => {
   const token = getToken();
-  const response = await fetch(`${API_BASE_URL}?branch_id=${branchId}`, {
+  const response = await fetch(`${API_BASE_URL}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -19,9 +19,11 @@ export const fetchAllFaculties = async (branchId) => {
 };
 
 export const createFaculties = async (facultiesData) => {
-
   try {
     const token = getToken();
+    console.log('📤 Sending Data:', facultiesData);  // ✅ Add this
+    console.log('🔑 Token:', token);  // ✅ Add this
+
     const response = await fetch(API_BASE_URL, {
       method: 'POST',
       headers: {
@@ -30,14 +32,20 @@ export const createFaculties = async (facultiesData) => {
       },
       body: JSON.stringify(facultiesData),
     });
+
+    console.log('📥 Response Status:', response.status);  // ✅ Add this
+
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Error details:', errorData);
+      console.error('❌ Error details:', errorData);  // ✅ Add this
       throw new Error(errorData.error || 'Failed to create faculties');
     }
-    return response.json();
+
+    const result = await response.json();
+    console.log('✅ Success Response:', result);  // ✅ Add this
+    return result;
   } catch (error) {
-    console.error('Full error:', error);
+    console.error('❌ Full error:', error);
     throw error;
   }
 };

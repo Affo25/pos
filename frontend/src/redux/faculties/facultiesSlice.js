@@ -26,7 +26,7 @@ const facultieslice = createSlice({
       state.faculties = action.payload;
     },
     clearFaculties(state) {
-      state.staffs = [];
+      state.faculties = [];
     },
     clearError(state) {
       state.error = null;
@@ -34,15 +34,14 @@ const facultieslice = createSlice({
   },
 });
 
-const fetchAllFaculties = (branchId) => ({
+const fetchAllFaculties = () => ({
   type: 'faculties/fetchAll',
-  payload: branchId,
 });
 const createFaculties = (facultiesData) => ({ type: 'faculties/create', payload: facultiesData });
 const updateFaculties = (id, data) => ({ type: 'faculties/update', payload: { id, data } });
-const deleteFaculties = (id, branchId) => ({
+const deleteFaculties = (id) => ({
   type: 'faculties/delete',
-  payload: { id, branchId },
+  payload: { id },
 });
 
 

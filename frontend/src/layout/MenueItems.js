@@ -20,7 +20,9 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
   const allowedPages = user?.allowed_pages || [];
 
   const canAccess = (page) => {
-    if (['superAdmin', 'admin', 'moderator'].includes(user.user_type)) {
+    if (!user) return false;
+
+    if (['superAdmin', 'admin'].includes(user.user_type)) {
       return true;
     }
 
@@ -46,17 +48,7 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
     const menuKeys = {
       users: 'Users',
       pages: 'Pages',
-      teachers: 'Teachers',
-      kirlas: 'Kirlas',
-      branchprofiles: 'BranchProfiles',
       faculties: 'Faculties',
-      departments: 'Departments',
-      subjects: 'Subjects',
-      accountheads: 'Accountheads',
-      feeheads: 'Feeheads',
-      classtypes: 'ClassTypes',
-nonacademics: 'NonAcademics',
-      
     };
 
     return menuKeys[page] ? [menuKeys[page]] : [];
@@ -75,32 +67,8 @@ nonacademics: 'NonAcademics',
     }
   }, [branchprofiles, selectedBranchId]);
 
-  // const handleBranchChange = (value) => {
-  //   dispatch(setSelectedBranch(value));
-  // };
-
   return (
     <>
-      <div style={{ padding: '8px 15px' }}>
-        {/* {branchprofiles.length > 0 && selectedBranchId ? (
-          <Select
-            value={selectedBranchId}
-            onChange={handleBranchChange}
-            placeholder="Choose a branch"
-            style={{ minWidth: 200 }}
-            optionFilterProp="children"
-            filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}
-          >
-            {branchprofiles.map((bp) => (
-              <Select.Option key={bp._id} value={bp._id}>
-                {bp.branch_name}
-              </Select.Option>
-            ))}
-          </Select>
-        ) : (
-          <span>Loading branches...</span>
-        )} */}
-      </div>
       <Menu
         mode={!topMenu || window.innerWidth <= 991 ? 'inline' : 'horizontal'}
         theme={darkMode ? 'dark' : 'light'}
@@ -116,7 +84,6 @@ nonacademics: 'NonAcademics',
             Dashboard
           </NavLink>
         </Menu.Item>
-
         <Menu.SubMenu key="Setup" title="Setup" icon={!topMenu && <FeatherIcon icon="layers" />}>
           {canAccess('branchprofiles') && (
             <Menu.Item key="BranchProfiles">
@@ -132,45 +99,8 @@ nonacademics: 'NonAcademics',
               </NavLink>
             </Menu.Item>
           )}
-
-          {canAccess('classtypes') && (
-            <Menu.Item key="ClassTypes">
-              <NavLink onClick={toggleCollapsed} to={`${path}classtypes`}>
-                Class Types
-              </NavLink>
-            </Menu.Item>
-          )}
-
-          {canAccess('departments') && (
-            <Menu.Item key="Departments">
-              <NavLink onClick={toggleCollapsed} to={`${path}departments`}>
-                Departments
-              </NavLink>
-            </Menu.Item>
-          )}
-          {canAccess('subjects') && (
-            <Menu.Item key="Subjects">
-              <NavLink onClick={toggleCollapsed} to={`${path}subjects`}>
-                Subjects
-              </NavLink>
-            </Menu.Item>
-          )}
-          {canAccess('feeheads') && (
-            <Menu.Item key="Feeheads">
-              <NavLink onClick={toggleCollapsed} to={`${path}feeheads`}>
-                Fee Heads
-              </NavLink>
-            </Menu.Item>
-          )}
-          {canAccess('accountheads') && (
-            <Menu.Item key="Accountheads">
-              <NavLink onClick={toggleCollapsed} to={`${path}Accountheads`}>
-                Account Heads
-              </NavLink>
-            </Menu.Item>
-          )}
         </Menu.SubMenu>
-     
+
         {canAccess('users') && (
           <Menu.Item key="Users" icon={!topMenu && <FeatherIcon icon="user-check" />}>
             <NavLink onClick={toggleCollapsed} to={`${path}users`}>
@@ -190,3 +120,4 @@ MenuItems.propTypes = {
 };
 
 export default MenuItems;
+// acha aik kam karo ka ager user login hato usy ya user ka <Menu.Item key="Users"  ya show he na ho

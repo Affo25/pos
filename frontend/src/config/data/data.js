@@ -301,18 +301,8 @@ export const DATE_DEFAULT_OPTIONS = [
 ];
 
 export const allowedPages = [
-  'users',
   'branchProfiles',
-  'departments',
   'faculties',
-  'subjects',
-  'accountheads',
-  'feeHeads',
-  'classtypes',
-  'notices',
-  'newses',
-  'nonacademics',
-  'events',
 ];
 
 export const userTypes = ['admin', 'user'];

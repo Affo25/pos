@@ -9,10 +9,10 @@ import {
   fetchFacultiesuccess,
 } from './facultiesSlice';
 
-function* fetchAllFaculties({ payload: branchId }) {
+function* fetchAllFaculties() {
   try {
     yield put(operationStart());
-    const faculties = yield call(facultieservice.fetchAllFaculties, branchId);
+    const faculties = yield call(facultieservice.fetchAllFaculties);
     yield put(fetchFacultiesuccess(faculties));
     yield put(operationSuccess());
   } catch (error) {
@@ -24,11 +24,11 @@ function* fetchAllFaculties({ payload: branchId }) {
   }
 }
 
-function* createFaculties({ payload: facultiesData }) {
+function* createFaculties(facultiesData) {
   try {
     yield put(operationStart());
     yield call(facultieservice.createFaculties, facultiesData);
-    yield call(fetchAllFaculties, { payload: facultiesData.branch_id });
+    yield call(fetchAllFaculties, { facultiesData });
     yield put(operationSuccess());
     toast.success("Faculties Created successfully 🎉", {
       position: "top-right",
@@ -46,8 +46,8 @@ function* updateFaculties({ payload: { id, data } }) {
     yield put(operationStart());
     yield call(facultieservice.updateFaculties, id, data);
     yield put(operationSuccess());
-    yield call(fetchAllFaculties, { payload: data.branch_id });
-    toast.success("Faculties Updated successfullys 🎉", {
+    yield call(fetchAllFaculties);
+    toast.success("Faculties Updated successfully 🎉", {
       position: "top-right",
       autoClose: 3000,
     });
@@ -57,13 +57,13 @@ function* updateFaculties({ payload: { id, data } }) {
   }
 }
 
-function* deleteFaculties({ payload: { id, branchId } }) {
+function* deleteFaculties({ payload: { id } }) {
   try {
     yield put(operationStart());
     yield call(facultieservice.deleteFaculties, id);
     yield put(operationSuccess());
     NotificationManager.success('Faculties deleted successfully', 'Success');
-    yield call(fetchAllFaculties, { payload: branchId });
+    yield call(fetchAllFaculties);
   } catch (error) {
     yield put(operationFailure(error.message));
     NotificationManager.error(error.message, 'Error');

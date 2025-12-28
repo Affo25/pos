@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema(
     },
     user_type: {
       type: String,
-      enum: ["superAdmin", "admin", "modertor", "client", "user"],
+      enum: ["superAdmin", "admin", "user"],
       default: "user",
     },
     allowed_pages: {
@@ -44,10 +44,10 @@ const userSchema = new mongoose.Schema(
       ],
       default: [],
     },
-    client_id: {
+    admin_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-    },
+    }
   },
   {
     timestamps: true,

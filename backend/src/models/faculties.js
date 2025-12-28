@@ -2,10 +2,9 @@ const mongoose = require('mongoose');
 
 const facultieschema = new mongoose.Schema({
   name: { type: String, required: true },
-  code: { type: String, required: true },
+  code: { type: String },
   status: { type: String, default: 'active' },
-  branch_id: { type: mongoose.Schema.Types.ObjectId, ref: 'BranchProfiles' },
-  client_id: { type: mongoose.Schema.Types.ObjectId, ref: 'clients', required: true },
+  admin_id: { type: mongoose.Schema.Types.ObjectId, ref: 'admins', required: true },
   created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
 
 }, { timestamps: true });

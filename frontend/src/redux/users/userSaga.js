@@ -1,6 +1,6 @@
 // userSaga.js
 import { all, takeLatest, put, call } from 'redux-saga/effects';
-import { NotificationManager } from 'react-notifications';
+import { toast } from 'react-toastify';
 import * as userService from './userService';
 import * as actions from './userSlice';
 
@@ -12,7 +12,8 @@ function* handleApiCall(apiFn, ...args) {
     return result;
   } catch (error) {
     yield put(actions.operationFailure(error.message));
-    NotificationManager.error(error.message, 'Error');
+    toast.success('User created successfully');
+    toast.error(error.message, 'Error');
     throw error;
   }
 }
@@ -25,24 +26,24 @@ function* fetchAllUsers() {
 function* createUser({ payload }) {
   yield handleApiCall(userService.createUser, payload);
   yield call(fetchAllUsers);
-  NotificationManager.success('User created successfully', 'Success');
+  toast.success('User created successfully', 'Success');
 }
 
 function* changePassword({ payload }) {
   yield handleApiCall(userService.changePassword, payload);
-  NotificationManager.success('Password changed successfully', 'Success');
+  toast.success('Password changed successfully', 'Success');
 }
 
 function* updateUser({ payload: { id, data } }) {
   yield handleApiCall(userService.updateUser, id, data);
   yield call(fetchAllUsers);
-  NotificationManager.success('User updated successfully', 'Success');
+  toast.success('User updated successfully', 'Success');
 }
 
 function* deleteUser({ payload: id }) {
   yield handleApiCall(userService.deleteUser, id);
   yield call(fetchAllUsers);
-  NotificationManager.success('User deleted successfully', 'Success');
+  toast.success('User updated successfully', 'Success');
 }
 
 export default function* userSaga() {

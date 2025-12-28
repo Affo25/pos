@@ -136,15 +136,14 @@ function CreateUser({ visible, onCancel, user }) {
 
   const getUserTypeOptions = () => {
     if (!loggedInUser) return [];
+
     const { user_type } = loggedInUser;
 
-    if (user_type === 'superAdmin') return ['admin', 'modertor', 'client', 'user'];
-    if (user_type === 'admin') return ['modertor', 'client', 'user'];
-    if (user_type === 'modertor') return ['client', 'user'];
-    if (user_type === 'client') return ['user'];
+    if (user_type === 'superAdmin') return ['admin'];
+    if (user_type === 'admin') return ['user'];
+
     return [];
   };
-
   const resetForm = () => form.resetFields();
 
   useEffect(() => {
@@ -220,11 +219,9 @@ function CreateUser({ visible, onCancel, user }) {
           userData.password = values.password;
         }
         await dispatch(updateUser(id || user.id, userData));
-        toast.success('User updated successfully');
       } else {
         userData.password = values.password;
         await dispatch(createUser(userData));
-        toast.success('User created successfully');
       }
 
       onCancel();

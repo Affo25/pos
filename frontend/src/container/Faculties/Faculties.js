@@ -23,7 +23,6 @@ function Faculties() {
   const { faculties, loading } = useSelector((state) => state.faculties);
   const { login: user } = useSelector((state) => state.auth);
   const { canAdd, canEdit, canDelete } = getComponentPermissions(user, 'Faculties');
-  const { selectedBranchId } = useSelector((state) => state.seletedBranch);
   const [dataSource, setDataSource] = useState([]);
   const [pagination, setPagination] = useState({
     current: 1,
@@ -55,7 +54,7 @@ function Faculties() {
   };
 
   const handleDelete = (id) => {
-    dispatch(deleteFaculties(id, selectedBranchId));
+    dispatch(deleteFaculties(id));
     toast.success('Deleted successfully 🎉', {
       position: 'top-right',
       autoClose: 3000,
@@ -83,10 +82,8 @@ function Faculties() {
   };
 
   useEffect(() => {
-    if (selectedBranchId) {
-      dispatch(fetchAllFaculties(selectedBranchId));
-    }
-  }, [dispatch, selectedBranchId]);
+    dispatch(fetchAllFaculties());
+  }, []);
 
   useEffect(() => {
     if (faculties && Array.isArray(faculties)) {
@@ -242,8 +239,8 @@ function Faculties() {
                   <span style={{ display: 'flex', alignItems: 'center' }}>Sort By:</span>
                   <Select defaultValue="category" onChange={(value) => setSortStatus(value)}>
                     <Select.Option value="category">All</Select.Option>
-                    <Select.Option value="Active">active</Select.Option>
-                    <Select.Option value="InActive">inactive</Select.Option>
+                    <Select.Option value="active">Active</Select.Option>
+                    <Select.Option value="inactive">Inactive</Select.Option>
                   </Select>
                 </div>
               </div>
@@ -266,7 +263,7 @@ function Faculties() {
           onCancel={onCancel}
           faculties={selectedFaculties}
           onSuccess={() => {
-            dispatch(fetchAllFaculties(selectedBranchId));
+            dispatch(fetchAllFaculties());
           }}
         />
       </Main>

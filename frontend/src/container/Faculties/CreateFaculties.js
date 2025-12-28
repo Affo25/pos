@@ -15,7 +15,6 @@ import { BasicFormWrapper } from '../../config/default/styled';
 import { generateSubjectCode } from '../../config/utils/codeGenerator';
 
 function CreateFaculties({ visible, onCancel, faculties, onSuccess }) {
-  const { selectedBranchId } = useSelector((state) => state.seletedBranch);
   const [form] = Form.useForm();
   const dispatch = useDispatch();
   const { error } = useSelector((state) => state.faculties);
@@ -60,7 +59,6 @@ function CreateFaculties({ visible, onCancel, faculties, onSuccess }) {
         name: values.name,
         code: values.code,
         status: values.status,
-        branch_id: selectedBranchId,
       };
 
       if (faculties) {

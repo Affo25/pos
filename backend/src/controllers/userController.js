@@ -24,7 +24,7 @@ exports.loginUser = async (req, res) => {
       token: generateToken(user),
     });
   } catch (error) {
- res.status(500).json({
+    res.status(500).json({
       error: error.message,
       success: false
     });
@@ -45,17 +45,13 @@ exports.getAllUsers = async (req, res) => {
     const loggedInUser = req.user;
 
     let users;
-    if (
-      loggedInUser.user_type === "superAdmin" ||
-      loggedInUser.user_type === "admin" ||
-      loggedInUser.user_type === "modertor"
-    ) {
+    if (loggedInUser.user_type === "superAdmin") {
       users = await User.find().select("-password");
-    } else if (loggedInUser.user_type === "client") {
-      users = await User.find({ client_id: loggedInUser.id }).select(
-        "-password"
-      );
-    } else {
+    }
+    else if (loggedInUser.user_type === "admin") {
+      users = await User.find({ admin_id: loggedInUser._id }).select("-password");
+    }
+    else {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
@@ -99,8 +95,8 @@ exports.createUser = async (req, res) => {
       permissions: permissions || [],
     };
     const creatingUser = req.user;
-    if (creatingUser && creatingUser.user_type === "client") {
-      userData.client_id = creatingUser.id;
+    if (creatingUser && creatingUser.user_type === "admin") {
+      userData.admin_id = creatingUser._id;
     }
 
     const newUser = new User(userData);
@@ -114,7 +110,7 @@ exports.createUser = async (req, res) => {
       allowed_pages: newUser.allowed_pages,
       status: newUser.status,
       permissions: newUser.permissions,
-      client_id: newUser.client_id,
+      admin_id: newUser.admin_id,
       token: generateToken(newUser),
     });
   } catch (error) {
@@ -208,9 +204,10 @@ const generateToken = (user) => {
     {
       id: user._id,
       user_type: user.user_type,
-      client_id: user.user_type === "user" ? user.client_id : user._id,
+      admin_id: user.user_type === "user" ? user.admin_id : user._id
     },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
 };
+

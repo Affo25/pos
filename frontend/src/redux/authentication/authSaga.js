@@ -6,12 +6,6 @@ import * as authService from './authService';
 import { loginStart, loginSuccess, loginFailure, logoutStart, logoutSuccess, logoutFailure } from './authSlice';
 import { clearBranchProfiles } from '../branchprofiles/branchprofileSlice';
 import { clearFaculties } from '../faculties/facultiesSlice';
-import { clearClassTypes } from '../classtypes/classtypeSlice';
-import { clearDepartments } from '../departments/departmentSlice';
-import { clearAccountheads } from '../accountheads/accountheadsSlice';
-import { clearClients } from '../clients/clientSlice';
-import { clearSubjectss } from '../subjects/subjectsSlice';
-import { clearFeeHeads } from '../feeheads/feeheadsSlice';
 
 function* loginUser({ payload }) {
   try {
@@ -35,14 +29,8 @@ function* logoutUser() {
     Cookies.remove('logedIn');
     Cookies.remove('token');
     localStorage.removeItem('loginData');
-    yield put(clearSubjectss());
-    yield put(clearFeeHeads());
-    yield put(clearDepartments());
-    yield put(clearClassTypes());
     yield put(clearFaculties());
     yield put(clearBranchProfiles());
-    yield put(clearAccountheads());
-    yield put(clearClients());
     yield put(logoutSuccess());
     NotificationManager.success('Logout Successful', 'Success');
   } catch (error) {
