@@ -854,7 +854,7 @@ function updateAdminRoutes(featureName, featureNamePlural, featureNameLower) {
 
   const suspenseCloseIndex = suspenseCloseMatch.index;
 
-  const newRoute = `\n        {canAccess('${featureNameLower}') && <Route exact path={\`\${path}/${featureNamePlural.toLowerCase()}\`} component={${featureNamePlural}} />}`;
+  const newRoute = `\n        {canAccess('${featureNameLower}') && <Route exact path={\`\${path}${featureNamePlural.toLowerCase()}\`} component={${featureNamePlural}} />}`;
 
   const routesSection = updatedContent.substring(0, suspenseCloseIndex);
   const lastRouteIndex = routesSection.lastIndexOf('<Route');
