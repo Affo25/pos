@@ -20,6 +20,8 @@ import userReducer from './users/userSlice';
 import branchprofileReducer from './branchprofiles/branchprofileSlice';
 import facultiesReducer from './faculties/facultiesSlice';
 import productReducer from './products/productSlice';
+import categoryReducer from './categorys/categorySlice';
+import subcategoryReducer from './subcategorys/subcategorySlice';
 import selectedBranchReducer from './selectedBranch/selectedBranchSlice';
 
 const rootReducers = combineReducers({
@@ -51,6 +53,8 @@ const rootReducers = combineReducers({
   faculties: facultiesReducer,
   seletedBranch: selectedBranchReducer,
   products: productReducer,
+  categorys: categoryReducer,
+  subcategorys: subcategoryReducer,
 });
 
 export default rootReducers;

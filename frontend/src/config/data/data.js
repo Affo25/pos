@@ -304,6 +304,8 @@ export const allowedPages = [
   'branchProfiles',
   'faculties',
   'products',
+  'categorys',
+  'subCategorys'
 ];
 
 

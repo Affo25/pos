@@ -1,5 +1,5 @@
+/* eslint-disable no-underscore-dangle */
 /* eslint-disable no-unused-vars */
-/* eslint-disable camelcase */
 import React, { useEffect } from 'react';
 import {
   Form,
@@ -12,7 +12,7 @@ import {
   DatePicker,
 } from 'antd';
 import propTypes from 'prop-types';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import moment from 'moment';
 
 import { Modal } from '../../components/modals/antd-modals';
@@ -24,6 +24,7 @@ import {
 } from '../../redux/products/productSlice';
 import { STATUS, categories, subCategories } from '../../config/data/data';
 import { BasicFormWrapper } from '../../config/default/styled';
+import { fetchAllCategorys } from '../../redux/categorys/categorySlice';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -32,7 +33,13 @@ function CreateProduct({ visible, onCancel, product }) {
   const [form] = Form.useForm();
   const dispatch = useDispatch();
 
+  const { categorys } = useSelector((state) => state.categorys);
+
   const resetForm = () => form.resetFields();
+
+  useEffect(() => {
+    dispatch(fetchAllCategorys());
+  }, []);
 
   useEffect(() => {
     if (!visible) return;
@@ -95,11 +102,14 @@ function CreateProduct({ visible, onCancel, product }) {
             <Col span={12}>
               <Form.Item name="category_id" label="Category" rules={[{ required: true }]}>
                 <Select placeholder="Select Category">
-                  {categories.map(cat => (
-                    <Option key={cat.id} value={cat.id}>{cat.name}</Option>
+                  {categorys.map(cat => (
+                    <Option key={cat._id} value={cat._id}>
+                      {cat.name}
+                    </Option>
                   ))}
                 </Select>
               </Form.Item>
+
             </Col>
 
             <Col span={12}>

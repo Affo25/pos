@@ -50,6 +50,8 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
       pages: 'Pages',
       faculties: 'Faculties',
       products: 'Products',
+      categorys: 'Categorys',
+      subCategorys: 'SubCategorys',
     };
 
     return menuKeys[page] ? [menuKeys[page]] : [];
@@ -100,12 +102,25 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
               </NavLink>
             </Menu.Item>
           )}
-
         </Menu.SubMenu>
         {canAccess('products') && (
           <Menu.Item key="Products">
             <NavLink onClick={toggleCollapsed} to={`${path}products`}>
               Products
+            </NavLink>
+          </Menu.Item>
+        )}
+        {canAccess('categorys') && (
+          <Menu.Item key="Categorys">
+            <NavLink onClick={toggleCollapsed} to={`${path}categorys`}>
+              Categories
+            </NavLink>
+          </Menu.Item>
+        )}
+        {canAccess('subcategorys') && (
+          <Menu.Item key="SubCategorys">
+            <NavLink onClick={toggleCollapsed} to={`${path}subcategorys`}>
+              SubCategories
             </NavLink>
           </Menu.Item>
         )}

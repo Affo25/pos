@@ -1,4 +1,6 @@
 import { all } from 'redux-saga/effects';
+import subcategorySaga from './subcategorys/subcategorySaga';
+import categorySaga from './categorys/categorySaga';
 import productSaga from './products/productSaga';
 
 import facultieSaga from './faculties/facultiesSaga';
@@ -9,10 +11,14 @@ import authSaga from './authentication/authSaga';
 export default function* rootSaga() {
   yield all([
 
+
+
     userSaga(),
     authSaga(),
     branchprofileSaga(),
     facultieSaga(),
     productSaga(),
+    categorySaga(),
+    subcategorySaga(),
   ]);
 }

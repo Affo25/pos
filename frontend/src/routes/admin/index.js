@@ -4,6 +4,8 @@ import { Spin } from 'antd';
 import { Switch, Route, useRouteMatch } from 'react-router-dom';
 import withAdminLayout from '../../layout/withAdminLayout';
 
+const SubCategorys = lazy(() => import('../../container/SubCategorys/SubCategorys'));
+const Categorys = lazy(() => import('../../container/Categorys/Categorys'));
 const Products = lazy(() => import('../../container/Products/Products'));
 const Dashboard = lazy(() => import('../../container/dashboard'));
 const Calendars = lazy(() => import('../../container/Calendar'));
@@ -47,7 +49,8 @@ function Admin() {
         {canAccess('faculties') && <Route exact path={`${path}faculties`} component={Faculties} />}
         {canAccess('products') && <Route exact path={`${path}products`} component={Products} />}
         <Route exact path={`${path}profile`} component={Profile} />
-      </Suspense>
+        {canAccess('categorys') && <Route exact path={`${path}categorys`} component={Categorys} />}
+        {canAccess('subcategorys') && <Route exact path={`${path}subcategorys`} component={SubCategorys} />}</Suspense>
     </Switch>
   );
 }
