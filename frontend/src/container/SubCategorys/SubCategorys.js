@@ -1,5 +1,7 @@
+/* eslint-disable camelcase */
+/* eslint-disable no-underscore-dangle */
 /* eslint-disable no-unused-vars */
-  import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Row, Col, Menu, message, Dropdown, Select } from 'antd';
 import { Link } from 'react-router-dom';
@@ -20,9 +22,10 @@ function SubCategorys() {
   const history = useHistory();
   const dispatch = useDispatch();
   const { subcategorys, loading } = useSelector((state) => state.subcategorys);
-    const { login: user } = useSelector(state => state.auth);
-    const { canAdd, canEdit, canDelete } = getComponentPermissions(user, 'SubCategorys');
-    
+  const { categorys } = useSelector((state) => state.categorys);
+  const { login: user } = useSelector(state => state.auth);
+  const { canAdd, canEdit, canDelete } = getComponentPermissions(user, 'SubCategorys');
+
   const [dataSource, setDataSource] = useState([]);
 
   const [pagination, setPagination] = useState({
@@ -56,7 +59,7 @@ function SubCategorys() {
 
   const handleDelete = (id) => {
     dispatch(deleteSubCategory(id));
-   
+
   };
 
   const showModal = () => {
@@ -106,20 +109,21 @@ function SubCategorys() {
         }
         return 0;
       });
-      
+
       const start = (pagination.current - 1) * pagination.pageSize;
       const end = start + pagination.pageSize;
       const paginatedData = filtered.slice(start, end);
-      
+
       const formatted = paginatedData.map((subcategory) => {
-        const { _id, id, name, email, age, number, status } = subcategory;
+        const { _id, id, name, category_id, status } = subcategory;
+        const categoryName =
+          categorys.find(cat => cat._id === category_id)?.name || '—';
+
         return {
           key: _id || id,
           id: _id || id,
           name,
-          email,
-          age,
-          number,
+          category: categoryName,
           status:
             status === 'active' ? (
               <span className="color-success">Active</span>
@@ -187,19 +191,9 @@ function SubCategorys() {
       key: 'name',
     },
     {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
-    },
-    {
-      title: 'Age',
-      dataIndex: 'age',
-      key: 'age',
-    },
-    {
-      title: 'Number',
-      dataIndex: 'number',
-      key: 'number',
+      title: 'Category',
+      dataIndex: 'category',
+      key: 'category',
     },
     {
       title: 'Status',
@@ -258,13 +252,13 @@ function SubCategorys() {
             </div>
           </Col>
         </Row>
-        <CreateSubCategory 
-          visible={visible} 
-          onCancel={onCancel} 
+        <CreateSubCategory
+          visible={visible}
+          onCancel={onCancel}
           subcategory={selectedSubCategory}
           onSuccess={() => {
             dispatch(fetchAllSubCategorys());
-          }} 
+          }}
         />
       </Main>
     </>

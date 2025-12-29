@@ -22,9 +22,10 @@ import {
   fetchAllProducts,
   updateProduct,
 } from '../../redux/products/productSlice';
-import { STATUS, categories, subCategories } from '../../config/data/data';
+import { STATUS } from '../../config/data/data';
 import { BasicFormWrapper } from '../../config/default/styled';
 import { fetchAllCategorys } from '../../redux/categorys/categorySlice';
+import { fetchAllSubCategorys } from '../../redux/subcategorys/subcategorySlice';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -34,11 +35,13 @@ function CreateProduct({ visible, onCancel, product }) {
   const dispatch = useDispatch();
 
   const { categorys } = useSelector((state) => state.categorys);
+  const { subcategorys } = useSelector((state) => state.subcategorys);
 
   const resetForm = () => form.resetFields();
 
   useEffect(() => {
     dispatch(fetchAllCategorys());
+    dispatch(fetchAllSubCategorys());
   }, []);
 
   useEffect(() => {
@@ -109,14 +112,12 @@ function CreateProduct({ visible, onCancel, product }) {
                   ))}
                 </Select>
               </Form.Item>
-
             </Col>
-
             <Col span={12}>
               <Form.Item name="sub_category_id" label="Sub Category" rules={[{ required: true }]}>
                 <Select placeholder="Select Sub Category">
-                  {subCategories.map(sub => (
-                    <Option key={sub.id} value={sub.id}>{sub.name}</Option>
+                  {subcategorys.map(sub => (
+                    <Option key={sub._id} value={sub._id}>{sub.name}</Option>
                   ))}
                 </Select>
               </Form.Item>
