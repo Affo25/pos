@@ -28,10 +28,10 @@ const productSlice = createSlice({
   },
 });
 
-const fetchAllProducts = () => ({ type: 'products/fetchAll'});
+const fetchAllProducts = () => ({ type: 'products/fetchAll' });
 const createProduct = (productData) => ({ type: 'products/create', payload: productData });
 const updateProduct = (id, data) => ({ type: 'products/update', payload: { id, data } });
-const deleteProduct = (id) => ({ type: 'products/delete',payload:  id });
+const deleteProduct = (id) => ({ type: 'products/delete', payload: id });
 
 export const {
   operationStart,

@@ -1,5 +1,5 @@
 import { all, takeLatest, put, call } from 'redux-saga/effects';
-import { NotificationManager } from 'react-notifications';
+import { toast } from 'react-toastify';
 import * as productService from './productService';
 import {
   operationStart,
@@ -16,7 +16,10 @@ function* fetchAllProducts() {
     yield put(operationSuccess());
   } catch (error) {
     yield put(operationFailure(error.message));
-    NotificationManager.error(error.message, 'Error');
+    toast.error(error.message, {
+      position: "top-right",
+      autoClose: 3000,
+    });
   }
 }
 
@@ -24,12 +27,18 @@ function* createProduct({ payload: productData }) {
   try {
     yield put(operationStart());
     yield call(productService.createProduct, productData);
-    NotificationManager.success('Product created successfully', 'Success');
+    toast.success('Product created successfully', {
+      position: "top-right",
+      autoClose: 3000,
+    });
     yield call(fetchAllProducts);
     yield put(operationSuccess());
   } catch (error) {
     yield put(operationFailure(error.message));
-    NotificationManager.error(error.message, 'Error');
+    toast.error(error.message, {
+      position: "top-right",
+      autoClose: 3000,
+    });
   }
 }
 
@@ -38,24 +47,36 @@ function* updateProduct({ payload: { id, data } }) {
     yield put(operationStart());
     yield call(productService.updateProduct, id, data);
     yield put(operationSuccess());
-    NotificationManager.success('Product updated successfully', 'Success');
+    toast.success('Product updated successfully', {
+      position: "top-right",
+      autoClose: 3000,
+    });
     yield call(fetchAllProducts);
   } catch (error) {
     yield put(operationFailure(error.message));
-    NotificationManager.error(error.message, 'Error');
+    toast.error(error.message, {
+      position: "top-right",
+      autoClose: 3000,
+    });
   }
 }
 
-function* deleteProduct({ payload: { id } }) {
+function* deleteProduct({ payload: id }) {
   try {
     yield put(operationStart());
     yield call(productService.deleteProduct, id);
     yield put(operationSuccess());
-    NotificationManager.success('Product deleted successfully', 'Success');
+    toast.success('Product deleted successfully', {
+      position: "top-right",
+      autoClose: 3000,
+    });
     yield call(fetchAllProducts);
   } catch (error) {
     yield put(operationFailure(error.message));
-    NotificationManager.error(error.message, 'Error');
+    toast.error(error.message, {
+      position: "top-right",
+      autoClose: 3000,
+    });
   }
 }
 

@@ -73,7 +73,6 @@ function generateCreateComponent(featureName, featureNamePlural, featureNameLowe
 import { Form, Input, Row, Col, message } from 'antd';
 import propTypes from 'prop-types';
 import { useDispatch, useSelector } from 'react-redux';
-import { toast } from 'react-toastify';
 
 import { Modal } from '../../components/modals/antd-modals';
 import { Button } from '../../components/buttons/buttons';
@@ -109,16 +108,8 @@ function Create${featureName}({ visible, onCancel, ${featureNameLower}, onSucces
 
       if (${featureNameLower}) {
         await dispatch(update${featureName}(${featureNameLower}.id, ${featureNameLower}Data));
-        toast.success('Updated successfully 🎉', {
-          position: 'top-right',
-          autoClose: 3000,
-        });
       } else {
         await dispatch(create${featureName}(${featureNameLower}Data));
-        toast.success('Created successfully 🎉', {
-          position: 'top-right',
-          autoClose: 3000,
-        });
       }
 
       onSuccess();
@@ -185,7 +176,6 @@ import { Row, Col, Menu, message, Dropdown, Select } from 'antd';
 import { Link } from 'react-router-dom';
 import { EditOutlined, DeleteOutlined, SettingOutlined, LinkOutlined } from '@ant-design/icons';
 import FeatherIcon from 'feather-icons-react';
-import { toast } from 'react-toastify';
 import { useHistory } from 'react-router-dom/cjs/react-router-dom.min';
 import Create${featureName} from './Create${featureName}';
 import { AutoComplete } from '../../components/autoComplete/autoComplete';
@@ -237,10 +227,7 @@ function ${featureNamePlural}() {
 
   const handleDelete = (id) => {
     dispatch(delete${featureName}(id));
-    toast.success('Deleted successfully 🎉', {
-      position: 'top-right',
-      autoClose: 3000,
-    });
+   
   };
 
   const showModal = () => {
@@ -463,7 +450,7 @@ export default ${featureNamePlural};`;
 // Redux Generators
 function generatePageSaga(featureName, featureNamePlural, featureNameLower, featureNamePluralLower, dir) {
   const template = `import { all, takeLatest, put, call } from 'redux-saga/effects';
-import { NotificationManager } from 'react-notifications';
+import { toast } from 'react-toastify';
 import * as ${featureNameLower}Service from './${featureNameLower}Service';
 import {
   operationStart,
@@ -480,7 +467,10 @@ function* fetchAll${featureNamePlural}() {
     yield put(operationSuccess());
   } catch (error) {
     yield put(operationFailure(error.message));
-    NotificationManager.error(error.message, 'Error');
+    toast.error(error.message, {
+      position: "top-right",
+      autoClose: 5000,
+    });
   }
 }
 
@@ -488,12 +478,18 @@ function* create${featureName}({ payload: ${featureNameLower}Data }) {
   try {
     yield put(operationStart());
     yield call(${featureNameLower}Service.create${featureName}, ${featureNameLower}Data);
-    NotificationManager.success('${featureName} created successfully', 'Success');
+     toast.success('${featureName} created successfully', {
+      position: "top-right",
+      autoClose: 3000,
+    });
     yield call(fetchAll${featureNamePlural});
     yield put(operationSuccess());
   } catch (error) {
     yield put(operationFailure(error.message));
-    NotificationManager.error(error.message, 'Error');
+     toast.error(error.message, {
+      position: "top-right",
+      autoClose: 5000,
+    });
   }
 }
 
@@ -502,24 +498,36 @@ function* update${featureName}({ payload: { id, data } }) {
     yield put(operationStart());
     yield call(${featureNameLower}Service.update${featureName}, id, data);
     yield put(operationSuccess());
-    NotificationManager.success('${featureName} updated successfully', 'Success');
+     toast.success('${featureName} updated successfully', {
+      position: "top-right",
+      autoClose: 3000,
+    });
     yield call(fetchAll${featureNamePlural});
   } catch (error) {
     yield put(operationFailure(error.message));
-    NotificationManager.error(error.message, 'Error');
+    toast.error(error.message, {
+        position: "top-right",
+        autoClose: 5000,
+      });
   }
 }
 
-function* delete${featureName}({ payload: { id } }) {
+function* delete${featureName}({ payload: id  }) {
   try {
     yield put(operationStart());
     yield call(${featureNameLower}Service.delete${featureName}, id);
     yield put(operationSuccess());
-    NotificationManager.success('${featureName} deleted successfully', 'Success');
+    toast.success('${featureName} deleted successfully', {
+      position: "top-right",
+      autoClose: 3000,
+    });
     yield call(fetchAll${featureNamePlural});
   } catch (error) {
     yield put(operationFailure(error.message));
-    NotificationManager.error(error.message, 'Error');
+    toast.error(error.message, {
+      position: "top-right",
+      autoClose: 5000,
+    });
   }
 }
 

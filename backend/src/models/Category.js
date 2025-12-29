@@ -1,8 +1,16 @@
 const mongoose = require('mongoose');
 
 const CategorySchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  description: { type: String, required: true },
+  name: {
+    type: String,
+    required: true,
+    maxlength: 100,
+    trim: true,
+  },
+  description: {
+    type: String,
+    trim: true,
+  },
   admin_id: { type: mongoose.Schema.Types.ObjectId, ref: 'admins', required: true },
   created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
 }, { timestamps: true });

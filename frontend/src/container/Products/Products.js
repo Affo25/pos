@@ -54,10 +54,6 @@ function Products() {
 
   const handleDelete = (id) => {
     dispatch(deleteProduct(id));
-    toast.success('Deleted successfully 🎉', {
-      position: 'top-right',
-      autoClose: 3000,
-    });
   };
 
   const showModal = () => {
