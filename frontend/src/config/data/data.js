@@ -305,9 +305,12 @@ export const allowedPages = [
   'faculties',
   'products',
   'categorys',
-  'subCategorys'
+  'subCategorys',
+  'customers',
+  'sales',
+  'suppliers',
+  'purchaseorders',
 ];
-
 
 export const categories = [
   { id: '1', name: 'Electronics' },

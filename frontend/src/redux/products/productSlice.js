@@ -2,6 +2,8 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   products: [],
+   categories: [],
+   suppliers: [],
   loading: false,
   error: null,
 };
@@ -25,10 +27,20 @@ const productSlice = createSlice({
     fetchProductsSuccess(state, action) {
       state.products = action.payload;
     },
+  
+    fetchCategoriesSuccess(state, action) {
+      state.categories = action.payload;
+    },
+    fetchSuppliersSuccess(state, action) {
+      state.suppliers = action.payload;
+    }
   },
 });
 
 const fetchAllProducts = () => ({ type: 'products/fetchAll' });
+const fetchAllCategories = () => ({ type: 'products/fetchCategories' });
+const fetchAllSuppliers = () => ({ type: 'products/fetchSuppliers' });
+
 const createProduct = (productData) => ({ type: 'products/create', payload: productData });
 const updateProduct = (id, data) => ({ type: 'products/update', payload: { id, data } });
 const deleteProduct = (id) => ({ type: 'products/delete', payload: id });
@@ -38,8 +50,10 @@ export const {
   operationSuccess,
   operationFailure,
   fetchProductsSuccess,
+  fetchCategoriesSuccess,
+  fetchSuppliersSuccess
 } = productSlice.actions;
 
-export { fetchAllProducts, createProduct, updateProduct, deleteProduct };
+export { fetchAllProducts, fetchAllCategories, fetchAllSuppliers, createProduct, updateProduct, deleteProduct };
 
 export default productSlice.reducer;

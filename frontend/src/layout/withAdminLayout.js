@@ -4,7 +4,7 @@
 import React, { Component } from 'react';
 import { Layout, Button, Row, Col } from 'antd';
 import FeatherIcon from 'feather-icons-react';
-import { NavLink, Link } from 'react-router-dom';
+import {  Link } from 'react-router-dom';
 import { Scrollbars } from 'react-custom-scrollbars';
 import { ThemeProvider } from 'styled-components';
 import { connect } from 'react-redux';
@@ -20,7 +20,6 @@ import { changeRtlMode, changeLayoutMode, changeMenuMode } from '../redux/themeL
 const { darkTheme } = require('../config/theme/themeVariables');
 
 const { Header, Footer, Sider, Content } = Layout;
-// const { darkMode } = config;
 
 const ThemeLayout = (WrappedComponent) => {
   class LayoutComponent extends Component {
@@ -99,12 +98,14 @@ const ThemeLayout = (WrappedComponent) => {
       };
 
       const footerStyle = {
-        padding: '20px 30px 18px',
+        padding: '6px 10px',
         color: 'rgba(0, 0, 0, 0.65)',
-        fontSize: '14px',
-        background: 'rgba(255, 255, 255, .90)',
+        fontSize: '12px',
+        background: 'rgba(255, 255, 255, 0.9)',
         width: '100%',
-        boxShadow: '0 -5px 10px rgba(146,153,184, 0.05)',
+        boxShadow: '0 -4px 8px rgba(146,153,184, 0.05)',
+        textAlign: 'center',
+        lineHeight: '1.1',
       };
 
       const SideBarStyle = {
@@ -116,6 +117,8 @@ const ThemeLayout = (WrappedComponent) => {
         [left]: 0,
         zIndex: 998,
       };
+
+
 
       const renderView = ({ style, ...props }) => {
         const customStyle = {
@@ -319,15 +322,10 @@ const ThemeLayout = (WrappedComponent) => {
                   <WrappedComponent {...this.props} />
                   <Footer className="admin-footer" style={footerStyle}>
                     <Row>
-                      <Col md={12} xs={24}>
-                        <span className="admin-footer__copyright">2025 © code5tech</span>
-                      </Col>
-                      <Col md={12} xs={24}>
-                        <div className="admin-footer__links">
-                          <NavLink to="#">About</NavLink>
-                          <NavLink to="#">Team</NavLink>
-                          <NavLink to="#">Contact</NavLink>
-                        </div>
+                      <Col span={6} className="align-center-v">
+                        <span className="admin-footer__copyright">
+                          © 2025 <strong>Pharmacy Management System</strong>. All rights reserved.
+                        </span>
                       </Col>
                     </Row>
                   </Footer>

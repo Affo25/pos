@@ -22,6 +22,10 @@ import facultiesReducer from './faculties/facultiesSlice';
 import productReducer from './products/productSlice';
 import categoryReducer from './categorys/categorySlice';
 import subcategoryReducer from './subcategorys/subcategorySlice';
+import customerReducer from './customers/customerSlice';
+import saleReducer from './sales/saleSlice';
+import supplierReducer from './suppliers/supplierSlice';
+import purchaseorderReducer from './purchaseorders/purchaseorderSlice';
 import selectedBranchReducer from './selectedBranch/selectedBranchSlice';
 
 const rootReducers = combineReducers({
@@ -55,6 +59,10 @@ const rootReducers = combineReducers({
   products: productReducer,
   categorys: categoryReducer,
   subcategorys: subcategoryReducer,
+  customers: customerReducer,
+  sales: saleReducer,
+  suppliers: supplierReducer,
+  purchaseorders: purchaseorderReducer,
 });
 
 export default rootReducers;

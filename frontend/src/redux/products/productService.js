@@ -18,6 +18,36 @@ export const fetchAllProducts = async () => {
   return data;
 };
 
+export const fetchAllCategories = async () => {
+  const token = getToken();
+  const url = `http://localhost:5000/api/categorys`;
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Failed to fetch categories');
+  return data;
+};
+
+export const fetchAllSuppliers = async () => {
+  const token = getToken();
+  const url = `http://localhost:5000/api/suppliers`;
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Failed to fetch suppliers');
+  return data;
+};
+
 export const createProduct = async (productData) => {
   const token = getToken();
   const response = await fetch(API_BASE_URL, {

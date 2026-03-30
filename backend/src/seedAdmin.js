@@ -67,8 +67,8 @@ const seedAdmin = async () => {
 
     // Use direct MongoDB URI (no .env dependency)
     const mongoURI = process.env.MONGO_URI ||
-      'mongodb://localhost:27017/school-management' ||
-      'mongodb://127.0.0.1:27017/school-management';
+      'mongodb://localhost:27017/inventory_db' ||
+      'mongodb://127.0.0.1:27017/inventory_db';
 
     console.log('📡 Using MongoDB URI:', mongoURI);
     console.log('💡 If connection fails, please check:');
@@ -88,7 +88,7 @@ const seedAdmin = async () => {
 
     // Check if admin already exists
     console.log('\n🔍 Checking if admin user exists...');
-    const existingAdmin = await User.findOne({ email: 'admin@school.com' });
+    const existingAdmin = await User.findOne({ email: 'admin@admin.com' });
     if (existingAdmin) {
       console.log('⚠️  Admin user already exists');
       console.log('📧 Email:', existingAdmin.email);
@@ -106,7 +106,7 @@ const seedAdmin = async () => {
 
     const adminUser = new User({
       name: 'Super Admin',
-      email: 'admin@school.com',
+      email: 'admin@admin.com',
       password: hashedPassword,
       plain_password: password,
       user_type: 'superAdmin',
@@ -120,7 +120,7 @@ const seedAdmin = async () => {
 
     console.log('\n🎉 SUPER ADMIN CREATED SUCCESSFULLY!');
     console.log('========================================');
-    console.log('📧 Email:    admin@school.com');
+    console.log('📧 Email:    admin@admin.com');
     console.log('🔑 Password: admin123');
     console.log('👤 Name:     Super Admin');
     console.log('🎯 Type:     superAdmin');
@@ -128,7 +128,7 @@ const seedAdmin = async () => {
     console.log('========================================\n');
 
     // Verify the user was saved
-    const verifyUser = await User.findOne({ email: 'admin@school.com' });
+    const verifyUser = await User.findOne({ email: 'admin@admin.com' });
     console.log('✅ Verification:', verifyUser ? 'User found in database' : 'User not found');
 
     await mongoose.disconnect();

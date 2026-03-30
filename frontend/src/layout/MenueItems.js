@@ -52,6 +52,12 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
       products: 'Products',
       categorys: 'Categorys',
       subCategorys: 'SubCategorys',
+      customers: 'Customers',
+      sales: 'Sales',
+      'pos-billing': 'POSBilling',
+      'stock-management': 'StockManagement',
+      suppliers: 'Suppliers',
+      purchaseOrders: 'PurchaseOrders',
     };
 
     return menuKeys[page] ? [menuKeys[page]] : [];
@@ -102,27 +108,72 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
               </NavLink>
             </Menu.Item>
           )}
-        </Menu.SubMenu>
-        {canAccess('products') && (
-          <Menu.Item key="Products">
-            <NavLink onClick={toggleCollapsed} to={`${path}products`}>
-              Products
-            </NavLink>
-          </Menu.Item>
-        )}
-        {canAccess('categorys') && (
-          <Menu.Item key="Categorys">
+           {canAccess('categorys') && (
+          <Menu.Item icon={!topMenu && <FeatherIcon icon="layers" />} key="Categorys">
             <NavLink onClick={toggleCollapsed} to={`${path}categorys`}>
               Categories
             </NavLink>
           </Menu.Item>
         )}
         {canAccess('subcategorys') && (
-          <Menu.Item key="SubCategorys">
+          <Menu.Item  icon={!topMenu && <FeatherIcon icon="layers" />} key="SubCategorys">
             <NavLink onClick={toggleCollapsed} to={`${path}subcategorys`}>
               SubCategories
             </NavLink>
           </Menu.Item>
+        )}
+        </Menu.SubMenu>
+
+        {canAccess('products') && (
+          <Menu.Item icon={<FeatherIcon icon="package" />} key="Products">
+            <NavLink onClick={toggleCollapsed} to={`${path}products`}>
+              Products
+            </NavLink>
+          </Menu.Item>
+        )}
+       
+        {canAccess('customers') && (
+          <Menu.Item icon={!topMenu && <FeatherIcon icon="user-check" />}  key="Customers">
+            <NavLink onClick={toggleCollapsed} to={`${path}customers`}>
+              Customers
+            </NavLink>
+          </Menu.Item>
+        )}
+        {canAccess('sales') && (
+          <Menu.Item icon={!topMenu && <FeatherIcon icon="user-check" />}  key="Sales">
+            <NavLink onClick={toggleCollapsed} to={`${path}sales`}>
+              Sales
+            </NavLink>
+          </Menu.Item>
+        )}
+        {canAccess('sales') && (
+          <Menu.Item icon={!topMenu && <FeatherIcon icon="credit-card" />} key="POSBilling">
+            <NavLink onClick={toggleCollapsed} to={`${path}pos-billing`}>
+              POS Billing
+            </NavLink>
+          </Menu.Item>
+        )}
+        {canAccess('products') && (
+          <Menu.Item icon={!topMenu && <FeatherIcon icon="archive" />} key="StockManagement">
+            <NavLink onClick={toggleCollapsed} to={`${path}stock-management`}>
+              Stock Management
+            </NavLink>
+          </Menu.Item>
+        )}
+        {canAccess('purchaseorders') && (
+          <Menu.Item icon={!topMenu && <FeatherIcon icon="user-check" />} key="PurchaseOrders">
+            <NavLink onClick={toggleCollapsed} to={`${path}purchaseorders`}>
+              PurchaseOrders
+            </NavLink>
+          </Menu.Item>
+        )}
+        {canAccess('suppliers') && (
+          <Menu.Item icon={<FeatherIcon icon="truck" />} key="Suppliers">
+            <NavLink onClick={toggleCollapsed} to={`${path}suppliers`}>
+              Suppliers
+            </NavLink>
+          </Menu.Item>
+
         )}
         {canAccess('users') && (
           <Menu.Item key="Users" icon={!topMenu && <FeatherIcon icon="user-check" />}>
