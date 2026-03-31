@@ -1,6 +1,7 @@
 const purchaseOrderRoutes = require('./routes/purchaseOrderRoutes');
 const supplierRoutes = require('./routes/supplierRoutes');
 const saleRoutes = require('./routes/saleRoutes');
+const returnRoutes = require('./routes/returnRoutes');
 const customerRoutes = require('./routes/customerRoutes');
 const subCategoryRoutes = require('./routes/subCategoryRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
@@ -37,6 +38,7 @@ app.use('/api/categorys', categoryRoutes);
 app.use('/api/subCategorys', subCategoryRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/sales', saleRoutes);
+app.use('/api/returns', returnRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/purchaseOrders', purchaseOrderRoutes);
 module.exports = app;
