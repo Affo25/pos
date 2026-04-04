@@ -164,7 +164,11 @@ exports.createReturn = async (req, res) => {
 
     // Populate the returns with product details for response
     const populatedReturns = await Return.find({ _id: { $in: createdReturns.map(r => r._id) } })
-      .populate('product_id', 'name batch_number unit_price category')
+      .populate({
+        path: 'product_id',
+        select: 'name batch_number unit_price category',
+        populate: { path: 'category', select: 'name' },
+      })
       .populate('sale_id', 'invoice_no customer_name total_amount net_amount')
       .populate('created_by', 'name email');
 
@@ -220,7 +224,11 @@ exports.getReturns = async (req, res) => {
 
     const returns = await Return.find(query)
       .populate('sale_id', 'invoice_no customer_name total_amount net_amount sale_date')
-      .populate('product_id', 'name batch_number unit_price category')
+      .populate({
+        path: 'product_id',
+        select: 'name batch_number unit_price category',
+        populate: { path: 'category', select: 'name' },
+      })
       .populate('created_by', 'name email')
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -277,7 +285,11 @@ exports.getReturnsBySale = async (req, res) => {
       sale_id, 
       admin_id: adminId 
     })
-      .populate('product_id', 'name batch_number unit_price category')
+      .populate({
+        path: 'product_id',
+        select: 'name batch_number unit_price category',
+        populate: { path: 'category', select: 'name' },
+      })
       .populate('created_by', 'name email')
       .sort({ createdAt: -1 });
 

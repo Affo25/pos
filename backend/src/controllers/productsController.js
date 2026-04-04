@@ -1,18 +1,45 @@
+const mongoose = require('mongoose');
 const Products = require('../models/Products');
+const Category = require('../models/Category');
 const XLSX = require('xlsx');
+
+function normalizeCategoryId(raw) {
+  if (raw == null || raw === '') return null;
+  let v = raw;
+  if (typeof v === 'object' && v !== null && v._id != null) v = v._id;
+  const s = String(v).trim();
+  if (!/^[a-fA-F0-9]{24}$/.test(s)) return null;
+  return s;
+}
 
 exports.createProducts = async (req, res) => {
   try {
-     const adminId =
+    const adminId =
       req.user.user_type === 'admin' ? req.user._id : req.user.admin_id;
+
+    const categoryId = normalizeCategoryId(req.body.category);
+    if (!categoryId) {
+      return res.status(400).json({ error: 'category must be a valid 24-character category id' });
+    }
+
+    const categoryDoc = await Category.findOne({
+      _id: categoryId,
+      admin_id: adminId,
+    });
+    if (!categoryDoc) {
+      return res.status(400).json({ error: 'Invalid or unknown category for this account' });
+    }
+
     const data = {
       ...req.body,
+      category: categoryId,
       admin_id: adminId,
       created_by: req.user._id,
     };
 
     const newProducts = new Products(data);
     await newProducts.save();
+    await newProducts.populate('category', 'name');
     res.status(201).json(newProducts);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -31,7 +58,7 @@ exports.getProductss = async (req, res) => {
       query.created_by = req.user.id;
     }
 
-    const productss = await Products.find(query);
+    const productss = await Products.find(query).populate('category', 'name');
     res.status(200).json(productss);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -50,13 +77,193 @@ const checkProductAccess = async (id, user) => {
   return product;
 };
 
+// In your productController.js
 exports.updateProducts = async (req, res) => {
   try {
-    await checkProductAccess(req.params.id, req.user);
+    const { id } = req.params;
+    
+    // ✅ Validate product ID
+    if (!id) {
+      return res.status(400).json({ 
+        error: 'Product ID is required',
+        message: 'Please provide a valid product ID' 
+      });
+    }
 
-    const updated = await Products.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.status(200).json(updated);
+    // ✅ Check if ID is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        error: 'Invalid product ID format',
+        message: 'The provided product ID is not a valid MongoDB ObjectId' 
+      });
+    }
+
+    // ✅ Check product access permissions
+    await checkProductAccess(id, req.user);
+
+    const adminId = req.user.user_type === 'admin' ? req.user._id : req.user.admin_id;
+
+    // Find existing product
+    const existingProduct = await Products.findById(id);
+    if (!existingProduct) {
+      return res.status(404).json({ 
+        error: 'Product not found',
+        message: `No product found with ID: ${id}` 
+      });
+    }
+
+    // Create an object to store the fields to update
+    const updateFields = {};
+
+    // Handle category if present (must be ObjectId)
+    if (req.body.category !== undefined) {
+      const categoryId = normalizeCategoryId(req.body.category);
+      if (!categoryId) {
+        return res.status(400).json({ error: 'category must be a valid 24-character category id' });
+      }
+      const categoryDoc = await Category.findOne({
+        _id: categoryId,
+        admin_id: adminId,
+      });
+      if (!categoryDoc) {
+        return res.status(400).json({ error: 'Invalid or unknown category for this account' });
+      }
+      updateFields.category = categoryId;
+    }
+
+    // Handle supplier_name (string field)
+    if (req.body.supplier_name !== undefined) {
+      updateFields.supplier_name = req.body.supplier_name.trim();
+    }
+
+    // Handle basic product fields
+    const stringFields = [
+      'name', 'batch_number', 'rack_location', 'medicine_size',
+      'manufacturer', 'manufacturer_license_no', 'manufacturer_registration_no',
+      'storage_instructions', 'notes', 'image'
+    ];
+
+    const numberFields = [
+      'available_quantity', 'minimum_stock_alert', 'unit_price',
+      'discount', 'gst'
+    ];
+
+    const arrayFields = ['alternative_medicines'];
+    const booleanFields = ['is_prescription_required'];
+    const dateFields = ['expiry_date'];
+
+    // Process string fields
+    stringFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        updateFields[field] = req.body[field]?.trim();
+      }
+    });
+
+    // Process number fields
+    numberFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        let value = Number(req.body[field]);
+        if (isNaN(value)) value = 0;
+        
+        if (field === 'discount' || field === 'gst') {
+          value = Math.min(100, Math.max(0, value));
+        } else if (field === 'available_quantity' || field === 'minimum_stock_alert' || field === 'unit_price') {
+          value = Math.max(0, value);
+        }
+        
+        updateFields[field] = value;
+      }
+    });
+
+    // Process array fields
+    arrayFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        updateFields[field] = Array.isArray(req.body[field]) ? req.body[field] : [];
+      }
+    });
+
+    // Process boolean fields
+    booleanFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        updateFields[field] = Boolean(req.body[field]);
+      }
+    });
+
+    // Process date fields
+    dateFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        const date = new Date(req.body[field]);
+        if (!isNaN(date.getTime())) {
+          updateFields[field] = date;
+        }
+      }
+    });
+
+    // Handle status field
+    if (req.body.status !== undefined) {
+      const validStatuses = ['active', 'inactive'];
+      if (validStatuses.includes(req.body.status)) {
+        updateFields.status = req.body.status;
+      } else {
+        return res.status(400).json({ error: 'Status must be either "active" or "inactive"' });
+      }
+    }
+
+    // Calculate total_value if unit_price or available_quantity changed
+    const newUnitPrice = updateFields.unit_price !== undefined ? updateFields.unit_price : existingProduct.unit_price;
+    const newQuantity = updateFields.available_quantity !== undefined ? updateFields.available_quantity : existingProduct.available_quantity;
+    
+    if (updateFields.unit_price !== undefined || updateFields.available_quantity !== undefined) {
+      updateFields.total_value = newUnitPrice * newQuantity;
+    }
+
+    // Update the product
+    const updated = await Products.findByIdAndUpdate(
+      id,
+      updateFields,
+      { new: true, runValidators: true }
+    ).populate('category', 'name')
+     .populate('created_by', 'name email')
+     .populate('admin_id', 'name');
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Product updated successfully',
+      data: updated
+    });
   } catch (err) {
+    console.error('Error updating product:', err);
+    
+    // Handle specific MongoDB errors
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern)[0];
+      return res.status(409).json({ 
+        error: `Duplicate key error: ${field} already exists`,
+        field: field
+      });
+    }
+    
+    // Handle validation errors
+    if (err.name === 'ValidationError') {
+      const errors = Object.values(err.errors).map(e => e.message);
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        details: errors 
+      });
+    }
+    
+    // Handle cast errors (invalid ObjectId)
+    if (err.name === 'CastError') {
+      return res.status(400).json({ 
+        error: `Invalid ${err.path}: ${err.value}`,
+        message: 'Please provide a valid product ID'
+      });
+    }
+    
     res.status(500).json({ error: err.message });
   }
 };
@@ -79,7 +286,7 @@ exports.getStockReport = async (req, res) => {
       query.created_by = req.user.id;
     }
 
-    const products = await Products.find(query).lean();
+    const products = await Products.find(query).populate('category', 'name').lean();
     const now = new Date();
 
     const summary = {
@@ -133,6 +340,12 @@ exports.importProductsFromExcel = async (req, res) => {
     const adminId = req.user.user_type === 'admin' ? req.user._id : req.user.admin_id;
     const createdBy = req.user._id;
 
+    const categoryDocs = await Category.find({ admin_id: adminId }).lean();
+    const categoryByName = new Map(
+      categoryDocs.map((c) => [String(c.name || '').trim().toLowerCase(), c._id])
+    );
+    const categoryIdSet = new Set(categoryDocs.map((c) => String(c._id)));
+
     const toCreate = [];
     let skipped = 0;
 
@@ -145,13 +358,34 @@ exports.importProductsFromExcel = async (req, res) => {
       const name = String(row.name || '').trim();
       const batch_number = String(row.batch_number || row.batch || '').trim();
       const expiry_date = parseExcelDate(row.expiry_date || row.expiry);
-      const category = String(row.category || 'other').trim().toLowerCase();
       const supplier_name = String(row.supplier_name || row.supplier || '').trim();
       const unit_price = Number(row.unit_price ?? row.price ?? 0);
       const available_quantity = Number(row.available_quantity ?? row.quantity ?? 0);
 
-      const isValidCategory = ['tablet', 'syrup', 'injection', 'ointment', 'other'].includes(category);
-      if (!name || !batch_number || !expiry_date || !supplier_name || !Number.isFinite(unit_price) || !Number.isFinite(available_quantity) || !isValidCategory) {
+      const catRaw = row.category;
+      let categoryId = null;
+      if (catRaw !== undefined && catRaw !== null && String(catRaw).trim() !== '') {
+        const catStr = String(catRaw).trim();
+        if (
+          mongoose.Types.ObjectId.isValid(catStr) &&
+          catStr.length === 24 &&
+          categoryIdSet.has(catStr)
+        ) {
+          categoryId = catStr;
+        } else {
+          categoryId = categoryByName.get(catStr.toLowerCase());
+        }
+      }
+
+      if (
+        !name ||
+        !batch_number ||
+        !expiry_date ||
+        !supplier_name ||
+        !Number.isFinite(unit_price) ||
+        !Number.isFinite(available_quantity) ||
+        !categoryId
+      ) {
         skipped += 1;
         return;
       }
@@ -164,7 +398,7 @@ exports.importProductsFromExcel = async (req, res) => {
         minimum_stock_alert: Number(row.minimum_stock_alert ?? 0),
         unit_price,
         supplier_name,
-        category,
+        category: categoryId,
         manufacturer: String(row.manufacturer || '').trim(),
         rack_location: String(row.rack_location || '').trim(),
         discount: Number(row.discount ?? 0),

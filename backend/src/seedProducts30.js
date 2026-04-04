@@ -2,6 +2,7 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const connectDB = require('./config/db');
 const User = require('./models/User');
+const Category = require('./models/Category');
 const Products = require('./models/Products');
 
 async function seedProducts() {
@@ -12,7 +13,25 @@ async function seedProducts() {
     throw new Error('No admin user found');
   }
 
-  const categories = ['tablet', 'syrup', 'injection', 'ointment', 'other'];
+  const categoryNames = ['tablet', 'syrup', 'injection', 'ointment', 'other'];
+  const categoryIds = [];
+  for (const name of categoryNames) {
+    let cat = await Category.findOne({
+      admin_id: admin._id,
+      name: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
+    });
+    if (!cat) {
+      cat = await Category.create({
+        name,
+        description: '',
+        admin_id: admin._id,
+        created_by: admin._id,
+      });
+    }
+    categoryIds.push(cat._id);
+  }
+
+  const categories = categoryIds;
   const today = new Date();
   const docs = [];
 

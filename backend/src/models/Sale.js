@@ -40,8 +40,23 @@ const SaleSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['completed', 'cancelled'],
+    enum: ['completed', 'cancelled', 'returned', 'partially_returned'],
     default: 'completed',
+  },
+  return_items: [
+    {
+      return_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Return' },
+      product_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Products' },
+      quantity: { type: Number },
+      unit_price: { type: Number },
+      reason: { type: String },
+      refund_amount: { type: Number },
+      created_at: { type: Date }
+    }
+  ],
+  total_return_amount: {
+    type: Number,
+    default: 0
   },
   sale_date: {
     type: Date,

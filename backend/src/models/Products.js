@@ -22,7 +22,7 @@ const ProductsSchema = new mongoose.Schema({
   },
   available_quantity: {
     type: Number,
-    required: true,
+    required: false,
     min: 0,
     default: 0,
     comment: 'Current units in stock',
@@ -35,7 +35,7 @@ const ProductsSchema = new mongoose.Schema({
   },
   unit_price: {
     type: Number,
-    required: true,
+    required: false,
     min: 0,
     default: 0,
     comment: 'Per unit price or MRP',
@@ -60,10 +60,10 @@ const ProductsSchema = new mongoose.Schema({
     comment: 'Manufacturer of the medicine',
   },
   category: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
     required: true,
-    enum: ['tablet', 'syrup', 'injection', 'ointment', 'other'],
-    comment: 'Medicine type/category',
+    comment: 'Reference to Category document (admin-defined)',
   },
   rack_location: {
     type: String,

@@ -12,7 +12,12 @@ exports.createPurchaseOrder = async (req, res) => {
 
     const newPurchaseOrder = new PurchaseOrder(data);
     await newPurchaseOrder.save();
-    res.status(201).json(newPurchaseOrder);
+    
+    const populatedOrder = await PurchaseOrder.findById(newPurchaseOrder._id)
+      .populate('supplier_id', 'name')
+      .populate('items.product_id', 'name unit_price');
+      
+    res.status(201).json(populatedOrder);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -30,30 +35,40 @@ exports.getPurchaseOrders = async (req, res) => {
       query.created_by = req.user.id;
     }
 
-    const purchaseOrders = await PurchaseOrder.find(query);
+    const purchaseOrders = await PurchaseOrder.find(query)
+      .populate('supplier_id', 'name')
+      .populate('items.product_id', 'name unit_price')
+      .sort({ createdAt: -1 });
     res.status(200).json(purchaseOrders);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-const checkFacultyAccess = async (id, user) => {
-  const faculty = await PurchaseOrder.findById(id);
-  if (!faculty) throw new Error('Faculty not found');
+const checkPurchaseOrderAccess = async (id, user) => {
+  const purchaseOrder = await PurchaseOrder.findById(id);
+  if (!purchaseOrder) throw new Error('PurchaseOrder not found');
 
   const loggedInAdminId = user.user_type === 'admin' ? user._id : user.admin_id;
-  if (faculty.admin_id.toString() !== loggedInAdminId.toString()) {
+  if (purchaseOrder.admin_id.toString() !== loggedInAdminId.toString()) {
     throw new Error('Unauthorized access');
   }
 
-  return faculty;
+  return purchaseOrder;
 };
 
 exports.updatePurchaseOrder = async (req, res) => {
   try {
-    await checkFacultyAccess(req.params.id, req.user);
+    await checkPurchaseOrderAccess(req.params.id, req.user);
 
-    const updated = await PurchaseOrder.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const updateData = { ...req.body };
+    // Ensure we don't accidentally overwrite ownership fields if they aren't in body
+    // but usually they shouldn't be changed anyway.
+
+    const updated = await PurchaseOrder.findByIdAndUpdate(req.params.id, updateData, { new: true, runValidators: true })
+      .populate('supplier_id', 'name')
+      .populate('items.product_id', 'name unit_price');
+    
     res.status(200).json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -62,7 +77,7 @@ exports.updatePurchaseOrder = async (req, res) => {
 
 exports.deletePurchaseOrder = async (req, res) => {
   try {
-  await checkFacultyAccess(req.params.id, req.user);
+    await checkPurchaseOrderAccess(req.params.id, req.user);
     await PurchaseOrder.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'PurchaseOrder deleted successfully' });
   } catch (err) {

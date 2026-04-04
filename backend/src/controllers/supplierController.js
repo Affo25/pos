@@ -22,15 +22,7 @@ exports.getSuppliers = async (req, res) => {
   try {
     const adminId = req.user.user_type === 'admin' ? req.user._id : req.user.admin_id;
 
-    const query = {
-      admin_id: adminId,
-    };
-
-    if (req.user.user_type === 'user') {
-      query.created_by = req.user.id;
-    }
-
-    const suppliers = await Supplier.find(query);
+    const suppliers = await Supplier.find({ admin_id: adminId });
     res.status(200).json(suppliers);
   } catch (err) {
     res.status(500).json({ error: err.message });
