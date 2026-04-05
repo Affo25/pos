@@ -45,7 +45,7 @@ function CreateSupplier({ visible, onCancel, supplier, onSuccess }) {
       };
 
       if (supplier) {
-        await dispatch(updateSupplier({ id: supplier._id, data: supplierData }));
+        await dispatch(updateSupplier({ id: supplier.id, data: supplierData }));
       } else {
         await dispatch(createSupplier(supplierData));
       }

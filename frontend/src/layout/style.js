@@ -2,6 +2,48 @@ import Styled from 'styled-components';
 
 const Div = Styled.div`
     position: relative;
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    ${({ darkMode }) =>
+      darkMode
+        ? `
+        background: linear-gradient(168deg, #0c1117 0%, #151c28 42%, #0f1419 100%);
+        background-attachment: fixed;
+    `
+        : `
+        background: linear-gradient(
+            165deg,
+            #e4e9f0 0%,
+            #ebeef3 35%,
+            #f0f3f8 68%,
+            #f6f8fc 100%
+        );
+        background-attachment: fixed;
+    `}
+
+    /* Outer admin layout fills viewport; inner row (sider + main) stretches */
+    .layout.ant-layout{
+        min-height: 100vh;
+        background: transparent !important;
+    }
+    .layout > .ant-layout{
+        flex: 1 1 auto;
+        min-height: calc(100vh - 64px);
+        align-items: stretch;
+        background: transparent !important;
+    }
+    .atbd-main-layout.ant-layout{
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        min-height: calc(100vh - 64px) !important;
+        width: 100%;
+        max-width: 100%;
+        background: transparent !important;
+    }
+
     .ant-menu-submenu-title {
         .ant-menu-item-icon + span {
             margin-left: 20px;
@@ -257,17 +299,32 @@ const Div = Styled.div`
         }
     }
 
-    /* Sidebar styles */
+    /* Sidebar — modern light / dark surfaces (light: flat edge, no gray/white seam shadow) */
     .ant-layout-sider{
-        box-shadow: 0 0 30px #9299B810;
+        box-shadow: none;
+        transition: background 0.25s ease, box-shadow 0.25s ease;
         @media (max-width: 991px){
-            box-shadow: 0 0 10px #00000020;
+            box-shadow: none;
         }
         @media print {
             display: none;
         }
+
+        &.ant-layout-sider-light{
+            /* Same violet wash as POS billing panel header (.billing-header) */
+            background: linear-gradient(135deg, #f3e8ff 0%, #faf5ff 52%, #f3e8ff 100%) !important;
+            ${({ theme }) => (!theme.rtl ? 'border-right' : 'border-left')}: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
         &.ant-layout-sider-dark{
-            background: ${({ theme }) => theme['dark-color']};
+            background: linear-gradient(
+                195deg,
+                #0b1220 0%,
+                #141c2c 40%,
+                #0d1524 100%
+            ) !important;
+            ${({ theme }) => (!theme.rtl ? 'border-right' : 'border-left')}: 1px solid rgba(100, 116, 139, 0.35);
+            box-shadow: 4px 0 28px rgba(0, 0, 0, 0.4);
             .ant-layout-sider-children{
                 .ant-menu{
                     .ant-menu-submenu-inline{
@@ -283,6 +340,11 @@ const Div = Styled.div`
         }
         
         .ant-layout-sider-children{
+            min-height: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
             padding-bottom: 15px;
             >.sidebar-nav-title{
                 margin-top: 8px;
@@ -290,6 +352,10 @@ const Div = Styled.div`
 
             .ant-menu{
                 overflow-x: hidden;
+                font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                font-size: 15px;
+                line-height: 1.5;
+                -webkit-font-smoothing: antialiased;
                 .ant-menu-sub.ant-menu-inline{
                     background-color: #fff;
                 }
@@ -494,12 +560,27 @@ const Div = Styled.div`
             }
         }
         .sidebar-nav-title{
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             font-size: 12px;
-            font-weight: 500;
+            font-weight: 600;
             text-transform: uppercase;
-            ${({ darkMode }) => (darkMode ? `color: rgba(255, 255, 255, .38);` : 'color: #9299B8;')};
+            letter-spacing: 0.14em;
+            align-items: center;
+            gap: 10px;
+            ${({ darkMode }) =>
+              darkMode
+                ? `color: rgba(196, 181, 253, 0.85);`
+                : `color: rgba(67, 56, 202, 0.72);`};
             padding: 0 ${({ theme }) => (theme.rtl ? '20px' : '15px')};
             display: flex;
+            .sidebar-nav-title__accent{
+                width: 4px;
+                height: 18px;
+                border-radius: 4px;
+                flex-shrink: 0;
+                background: linear-gradient(180deg, #818cf8 0%, #5F63F2 55%, #6366f1 100%);
+                box-shadow: 0 2px 8px rgba(95, 99, 242, 0.35);
+            }
         }
         &.ant-layout-sider-collapsed{
             padding: 15px 0px 55px !important;
@@ -514,6 +595,68 @@ const Div = Styled.div`
                 .badge{
                     display: none;
                 }
+            }
+        }
+
+        /* Rounded menu rows + active pill (light sidebar) */
+        &.ant-layout-sider-light .ant-layout-sider-children .ant-menu.ant-menu-light{
+            background: transparent !important;
+            border: none !important;
+            padding: 6px 8px 16px;
+            font-size: 15px;
+            .ant-menu-item,
+            .ant-menu-submenu > .ant-menu-submenu-title{
+                margin: 3px 4px !important;
+                border-radius: 10px !important;
+                width: auto !important;
+                font-size: 15px;
+            }
+            .ant-menu-item::after{
+                display: none !important;
+            }
+            .ant-menu-item-selected{
+                background: rgba(95, 99, 242, 0.16) !important;
+                box-shadow: ${({ theme }) =>
+                  theme.rtl ? 'inset -3px 0 0 #5F63F2' : 'inset 3px 0 0 #5F63F2'};
+            }
+            .ant-menu-item-selected .ant-menu-title-content,
+            .ant-menu-item-selected a{
+                color: #4338ca !important;
+                font-weight: 600;
+            }
+            .ant-menu-item-selected .feather,
+            .ant-menu-item-selected svg{
+                color: #5F63F2 !important;
+            }
+            .ant-menu-submenu-open > .ant-menu-submenu-title{
+                color: #4338ca !important;
+            }
+            .ant-menu-sub.ant-menu-inline{
+                background: rgba(237, 233, 254, 0.92) !important;
+                border-radius: 10px;
+                margin: 4px 0 8px;
+                padding: 4px 0;
+                box-shadow: inset 0 1px 0 rgba(139, 92, 246, 0.12);
+            }
+        }
+
+        /* Dark sidebar: glassy submenu + clearer active state */
+        &.ant-layout-sider-dark .ant-layout-sider-children .ant-menu.ant-menu-dark{
+            background: transparent !important;
+            padding: 6px 8px 16px;
+            .ant-menu-item,
+            .ant-menu-submenu > .ant-menu-submenu-title{
+                margin: 3px 4px !important;
+                border-radius: 10px !important;
+            }
+            .ant-menu-item-selected{
+                background: rgba(99, 102, 241, 0.28) !important;
+                box-shadow: ${({ theme }) =>
+                  theme.rtl ? 'inset -3px 0 0 #a5b4fc' : 'inset 3px 0 0 #a5b4fc'};
+            }
+            .ant-menu-sub.ant-menu-inline{
+                background: rgba(15, 23, 42, 0.45) !important;
+                border-radius: 10px;
             }
         }
     }
@@ -537,6 +680,27 @@ const Div = Styled.div`
             margin-left: 0;
             margin-right: 0;
         }
+    }
+
+    /* Main column: transparent so full-viewport Div background shows through; footer pinned */
+    .app-shell-content.ant-layout-content{
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        width: 100%;
+        min-height: calc(100vh - 64px);
+        padding: 0 !important;
+        background: transparent !important;
+        box-shadow: none;
+    }
+
+    .app-shell-content .admin-footer{
+        margin-top: auto;
+    }
+
+    .admin-sider-scrollbars{
+        flex: 1 1 auto;
+        min-height: 0;
     }
 
     /* Mobile Actions */

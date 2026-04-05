@@ -1,6 +1,8 @@
 import Cookies from 'js-cookie';
 
-const API_BASE_URL = 'http://localhost:5000/api/sales';
+import { API_BASE } from '../../config/apiBase';
+
+const API_BASE_URL = `${API_BASE}/sales`;
 const getToken = () => Cookies.get('token');
 
 export const fetchAllSales = async () => {
@@ -47,6 +49,22 @@ export const updateSale = async (id, saleData) => {
 
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'Failed to update sale');
+  return data;
+};
+
+export const processReturn = async (returnData) => {
+  const token = getToken();
+  const response = await fetch(`${API_BASE}/returns`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(returnData),
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || data.message || 'Failed to process return');
   return data;
 };
 

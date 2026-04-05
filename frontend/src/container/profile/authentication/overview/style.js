@@ -275,4 +275,108 @@ const AuthWrapper = Styled.div`
   }
 `;
 
-export { Aside, Content, AuthWrapper };
+const AidLoginPage = Styled.div`
+  min-height: 100vh;
+  width: 100%;
+  background: #eceff3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+`;
+
+const AidLoginCard = Styled.div`
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow:
+    0 4px 24px rgba(15, 23, 42, 0.06),
+    0 12px 40px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+`;
+
+const AidLoginCardTop = Styled.div`
+  height: 96px;
+  background: linear-gradient(125deg, #e8ecff 0%, #f0e8ff 42%, #e8f4ff 100%);
+  position: relative;
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(rgba(99, 102, 241, 0.12) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99, 102, 241, 0.12) 1px, transparent 1px);
+    background-size: 22px 22px;
+    opacity: 0.85;
+  }
+`;
+
+const AidLoginCardBody = Styled.div`
+  padding: 28px 40px 36px;
+  @media (max-width: 480px) {
+    padding: 22px 20px 28px;
+  }
+  .aid-brand-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+    text-align: center;
+    margin: 0 0 4px;
+    letter-spacing: -0.02em;
+  }
+  .aid-welcome-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+    text-align: center;
+    margin: 0 0 8px;
+    line-height: 1.25;
+  }
+  .aid-welcome-sub {
+    font-size: 14px;
+    color: #6b7280;
+    text-align: center;
+    margin: 0 0 26px;
+    line-height: 1.5;
+  }
+  .aid-logo-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+    img {
+      max-height: 52px;
+      width: auto;
+      object-fit: contain;
+    }
+  }
+  .ant-form-item-label > label {
+    color: #6b7280 !important;
+    font-size: 13px !important;
+    font-weight: 500;
+  }
+  .ant-input,
+  .ant-input-affix-wrapper {
+    border-radius: 8px !important;
+  }
+  .ant-input-affix-wrapper {
+    padding: 8px 12px !important;
+  }
+  .aid-signin-submit.ant-btn {
+    width: 100%;
+    height: 48px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 15px;
+    border: none;
+    background: linear-gradient(180deg, #2d2d2d 0%, #1a1a1a 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  .aid-signin-submit.ant-btn:hover,
+  .aid-signin-submit.ant-btn:focus {
+    background: linear-gradient(180deg, #3a3a3a 0%, #222 100%);
+    color: #fff;
+  }
+`;
+
+export { Aside, Content, AuthWrapper, AidLoginPage, AidLoginCard, AidLoginCardTop, AidLoginCardBody };

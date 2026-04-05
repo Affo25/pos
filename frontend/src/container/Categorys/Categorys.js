@@ -56,7 +56,6 @@ function Categorys() {
 
   const handleDelete = (id) => {
     dispatch(deleteCategory(id));
-
   };
 
   const showModal = () => {
@@ -88,21 +87,35 @@ function Categorys() {
       let filtered = [...categorys];
 
       if (searchTerm) {
-        filtered = filtered.filter(
-          (item) =>
-            item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.status.toLowerCase().includes(searchTerm.toLowerCase()),
-        );
+        filtered = filtered.filter((item) => {
+          // ✅ Safe check for undefined values
+          const itemName = item?.name || '';
+          const itemStatus = item?.status || '';
+          const searchTermLower = searchTerm.toLowerCase();
+          
+          return (
+            itemName.toLowerCase().includes(searchTermLower) ||
+            itemStatus.toLowerCase().includes(searchTermLower)
+          );
+        });
       }
 
       if (sortStatus !== 'category') {
-        filtered = filtered.filter((item) => item.status.toLowerCase() === sortStatus.toLowerCase());
+        filtered = filtered.filter((item) => {
+          // ✅ Safe check for status
+          const itemStatus = item?.status || '';
+          return itemStatus.toLowerCase() === sortStatus.toLowerCase();
+        });
       }
 
       filtered.sort((a, b) => {
         if (searchTerm) {
-          if (a.name.toLowerCase().includes(searchTerm.toLowerCase())) return -1;
-          if (b.name.toLowerCase().includes(searchTerm.toLowerCase())) return 1;
+          const aName = a?.name || '';
+          const bName = b?.name || '';
+          const searchTermLower = searchTerm.toLowerCase();
+          
+          if (aName.toLowerCase().includes(searchTermLower)) return -1;
+          if (bName.toLowerCase().includes(searchTermLower)) return 1;
         }
         return 0;
       });
@@ -112,12 +125,13 @@ function Categorys() {
       const paginatedData = filtered.slice(start, end);
 
       const formatted = paginatedData.map((category) => {
-        const { _id, id, name, description } = category;
+        const { _id, id, name, description, status } = category;
         return {
           key: _id || id,
           id: _id || id,
-          name,
-          description,
+          name: name || 'Unnamed Category', // ✅ Fallback for undefined name
+          description: description || 'No description', // ✅ Fallback for undefined description
+          status: status || 'inactive', // ✅ Fallback for undefined status
           action: (
             <Dropdown
               overlay={
@@ -148,7 +162,7 @@ function Categorys() {
       });
       setDataSource(formatted);
     }
-  }, [categorys, pagination, searchTerm, sortStatus]);
+  }, [categorys, pagination, searchTerm, sortStatus, canEdit, canDelete]);
 
   const handlePageChange = (page, pageSize) => {
     setPagination({
@@ -195,8 +209,8 @@ function Categorys() {
       <ProjectHeader>
         <PageHeader
           ghost
-          title="Categorys"
-          subTitle={<>{loading ? 'Loading...' : `${dataSource.length} Categorys`}</>}
+          title="Categories"
+          subTitle={<>{loading ? 'Loading...' : `${dataSource.length} Categories`}</>}
           buttons={[
             <Button disabled={!canAdd} onClick={showModal} key="1" type="primary" size="default">
               <FeatherIcon icon="plus" size={16} /> Create Category
@@ -210,14 +224,14 @@ function Categorys() {
             <ProjectSorting>
               <div className="project-sort-bar">
                 <div className="project-sort-search">
-                  <AutoComplete onSearch={handleSearch} dataSource={notData} placeholder="Search categorys" patterns />
+                  <AutoComplete onSearch={handleSearch} dataSource={notData} placeholder="Search categories" patterns />
                 </div>
                 <div className="sort-group">
                   <span style={{ display: 'flex', alignItems: 'center' }}>Sort By:</span>
                   <Select defaultValue="category" onChange={(value) => setSortStatus(value)}>
                     <Select.Option value="category">All</Select.Option>
-                    <Select.Option value="Active">Active</Select.Option>
-                    <Select.Option value="InActive">Inactive</Select.Option>
+                    <Select.Option value="active">Active</Select.Option>
+                    <Select.Option value="inactive">Inactive</Select.Option>
                   </Select>
                 </div>
               </div>

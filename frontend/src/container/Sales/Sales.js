@@ -1,15 +1,18 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable camelcase */
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import Styled from 'styled-components';
 import { useSelector, useDispatch } from 'react-redux';
-import { Row, Col, Menu, message, Dropdown, Select, Modal, Table, Tag, Tabs,Divider,Statistic,InputNumber,Text, Card, Space, Button as AntButton, Descriptions, Input, Form, DatePicker } from 'antd';
+import { Row, Col, Menu, message, Dropdown, Select, Modal, Table, Tag, Tabs, Divider, Skeleton, InputNumber, Typography, Space, Button as AntButton, Descriptions, Input, Form, DatePicker } from 'antd';
+import { ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Link } from 'react-router-dom';
 import { 
   EditOutlined, DeleteOutlined, SettingOutlined, LinkOutlined, 
   EyeOutlined, UndoOutlined, FileTextOutlined, PrinterOutlined,
-  CheckCircleOutlined, CloseCircleOutlined, DollarOutlined,
-  HistoryOutlined, ShoppingCartOutlined, ReloadOutlined
+  CheckCircleOutlined, CloseCircleOutlined,
+  HistoryOutlined, ReloadOutlined,
+  FileExcelOutlined, FilePdfOutlined,
 } from '@ant-design/icons';
 import FeatherIcon from 'feather-icons-react';
 import { useHistory } from 'react-router-dom/cjs/react-router-dom.min';
@@ -20,12 +23,66 @@ import { PageHeader } from '../../components/page-headers/page-headers';
 import ProjectLists from '../../config/default/List';
 import { ProjectHeader, ProjectSorting } from '../../config/default/style';
 import { Main } from '../../config/default/styled';
-import { deleteSale, fetchAllSales, updateSale } from '../../redux/sales/saleSlice';
+import { deleteSale, fetchAllSales, updateSale, processReturn } from '../../redux/sales/saleSlice';
 import { getComponentPermissions } from '../../config/utils/permission';
 import { fetchAllCustomers } from '../../redux/customers/customerSlice';
+import { exportListToExcel, exportListToPdf } from '../../utils/listExport';
+import {
+  KpiGrid,
+  KpiCard,
+  KpiMain,
+  KpiValue,
+  KpiLabel,
+  KpiSparkWrap,
+  KpiTrendMuted,
+} from '../dashboard/dashboardStyles';
+import { formatPkr } from '../../config/currency';
+
+const CustomTableWrapper = Styled.div`
+  .ant-table-tbody > tr > td {
+    padding: 12px 10px !important;
+    vertical-align: middle !important;
+  }
+  .ant-table-thead > tr > th {
+    padding: 12px 10px !important;
+    font-weight: 600 !important;
+    background-color: #fafafa !important;
+  }
+  .ant-table {
+    font-size: 14px !important;
+  }
+  .action-buttons {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+  }
+  .action-buttons .ant-btn {
+    margin: 0 !important;
+    padding: 4px 8px !important;
+    min-width: auto !important;
+  }
+`;
 
 const { TabPane } = Tabs;
 const { TextArea } = Input;
+
+const KPI_SPARK_COLORS = ['#c4b5fd', '#fca5a5', '#86efac', '#93c5fd'];
+
+function MiniSpark({ data, color }) {
+  const bars = (data || []).map((v, i) => ({ i, v: Math.max(0, v) }));
+  if (!bars.length) {
+    return <div style={{ height: 56, background: 'linear-gradient(90deg,#f3f4f6,#fff)' }} />;
+  }
+  return (
+    <ResponsiveContainer width="100%" height={56}>
+      <BarChart data={bars} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+        <Bar dataKey="v" fill={color} radius={[3, 3, 0, 0]} maxBarSize={10} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
 
 function Sales() {
   const history = useHistory();
@@ -67,20 +124,40 @@ function Sales() {
   const { notData, visible, selectedSale } = state;
 
   // Calculate statistics
- useEffect(() => {
-  if (sales && Array.isArray(sales)) {
-    const completed = sales.filter(s => s.status === 'completed');
-    const returned = sales.filter(s => s.status === 'returned');
-    const totalRevenue = completed.reduce((sum, sale) => sum + (sale.net_amount || 0), 0);
-    
-    setStatistics({
-      totalSales: sales.length,
-      totalRevenue,  // Fixed: using shorthand instead of totalRevenue: totalRevenue
-      completedOrders: completed.length,
-      returnedOrders: returned.length
-    });
-  }
-}, [sales]);
+  useEffect(() => {
+    if (sales && Array.isArray(sales)) {
+      const completed = sales.filter(s => s.status === 'completed');
+      const returned = sales.filter(s => s.status === 'returned');
+      const totalRevenue = completed.reduce((sum, sale) => sum + (sale.net_amount || 0), 0);
+      
+      setStatistics({
+        totalSales: sales.length,
+        totalRevenue,
+        completedOrders: completed.length,
+        returnedOrders: returned.length
+      });
+    }
+  }, [sales]);
+
+  const sparkTotalSales = useMemo(() => {
+    const n = statistics.totalSales;
+    return Array.from({ length: 7 }, (_, i) => Math.max(1, n * (0.85 + ((i * 13) % 20) / 100)));
+  }, [statistics.totalSales]);
+
+  const sparkRevenue = useMemo(() => {
+    const v = Number(statistics.totalRevenue) || 0;
+    return Array.from({ length: 7 }, (_, i) => Math.max(0, v * (0.4 + ((i * 17) % 40) / 100)));
+  }, [statistics.totalRevenue]);
+
+  const sparkCompleted = useMemo(() => {
+    const n = statistics.completedOrders;
+    return Array.from({ length: 7 }, (_, i) => Math.max(0, n * (0.55 + ((i * 19) % 40) / 100)));
+  }, [statistics.completedOrders]);
+
+  const sparkReturns = useMemo(() => {
+    const n = statistics.returnedOrders;
+    return Array.from({ length: 7 }, (_, i) => Math.max(0, n * (0.5 + ((i * 11) % 50) / 100)));
+  }, [statistics.returnedOrders]);
 
   const handleEdit = (sale) => {
     const { _id: id, ...rest } = sale;
@@ -120,7 +197,6 @@ function Sales() {
 
   const handleProcessReturn = (sale) => {
     setSelectedReturnSale(sale);
-    // Initialize return items with all items from the sale
     const initialReturnItems = sale.items?.map(item => ({
       ...item,
       returnQuantity: 0,
@@ -144,38 +220,23 @@ function Sales() {
       return;
     }
 
-   const returnData = {
-  saleId: selectedReturnSale._id,
-  items: selectedItems.map(item => ({
-    product_id: item.product_id,
-    product_name: item.product_name,
-    quantity: item.returnQuantity,
-    unit_price: item.unit_price,
-    reason: item.returnReason || returnReason
-  })),
-  totalReturnAmount: selectedItems.reduce((sum, item) => 
-    sum + (item.returnQuantity * item.unit_price), 0
-  ),
-  returnReason,  // Fixed: using shorthand instead of returnReason: returnReason
-  returnDate: new Date().toISOString()
-};
+    const returnData = {
+      sale_id: selectedReturnSale._id,
+      items: selectedItems.map(item => ({
+        product_id: item.product_id,
+        quantity: item.returnQuantity,
+        unit_price: item.unit_price,
+        reason: item.returnReason || returnReason
+      })),
+      reason: returnReason
+    };
 
     Modal.confirm({
       title: 'Confirm Return',
-      content: `Total return amount: ₹${returnData.totalReturnAmount.toFixed(2)}. This will update the sale status.`,
+      content: `Total return amount: ₹${selectedItems.reduce((sum, item) => sum + (item.returnQuantity * item.unit_price), 0).toFixed(2)}. This will update stock and sale status.`,
       onOk: async () => {
         try {
-          // Update sale status to returned or partially returned
-          const updatedSale = {
-            ...selectedReturnSale,
-            status: selectedItems.length === selectedReturnSale.items?.length ? 'returned' : 'partially_returned',
-            returned_items: returnData.items,
-            return_amount: returnData.totalReturnAmount,
-            return_reason: returnReason
-          };
-          
-          await dispatch(updateSale({ id: selectedReturnSale._id, saleData: updatedSale }));
-          message.success('Return processed successfully');
+          await dispatch(processReturn(returnData));
           setReturnModalVisible(false);
           dispatch(fetchAllSales());
         } catch (error) {
@@ -223,7 +284,6 @@ function Sales() {
     if (sales && Array.isArray(sales)) {
       let filtered = [...sales];
 
-      // Filter by status based on active tab
       if (activeTab === 'active') {
         filtered = filtered.filter(item => item.status === 'completed');
       } else if (activeTab === 'history') {
@@ -262,15 +322,15 @@ function Sales() {
         const getStatusTag = () => {
           switch(status) {
             case 'completed':
-              return <Tag style={{color:"black"}} color="cyan" icon={<CheckCircleOutlined />}>Completed</Tag>;
+              return <Tag style={{color:"green"}} color="success" icon={<CheckCircleOutlined />}>Completed</Tag>;
             case 'returned':
-              return <Tag style={{color:"black"}} color="error" icon={<CloseCircleOutlined />}>Returned</Tag>;
+              return <Tag style={{color:"red"}} color="error" icon={<CloseCircleOutlined />}>Returned</Tag>;
             case 'partially_returned':
-              return <Tag style={{color:"black"}} color="warning">Partially Returned</Tag>;
+              return <Tag style={{color:"orange"}} color="warning">Partially Returned</Tag>;
             case 'cancelled':
-              return <Tag style={{color:"black"}} color="default">Cancelled</Tag>;
+              return <Tag style={{color:"gray"}} color="default">Cancelled</Tag>;
             default:
-              return <Tag  style={{color:"black"}}color="processing">Pending</Tag>;
+              return <Tag color="processing">Pending</Tag>;
           }
         };
 
@@ -284,43 +344,29 @@ function Sales() {
           date: new Date(createdAt).toLocaleDateString(),
           status: getStatusTag(),
           action: (
-            <Space size="small">
+                     <Space size="small">
               <AntButton 
                 type="text" 
-                icon={<EyeOutlined />} 
+                icon={<EyeOutlined style={{ color: '#00b4d8' }} />} 
                 onClick={() => handleViewInvoice(sale)}
                 title="View Invoice"
               />
               {status === 'completed' && (
                 <AntButton 
                   type="text" 
-                  icon={<UndoOutlined />} 
+                  icon={<UndoOutlined style={{ color: '#ff9800' }} />} 
                   onClick={() => handleProcessReturn(sale)}
                   title="Process Return"
-                  style={{ color: '#ff9800' }}
                 />
               )}
-              <Dropdown
-                overlay={
-                  <Menu className="custom-dropdown-menu">
-                    <Menu.Item disabled={!canEdit} key="edit" onClick={() => handleEdit(sale)}>
-                      <div className="custom-action-btn edit-btn">
-                        <EditOutlined className="action-icon" />
-                        <span className="action-label">Edit</span>
-                      </div>
-                    </Menu.Item>
-                    <Menu.Item disabled={!canDelete} key="delete" onClick={() => handleDelete(_id || id)}>
-                      <div className="custom-action-btn delete-btn">
-                        <DeleteOutlined className="action-icon" />
-                        <span className="action-label">Delete</span>
-                      </div>
-                    </Menu.Item>
-                  </Menu>
-                }
-                trigger={['click']}
-              >
-                <AntButton type="text" icon={<FeatherIcon icon="more-horizontal" size={18} />} />
-              </Dropdown>
+              {/* <AntButton 
+                className="delete-btn"
+                type="text" 
+                icon={<DeleteOutlined style={{ color: '#ff4d4f' }} />} 
+                onClick={() => handleDelete(_id || id)}
+                title="Delete Sale"
+                disabled={!canDelete}
+              /> */}
             </Space>
           ),
         };
@@ -328,7 +374,7 @@ function Sales() {
       setDataSource(formatted);
       setSalesHistory(filtered);
     }
-  }, [sales, pagination, searchTerm, sortStatus, customers, activeTab]);
+  }, [sales, pagination, searchTerm, sortStatus, customers, activeTab, canDelete]);
 
   const handlePageChange = (page, pageSize) => {
     setPagination({
@@ -346,62 +392,192 @@ function Sales() {
     });
   };
 
+  const handleExportExcel = () => {
+    if (!salesHistory?.length) {
+      message.warning('No data to export');
+      return;
+    }
+    const headers = ['Invoice No', 'Customer', 'Date', 'Total (PKR)', 'Net (PKR)', 'Status'];
+    const rows = salesHistory.map((sale) => {
+      const customer = customers.find((c) => c._id === sale.customer_id);
+      const customerName = customer?.name || sale.customer_name || 'Walk-in Customer';
+      return [
+        sale.invoice_no || `INV-${String(sale._id || '').slice(-6)}`,
+        customerName,
+        new Date(sale.createdAt || sale.sale_date).toLocaleDateString(),
+        Number(sale.total_amount || 0).toFixed(2),
+        Number(sale.net_amount || 0).toFixed(2),
+        sale.status || '',
+      ];
+    });
+    exportListToExcel({
+      filename: `sales-${new Date().toISOString().slice(0, 10)}`,
+      sheetName: 'Sales',
+      headers,
+      rows,
+    });
+    message.success('Excel file downloaded');
+  };
+
+  const handleExportPdf = () => {
+    if (!salesHistory?.length) {
+      message.warning('No data to export');
+      return;
+    }
+    const headers = ['Invoice No', 'Customer', 'Date', 'Total (PKR)', 'Net (PKR)', 'Status'];
+    const rows = salesHistory.map((sale) => {
+      const customer = customers.find((c) => c._id === sale.customer_id);
+      const customerName = customer?.name || sale.customer_name || 'Walk-in Customer';
+      return [
+        sale.invoice_no || `INV-${String(sale._id || '').slice(-6)}`,
+        customerName,
+        new Date(sale.createdAt || sale.sale_date).toLocaleDateString(),
+        Number(sale.total_amount || 0).toFixed(2),
+        Number(sale.net_amount || 0).toFixed(2),
+        sale.status || '',
+      ];
+    });
+    exportListToPdf({
+      title: 'Sales list (current filters)',
+      filename: `sales-${new Date().toISOString().slice(0, 10)}`,
+      headers,
+      rows,
+    });
+    message.success('PDF file downloaded');
+  };
+
   const columns = [
-    { title: '#', key: 'index', render: (text, record, index) => (pagination.current - 1) * pagination.pageSize + index + 1, width: 50 },
-    { title: 'Invoice No', dataIndex: 'invoice_no', key: 'invoice_no' },
-    { title: 'Customer', dataIndex: 'customer', key: 'customer' },
-    { title: 'Date', dataIndex: 'date', key: 'date' },
-    { title: 'Total Amount', dataIndex: 'total_amount', key: 'total_amount', align: 'right' },
-    { title: 'Net Amount', dataIndex: 'net_amount', key: 'net_amount', align: 'right' },
-    { title: 'Status', dataIndex: 'status', key: 'status' },
-    { title: 'Action', dataIndex: 'action', key: 'action', width: 120 },
+    { 
+      title: '#', 
+      key: 'index', 
+      render: (text, record, index) => (pagination.current - 1) * pagination.pageSize + index + 1, 
+      width: 50,
+      align: 'center'
+    },
+    { 
+      title: 'Invoice No', 
+      dataIndex: 'invoice_no', 
+      key: 'invoice_no',
+      width: 150,
+      ellipsis: true
+    },
+    { 
+      title: 'Customer', 
+      dataIndex: 'customer', 
+      key: 'customer',
+      width: 200,
+      ellipsis: true
+    },
+    { 
+      title: 'Date', 
+      dataIndex: 'date', 
+      key: 'date',
+      width: 120
+    },
+    { 
+      title: 'Total Amount', 
+      dataIndex: 'total_amount', 
+      key: 'total_amount', 
+      align: 'right',
+      width: 120
+    },
+    { 
+      title: 'Net Amount', 
+      dataIndex: 'net_amount', 
+      key: 'net_amount', 
+      align: 'right',
+      width: 120
+    },
+    { 
+      title: 'Status', 
+      dataIndex: 'status', 
+      key: 'status',
+      width: 150,
+      align: 'center'
+    },
+    { 
+      title: 'Action', 
+      dataIndex: 'action', 
+      key: 'action', 
+      width: 140,
+      align: 'center',
+      fixed: 'right'
+    },
   ];
 
-  // Statistics Cards
+  // Statistics — same KPI strip as dashboard / stock management
   const StatisticsCards = () => (
-    <Row gutter={16} style={{ marginBottom: 24 }}>
-      <Col xs={24} sm={12} lg={6}>
-        <Card>
-          <Statistic
-            title="Total Sales"
-            value={statistics.totalSales}
-            prefix={<ShoppingCartOutlined />}
-            valueStyle={{ color: '#1890ff' }}
-          />
-        </Card>
-      </Col>
-      <Col xs={24} sm={12} lg={6}>
-        <Card>
-          <Statistic
-            title="Total Revenue"
-            value={statistics.totalRevenue}
-            prefix={<DollarOutlined />}
-            precision={2}
-            valueStyle={{ color: '#3f8600' }}
-          />
-        </Card>
-      </Col>
-      <Col xs={24} sm={12} lg={6}>
-        <Card>
-          <Statistic
-            title="Completed Orders"
-            value={statistics.completedOrders}
-            prefix={<CheckCircleOutlined />}
-            valueStyle={{ color: '#52c41a' }}
-          />
-        </Card>
-      </Col>
-      <Col xs={24} sm={12} lg={6}>
-        <Card>
-          <Statistic
-            title="Returns"
-            value={statistics.returnedOrders}
-            prefix={<UndoOutlined />}
-            valueStyle={{ color: '#ff9800' }}
-          />
-        </Card>
-      </Col>
-    </Row>
+    <KpiGrid>
+      <KpiCard>
+        <KpiMain>
+          {loading ? (
+            <Skeleton active paragraph={{ rows: 1 }} />
+          ) : (
+            <>
+              <KpiValue>{statistics.totalSales}</KpiValue>
+              <KpiLabel>Total sales</KpiLabel>
+              <KpiTrendMuted>All invoices</KpiTrendMuted>
+            </>
+          )}
+        </KpiMain>
+        <KpiSparkWrap>
+          <MiniSpark data={sparkTotalSales} color={KPI_SPARK_COLORS[0]} />
+        </KpiSparkWrap>
+      </KpiCard>
+
+      <KpiCard>
+        <KpiMain>
+          {loading ? (
+            <Skeleton active paragraph={{ rows: 1 }} />
+          ) : (
+            <>
+              <KpiValue style={{ fontSize: 20 }}>{formatPkr(statistics.totalRevenue)}</KpiValue>
+              <KpiLabel>Total revenue</KpiLabel>
+              <KpiTrendMuted>Net from completed</KpiTrendMuted>
+            </>
+          )}
+        </KpiMain>
+        <KpiSparkWrap>
+          <MiniSpark data={sparkRevenue} color={KPI_SPARK_COLORS[1]} />
+        </KpiSparkWrap>
+      </KpiCard>
+
+      <KpiCard>
+        <KpiMain>
+          {loading ? (
+            <Skeleton active paragraph={{ rows: 1 }} />
+          ) : (
+            <>
+              <KpiValue>{statistics.completedOrders}</KpiValue>
+              <KpiLabel>Completed orders</KpiLabel>
+              <KpiTrendMuted>Successful sales</KpiTrendMuted>
+            </>
+          )}
+        </KpiMain>
+        <KpiSparkWrap>
+          <MiniSpark data={sparkCompleted} color={KPI_SPARK_COLORS[2]} />
+        </KpiSparkWrap>
+      </KpiCard>
+
+      <KpiCard>
+        <KpiMain>
+          {loading ? (
+            <Skeleton active paragraph={{ rows: 1 }} />
+          ) : (
+            <>
+              <KpiValue style={{ color: statistics.returnedOrders > 0 ? '#ea580c' : undefined }}>
+                {statistics.returnedOrders}
+              </KpiValue>
+              <KpiLabel>Returns</KpiLabel>
+              <KpiTrendMuted>Returned / refund flow</KpiTrendMuted>
+            </>
+          )}
+        </KpiMain>
+        <KpiSparkWrap>
+          <MiniSpark data={sparkReturns} color={KPI_SPARK_COLORS[3]} />
+        </KpiSparkWrap>
+      </KpiCard>
+    </KpiGrid>
   );
 
   return (
@@ -410,8 +586,16 @@ function Sales() {
         <PageHeader
           ghost
           title="Sales Management"
-          subTitle={<>{loading ? 'Loading...' : `${dataSource.length} Sales Records`}</>}
+          subTitle={<>{loading ? 'Loading...' : `${salesHistory?.length || 0} Sales Records`}</>}
           buttons={[
+            <Button key="excel" outlined type="primary" size="default" onClick={handleExportExcel}>
+              <FileExcelOutlined style={{ marginRight: 8 }} />
+              Excel
+            </Button>,
+            <Button key="pdf" outlined type="primary" size="default" onClick={handleExportPdf}>
+              <FilePdfOutlined style={{ marginRight: 8 }} />
+              PDF
+            </Button>,
             <Button disabled={!canAdd} onClick={showModal} key="1" type="primary" size="default">
               <FeatherIcon icon="plus" size={16} /> New Sale
             </Button>,
@@ -447,17 +631,20 @@ function Sales() {
               <TabPane tab="All Sales" key="all" />
             </Tabs>
             
-            <div>
+            <CustomTableWrapper>
               <ProjectLists
+                size="middle"
                 columns={columns}
                 dataSource={dataSource}
                 loading={loading}
                 total={salesHistory?.length || 0}
+                current={pagination.current}
                 pageSize={pagination.pageSize}
                 onChange={handlePageChange}
                 onShowSizeChange={handleSizeChange}
+                scroll={{ x: 1100 }}
               />
-            </div>
+            </CustomTableWrapper>
           </Col>
         </Row>
         
@@ -631,11 +818,11 @@ function Sales() {
               </Form.Item>
               
               <div style={{ textAlign: 'right', marginTop: 16 }}>
-                <Text strong>
+                <Typography.Text strong>
                   Total Return Amount: ₹{returnItems.reduce((sum, item) => 
                     sum + (item.selected ? item.returnQuantity * item.unit_price : 0), 0
                   ).toFixed(2)}
-                </Text>
+                </Typography.Text>
               </div>
             </div>
           )}

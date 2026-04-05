@@ -544,11 +544,10 @@ export default function* ${featureNameLower}Saga() {
 }
 
 function generatePageService(featureName, featureNamePlural, featureNameLower, featureNamePluralLower, dir) {
-  const apiEndpoint = `http://localhost:5000/api/${featureNamePluralLower}`;
-
   const template = `import Cookies from 'js-cookie';
+import { API_BASE } from '../../config/apiBase';
 
-const API_BASE_URL = '${apiEndpoint}';
+const API_BASE_URL = \`\${API_BASE}/${featureNamePluralLower}\`;
 const getToken = () => Cookies.get('token');
 
 export const fetchAll${featureNamePlural} = async () => {

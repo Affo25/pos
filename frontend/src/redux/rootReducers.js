@@ -27,6 +27,7 @@ import saleReducer from './sales/saleSlice';
 import supplierReducer from './suppliers/supplierSlice';
 import purchaseorderReducer from './purchaseorders/purchaseorderSlice';
 import selectedBranchReducer from './selectedBranch/selectedBranchSlice';
+import analyticsReducer from './analytics/analyticsSlice';
 
 const rootReducers = combineReducers({
   fb: firebaseReducer,
@@ -63,6 +64,7 @@ const rootReducers = combineReducers({
   sales: saleReducer,
   suppliers: supplierReducer,
   purchaseorders: purchaseorderReducer,
+  analytics: analyticsReducer,
 });
 
 export default rootReducers;

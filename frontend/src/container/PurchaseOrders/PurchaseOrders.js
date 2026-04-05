@@ -1,11 +1,11 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable camelcase */
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Row, Col, Menu, message, Dropdown, Select } from 'antd';
 import { Link } from 'react-router-dom';
-import { EditOutlined, DeleteOutlined, SettingOutlined, LinkOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, SettingOutlined, LinkOutlined, FileExcelOutlined, FilePdfOutlined } from '@ant-design/icons';
 import FeatherIcon from 'feather-icons-react';
 import { useHistory } from 'react-router-dom/cjs/react-router-dom.min';
 import CreatePurchaseOrder from './CreatePurchaseOrder';
@@ -18,6 +18,7 @@ import { Main } from '../../config/default/styled';
 import { deletePurchaseOrder, fetchAllPurchaseOrders } from '../../redux/purchaseorders/purchaseorderSlice';
 import { getComponentPermissions } from '../../config/utils/permission';
 import { fetchAllSuppliers } from '../../redux/suppliers/supplierSlice';
+import { exportListToExcel, exportListToPdf } from '../../utils/listExport';
 
 function PurchaseOrders() {
   const history = useHistory();
@@ -25,7 +26,7 @@ function PurchaseOrders() {
   const { purchaseorders, loading } = useSelector((state) => state.purchaseorders);
   const { suppliers } = useSelector((state) => state.suppliers);
   const { login: user } = useSelector(state => state.auth);
-  const { canAdd, canEdit, canDelete } = getComponentPermissions(user, 'PurchaseOrders');
+  const { canEdit, canDelete } = getComponentPermissions(user, 'PurchaseOrders');
 
   const [dataSource, setDataSource] = useState([]);
 
@@ -41,7 +42,7 @@ function PurchaseOrders() {
     selectedPurchaseOrderId: null,
   });
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortStatus, setSortStatus] = useState('category');
+  const [sortStatus, setSortStatus] = useState('all');
 
   const { notData, visible, selectedPurchaseOrder } = state;
 
@@ -88,42 +89,49 @@ function PurchaseOrders() {
     dispatch(fetchAllSuppliers());
   }, []);
 
-  useEffect(() => {
-    if (purchaseorders && Array.isArray(purchaseorders)) {
-      let filtered = [...purchaseorders];
+  const filteredPurchaseOrders = useMemo(() => {
+    if (!purchaseorders || !Array.isArray(purchaseorders)) return [];
+    let filtered = [...purchaseorders];
 
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (item) =>
+          item.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.status?.toLowerCase().includes(searchTerm.toLowerCase()),
+      );
+    }
+
+    if (sortStatus !== 'all') {
+      filtered = filtered.filter((item) => item.status?.toLowerCase() === sortStatus.toLowerCase());
+    }
+
+    filtered.sort((a, b) => {
       if (searchTerm) {
-        filtered = filtered.filter(
-          (item) =>
-            item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.status.toLowerCase().includes(searchTerm.toLowerCase()),
-        );
+        if (a.order_number?.toLowerCase().includes(searchTerm.toLowerCase())) return -1;
+        if (b.order_number?.toLowerCase().includes(searchTerm.toLowerCase())) return 1;
       }
+      return 0;
+    });
 
-      if (sortStatus !== 'category') {
-        filtered = filtered.filter((item) => item.status.toLowerCase() === sortStatus.toLowerCase());
-      }
+    return filtered;
+  }, [purchaseorders, searchTerm, sortStatus]);
 
-      filtered.sort((a, b) => {
-        if (searchTerm) {
-          if (a.name.toLowerCase().includes(searchTerm.toLowerCase())) return -1;
-          if (b.name.toLowerCase().includes(searchTerm.toLowerCase())) return 1;
-        }
-        return 0;
-      });
-
+  useEffect(() => {
+    if (filteredPurchaseOrders.length) {
       const start = (pagination.current - 1) * pagination.pageSize;
       const end = start + pagination.pageSize;
-      const paginatedData = filtered.slice(start, end);
+      const paginatedData = filteredPurchaseOrders.slice(start, end);
 
       const formatted = paginatedData.map((purchaseorder) => {
         const { _id, id, order_number,
           order_date,
           supplier_id,
+          items,
           status, } = purchaseorder;
 
-        const supplierName =
-          suppliers.find(cat => cat._id === supplier_id)?.name || '—';
+        const supplierName = supplier_id?.name || '—';
+        const totalItems = items?.length || 0;
+        const totalAmount = items?.reduce((sum, item) => sum + (item.quantity * item.price), 0) || 0;
 
         return {
           key: _id || id,
@@ -131,6 +139,8 @@ function PurchaseOrders() {
           order_number,
           order_date: new Date(order_date).toLocaleDateString(),
           supplier: supplierName,
+          total_items: totalItems,
+          total_amount: totalAmount.toFixed(2),
           status: (
             <span
               className={
@@ -173,8 +183,64 @@ function PurchaseOrders() {
         };
       });
       setDataSource(formatted);
+    } else {
+      setDataSource([]);
     }
-  }, [purchaseorders, pagination, searchTerm, sortStatus]);
+  }, [filteredPurchaseOrders, pagination, canEdit, canDelete]);
+
+  const handleExportExcel = () => {
+    if (!filteredPurchaseOrders.length) {
+      message.warning('No data to export');
+      return;
+    }
+    const headers = ['Order No', 'Order Date', 'Supplier', 'Line items', 'Total (PKR)', 'Status'];
+    const rows = filteredPurchaseOrders.map((po) => {
+      const supplierName = po.supplier_id?.name || '—';
+      const totalAmount = po.items?.reduce((sum, item) => sum + (item.quantity * item.price), 0) || 0;
+      return [
+        po.order_number,
+        new Date(po.order_date).toLocaleDateString(),
+        supplierName,
+        po.items?.length || 0,
+        totalAmount.toFixed(2),
+        po.status || '',
+      ];
+    });
+    exportListToExcel({
+      filename: `purchase-orders-${new Date().toISOString().slice(0, 10)}`,
+      sheetName: 'Purchase orders',
+      headers,
+      rows,
+    });
+    message.success('Excel file downloaded');
+  };
+
+  const handleExportPdf = () => {
+    if (!filteredPurchaseOrders.length) {
+      message.warning('No data to export');
+      return;
+    }
+    const headers = ['Order No', 'Order Date', 'Supplier', 'Line items', 'Total (PKR)', 'Status'];
+    const rows = filteredPurchaseOrders.map((po) => {
+      const supplierName = po.supplier_id?.name || '—';
+      const totalAmount = po.items?.reduce((sum, item) => sum + (item.quantity * item.price), 0) || 0;
+      return [
+        po.order_number,
+        new Date(po.order_date).toLocaleDateString(),
+        supplierName,
+        po.items?.length || 0,
+        totalAmount.toFixed(2),
+        po.status || '',
+      ];
+    });
+    exportListToPdf({
+      title: 'Purchase orders (current filters)',
+      filename: `purchase-orders-${new Date().toISOString().slice(0, 10)}`,
+      headers,
+      rows,
+    });
+    message.success('PDF file downloaded');
+  };
 
   const handlePageChange = (page, pageSize) => {
     setPagination({
@@ -215,6 +281,16 @@ function PurchaseOrders() {
       key: 'supplier',
     },
     {
+      title: 'Items',
+      dataIndex: 'total_items',
+      key: 'total_items',
+    },
+    {
+      title: 'Total Amount',
+      dataIndex: 'total_amount',
+      key: 'total_amount',
+    },
+    {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
@@ -233,9 +309,17 @@ function PurchaseOrders() {
         <PageHeader
           ghost
           title="PurchaseOrders"
-          subTitle={<>{loading ? 'Loading...' : `${dataSource.length} PurchaseOrders`}</>}
+          subTitle={<>{loading ? 'Loading...' : `${filteredPurchaseOrders.length} Purchase orders`}</>}
           buttons={[
-            <Button disabled={!canAdd} onClick={showModal} key="1" type="primary" size="default">
+            <Button key="excel" outlined type="primary" size="default" onClick={handleExportExcel}>
+              <FileExcelOutlined style={{ marginRight: 8 }} />
+              Excel
+            </Button>,
+            <Button key="pdf" outlined type="primary" size="default" onClick={handleExportPdf}>
+              <FilePdfOutlined style={{ marginRight: 8 }} />
+              PDF
+            </Button>,
+            <Button onClick={showModal} key="1" type="primary" size="default">
               <FeatherIcon icon="plus" size={16} /> Create PurchaseOrder
             </Button>,
           ]}
@@ -251,10 +335,11 @@ function PurchaseOrders() {
                 </div>
                 <div className="sort-group">
                   <span style={{ display: 'flex', alignItems: 'center' }}>Sort By:</span>
-                  <Select defaultValue="category" onChange={(value) => setSortStatus(value)}>
-                    <Select.Option value="category">All</Select.Option>
-                    <Select.Option value="Active">Active</Select.Option>
-                    <Select.Option value="InActive">Inactive</Select.Option>
+                  <Select defaultValue="all" onChange={(value) => setSortStatus(value)}>
+                    <Select.Option value="all">All</Select.Option>
+                    <Select.Option value="pending">Pending</Select.Option>
+                    <Select.Option value="received">Received</Select.Option>
+                    <Select.Option value="cancelled">Cancelled</Select.Option>
                   </Select>
                 </div>
               </div>
@@ -264,7 +349,7 @@ function PurchaseOrders() {
                 columns={columns}
                 dataSource={dataSource}
                 loading={loading}
-                total={purchaseorders?.length || 0}
+                total={filteredPurchaseOrders.length}
                 pageSize={pagination.pageSize}
                 onChange={handlePageChange}
                 onShowSizeChange={handleSizeChange}

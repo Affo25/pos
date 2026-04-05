@@ -11,6 +11,7 @@ import facultieSaga from './faculties/facultiesSaga';
 import branchprofileSaga from './branchprofiles/branchprofileSaga';
 import userSaga from './users/userSaga';
 import authSaga from './authentication/authSaga';
+import analyticsSaga from './analytics/analyticsSaga';
 
 export default function* rootSaga() {
   yield all([
@@ -32,5 +33,6 @@ export default function* rootSaga() {
     saleSaga(),
     supplierSaga(),
     purchaseorderSaga(),
+    analyticsSaga(),
   ]);
 }

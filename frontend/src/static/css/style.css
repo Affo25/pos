@@ -3033,3 +3033,8 @@ li.active>.display {
 .attendance-table .specific-card .ant-card-body {
   padding: 6px !important; /* Ye zaroori hai body ke liye */
 }
+
+/* Let the admin shell gradient fill the viewport when content is short */
+#root {
+  min-height: 100vh;
+}

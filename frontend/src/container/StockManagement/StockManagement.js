@@ -1,32 +1,125 @@
 /* eslint-disable camelcase */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Cookies from 'js-cookie';
+import Styled from 'styled-components';
 import { 
-  Card, Col, Row, Table, Tag, Typography, Button, Space, 
+  Col, Row, Tag, Button as AntdButton, Space, 
   Modal, Form, Input, Select, InputNumber, DatePicker, 
-  message, Popconfirm, Tooltip, Badge, Switch, Divider
+  message, Popconfirm, Tooltip, Badge, Switch, Divider, Skeleton
 } from 'antd';
+import { ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { 
   PlusOutlined, EditOutlined, DeleteOutlined, 
   SearchOutlined, ReloadOutlined, BarcodeOutlined,
-  WarningOutlined
+  WarningOutlined, FileExcelOutlined, FilePdfOutlined,
+  FilterOutlined,
 } from '@ant-design/icons';
 import { PageHeader } from '../../components/page-headers/page-headers';
+import { Button } from '../../components/buttons/buttons';
 import { Main } from '../../config/default/styled';
+import { exportListToExcel, exportListToPdf } from '../../utils/listExport';
+import ProjectLists from '../../config/default/List';
+import { ProjectSorting } from '../../config/default/style';
+import {
+  KpiGrid,
+  KpiCard,
+  KpiMain,
+  KpiValue,
+  KpiLabel,
+  KpiSparkWrap,
+  KpiTrendMuted,
+} from '../dashboard/dashboardStyles';
+import { formatPkr } from '../../config/currency';
+import { API_BASE } from '../../config/apiBase';
+import moment from 'moment';
 
-const { Text } = Typography;
+const CustomTableWrapper = Styled.div`
+  .ant-table-tbody > tr > td {
+    padding: 12px 10px !important;
+    vertical-align: middle !important;
+  }
+  .ant-table-thead > tr > th {
+    padding: 12px 10px !important;
+    font-weight: 600 !important;
+    background-color: #fafafa !important;
+  }
+  .ant-table {
+    font-size: 14px !important;
+  }
+`;
+
 const { Option } = Select;
 const { TextArea } = Input;
-const API_PRODUCTS = 'http://localhost:5000/api/products';
-// const API_STOCK = 'http://localhost:5000/api/products/stock-report';
+const { RangePicker } = DatePicker;
+const API_PRODUCTS = `${API_BASE}/products`;
+
+const API_CATEGORYS = `${API_BASE}/categorys`;
+
+function categoryDisplayLabel(category) {
+  if (category && typeof category === 'object' && category.name != null) return category.name;
+  return String(category || '');
+}
+
+function categoryId(product) {
+  const c = product?.category;
+  if (c && typeof c === 'object' && c._id != null) return String(c._id);
+  if (c != null) return String(c);
+  return '';
+}
+
+function isLowStock(product) {
+  const q = Number(product?.available_quantity) || 0;
+  const min = Number(product?.minimum_stock_alert) || 5;
+  return q <= min;
+}
+
+function expiryPresetMatch(product, preset) {
+  if (preset === 'all') return true;
+  const value = product?.expiry_date;
+  if (!value) return preset === 'all';
+  const d = new Date(value);
+  const now = new Date();
+  const soonEnd = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+  if (preset === 'expired') return d < now;
+  if (preset === 'soon') return d >= now && d <= soonEnd;
+  if (preset === 'ok') return d > soonEnd;
+  return true;
+}
+
+const KPI_SPARK_COLORS = ['#c4b5fd', '#fca5a5', '#86efac', '#93c5fd'];
+
+/** Vertical mini bars — same pattern as dashboard KPI strip */
+function MiniSpark({ data, color }) {
+  const bars = (data || []).map((v, i) => ({ i, v: Math.max(0, v) }));
+  if (!bars.length) {
+    return <div style={{ height: 56, background: 'linear-gradient(90deg,#f3f4f6,#fff)' }} />;
+  }
+  return (
+    <ResponsiveContainer width="100%" height={56}>
+      <BarChart data={bars} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+        <Bar dataKey="v" fill={color} radius={[3, 3, 0, 0]} maxBarSize={10} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
 
 function StockManagement() {
   const [summary, setSummary] = useState(null);
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchText, setSearchText] = useState('');
+  const [expiryDateRange, setExpiryDateRange] = useState(null);
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterStockLevel, setFilterStockLevel] = useState('all');
+  const [filterExpiryPreset, setFilterExpiryPreset] = useState('all');
+  const [filterSupplier, setFilterSupplier] = useState('all');
+  const [filterPrescription, setFilterPrescription] = useState('all');
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [form] = Form.useForm();
 
   const token = Cookies.get('token');
@@ -60,8 +153,23 @@ function StockManagement() {
     }
   };
 
+  const fetchCategories = async () => {
+    if (!token) return;
+    try {
+      const response = await fetch(API_CATEGORYS, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to load categories');
+      setCategories(Array.isArray(data) ? data : []);
+    } catch (e) {
+      message.error('Failed to load categories');
+    }
+  };
+
   useEffect(() => {
     fetchReport();
+    fetchCategories();
   }, []);
 
   const handleAdd = () => {
@@ -81,7 +189,7 @@ function StockManagement() {
       unit_price: product.unit_price,
       supplier_name: product.supplier_name,
       manufacturer: product.manufacturer,
-      category: product.category,
+      category: product.category?._id ?? product.category,
       rack_location: product.rack_location,
       discount: product.discount,
       gst: product.gst,
@@ -110,21 +218,43 @@ function StockManagement() {
     }
   };
 
+  const toNonNegNumber = (v, fallback = 0) => {
+    if (v === undefined || v === null || v === '') return fallback;
+    const n = Number(v);
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
+  };
+
   const handleSubmit = async (values) => {
     try {
+      const unitPrice = toNonNegNumber(values.unit_price, NaN);
+      const availQty = toNonNegNumber(values.available_quantity, NaN);
+      if (!Number.isFinite(unitPrice)) {
+        message.error('Please enter a valid selling price');
+        return;
+      }
+      if (!Number.isFinite(availQty)) {
+        message.error('Please enter a valid current stock quantity');
+        return;
+      }
+
       const formattedValues = {
         ...values,
         expiry_date: values.expiry_date ? values.expiry_date.format('YYYY-MM-DD') : null,
-        unit_price: Number(values.unit_price),
-        available_quantity: Number(values.available_quantity),
-        minimum_stock_alert: Number(values.minimum_stock_alert),
-        discount: Number(values.discount || 0),
-        gst: Number(values.gst || 0)
+        unit_price: unitPrice,
+        available_quantity: availQty,
+        minimum_stock_alert: toNonNegNumber(values.minimum_stock_alert, 0),
+        discount: toNonNegNumber(values.discount, 0),
+        gst: toNonNegNumber(values.gst, 0),
       };
+      if (values.purchase_price != null && values.purchase_price !== '') {
+        formattedValues.purchase_price = toNonNegNumber(values.purchase_price, 0);
+      }
+
+      const productId = editingProduct?._id || editingProduct?.id;
 
       let response;
       if (editingProduct) {
-        response = await fetch(`${API_PRODUCTS}/${editingProduct.id}`, {
+        response = await fetch(`${API_PRODUCTS}/${productId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -143,12 +273,15 @@ function StockManagement() {
         });
       }
 
-      if (!response.ok) throw new Error('Operation failed');
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || errData.message || 'Operation failed');
+      }
       message.success(editingProduct ? 'Product updated successfully' : 'Product added successfully');
       setModalVisible(false);
       fetchReport();
     } catch (error) {
-      message.error('Failed to save product');
+      message.error(error?.message || 'Failed to save product');
     }
   };
 
@@ -158,18 +291,241 @@ function StockManagement() {
     message.success('Barcode generated');
   };
 
-  const filteredProducts = products.filter(product =>
-    product.name?.toLowerCase().includes(searchText.toLowerCase()) ||
-    product.batch_number?.toLowerCase().includes(searchText.toLowerCase()) ||
-    product.category?.toLowerCase().includes(searchText.toLowerCase()) ||
-    product.supplier_name?.toLowerCase().includes(searchText.toLowerCase())
+  const supplierOptions = useMemo(() => {
+    const set = new Set();
+    products.forEach((p) => {
+      const n = p.supplier_name?.trim();
+      if (n) set.add(n);
+    });
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [products]);
+
+  const activeFilterCount = useMemo(() => {
+    let n = 0;
+    if (expiryDateRange?.[0] && expiryDateRange?.[1]) n += 1;
+    if (filterExpiryPreset !== 'all') n += 1;
+    if (filterCategory !== 'all') n += 1;
+    if (filterStatus !== 'all') n += 1;
+    if (filterStockLevel !== 'all') n += 1;
+    if (filterSupplier !== 'all') n += 1;
+    if (filterPrescription !== 'all') n += 1;
+    return n;
+  }, [
+    expiryDateRange,
+    filterExpiryPreset,
+    filterCategory,
+    filterStatus,
+    filterStockLevel,
+    filterSupplier,
+    filterPrescription,
+  ]);
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      const catLabel = categoryDisplayLabel(product.category).toLowerCase();
+      const term = searchText.toLowerCase();
+      const textOk =
+        !term ||
+        product.name?.toLowerCase().includes(term) ||
+        product.batch_number?.toLowerCase().includes(term) ||
+        catLabel.includes(term) ||
+        product.supplier_name?.toLowerCase().includes(term);
+
+      if (!textOk) return false;
+
+      if (filterCategory !== 'all' && categoryId(product) !== String(filterCategory)) return false;
+
+      if (filterStatus !== 'all' && (product.status || 'active') !== filterStatus) return false;
+
+      if (filterStockLevel === 'low' && !isLowStock(product)) return false;
+      if (filterStockLevel === 'ok' && isLowStock(product)) return false;
+
+      if (!expiryPresetMatch(product, filterExpiryPreset)) return false;
+
+      if (filterSupplier !== 'all' && (product.supplier_name?.trim() || '') !== filterSupplier) {
+        return false;
+      }
+
+      if (filterPrescription === 'yes' && !product.is_prescription_required) return false;
+      if (filterPrescription === 'no' && product.is_prescription_required) return false;
+
+      if (expiryDateRange?.[0] && expiryDateRange?.[1] && product.expiry_date) {
+        const exp = moment(product.expiry_date).startOf('day');
+        const start = expiryDateRange[0].clone().startOf('day');
+        const end = expiryDateRange[1].clone().endOf('day');
+        if (exp.isBefore(start) || exp.isAfter(end)) return false;
+      } else if (expiryDateRange?.[0] && expiryDateRange?.[1] && !product.expiry_date) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [
+    products,
+    searchText,
+    filterCategory,
+    filterStatus,
+    filterStockLevel,
+    filterExpiryPreset,
+    filterSupplier,
+    filterPrescription,
+    expiryDateRange,
+  ]);
+
+  const paginatedProducts = useMemo(() => {
+    const start = (pagination.current - 1) * pagination.pageSize;
+    return filteredProducts.slice(start, start + pagination.pageSize);
+  }, [filteredProducts, pagination.current, pagination.pageSize]);
+
+  useEffect(() => {
+    setPagination((p) => ({ ...p, current: 1 }));
+  }, [
+    searchText,
+    expiryDateRange,
+    filterCategory,
+    filterStatus,
+    filterStockLevel,
+    filterExpiryPreset,
+    filterSupplier,
+    filterPrescription,
+  ]);
+
+  const clearFilters = () => {
+    setExpiryDateRange(null);
+    setFilterCategory('all');
+    setFilterStatus('all');
+    setFilterStockLevel('all');
+    setFilterExpiryPreset('all');
+    setFilterSupplier('all');
+    setFilterPrescription('all');
+  };
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pagination.pageSize) || 1);
+    setPagination((p) => (p.current > totalPages ? { ...p, current: totalPages } : p));
+  }, [filteredProducts.length, pagination.pageSize]);
+
+  const handlePageChange = (page, pageSize) => {
+    setPagination({ current: page, pageSize: pageSize || pagination.pageSize });
+  };
+
+  const handleSizeChange = (current, size) => {
+    setPagination({ current: 1, pageSize: size });
+  };
+
+  const activeMedicinesCount = useMemo(
+    () => products.filter((p) => p.status === 'active').length,
+    [products]
   );
 
+  const sparkTotal = useMemo(() => {
+    const n = summary?.total_products ?? 0;
+    return Array.from({ length: 7 }, (_, i) => Math.max(1, n * (0.85 + ((i * 13) % 20) / 100)));
+  }, [summary?.total_products]);
+
+  const sparkLow = useMemo(() => {
+    const n = summary?.low_stock_count ?? 0;
+    return Array.from({ length: 7 }, (_, i) => Math.max(0, n * (0.5 + ((i * 11) % 50) / 100)));
+  }, [summary?.low_stock_count]);
+
+  const sparkValue = useMemo(() => {
+    const v = Number(summary?.total_stock_value) || 0;
+    return Array.from({ length: 7 }, (_, i) => Math.max(0, v * (0.4 + ((i * 17) % 40) / 100)));
+  }, [summary?.total_stock_value]);
+
+  const sparkActive = useMemo(() => {
+    const n = activeMedicinesCount;
+    return Array.from({ length: 7 }, (_, i) => Math.max(0, n * (0.55 + ((i * 19) % 40) / 100)));
+  }, [activeMedicinesCount]);
+
+  const handleExportExcel = () => {
+    if (!filteredProducts.length) {
+      message.warning('No data to export');
+      return;
+    }
+    const headers = [
+      'Product Name',
+      'Batch No',
+      'Category',
+      'Stock',
+      'Min Alert',
+      'Selling Price (PKR)',
+      'Purchase Price (PKR)',
+      'Expiry Date',
+      'Status',
+    ];
+    const rows = filteredProducts.map((p) => [
+      p.name ?? '',
+      p.batch_number ?? '',
+      categoryDisplayLabel(p.category),
+      p.available_quantity ?? '',
+      p.minimum_stock_alert ?? '',
+      p.unit_price != null ? Number(p.unit_price).toFixed(2) : '',
+      p.purchase_price != null ? Number(p.purchase_price).toFixed(2) : '',
+      p.expiry_date ? new Date(p.expiry_date).toLocaleDateString() : '',
+      p.status ?? '',
+    ]);
+    exportListToExcel({
+      filename: `stock-list-${new Date().toISOString().slice(0, 10)}`,
+      sheetName: 'Stock',
+      headers,
+      rows,
+    });
+    message.success('Excel file downloaded');
+  };
+
+  const handleExportPdf = () => {
+    if (!filteredProducts.length) {
+      message.warning('No data to export');
+      return;
+    }
+    const headers = [
+      'Product',
+      'Batch',
+      'Category',
+      'Stock',
+      'Min',
+      'Sell PKR',
+      'Buy PKR',
+      'Expiry',
+      'Status',
+    ];
+    const rows = filteredProducts.map((p) => [
+      String(p.name ?? '').slice(0, 40),
+      p.batch_number ?? '',
+      String(categoryDisplayLabel(p.category)).slice(0, 20),
+      p.available_quantity ?? '',
+      p.minimum_stock_alert ?? '',
+      p.unit_price != null ? Number(p.unit_price).toFixed(2) : '',
+      p.purchase_price != null ? Number(p.purchase_price).toFixed(2) : '',
+      p.expiry_date ? new Date(p.expiry_date).toLocaleDateString() : '',
+      p.status ?? '',
+    ]);
+    exportListToPdf({
+      title: 'Stock / inventory list (current search filter)',
+      filename: `stock-list-${new Date().toISOString().slice(0, 10)}`,
+      headers,
+      rows,
+    });
+    message.success('PDF file downloaded');
+  };
+
   const columns = [
-    { title: 'S.No', key: 'sno', render: (_, __, index) => index + 1, width: 60 },
+    {
+      title: 'S.No',
+      key: 'sno',
+      width: 60,
+      render: (_, __, index) => (pagination.current - 1) * pagination.pageSize + index + 1,
+    },
     { title: 'Product Name', dataIndex: 'name', key: 'name', width: 200 },
     { title: 'Batch No', dataIndex: 'batch_number', key: 'batch_number', width: 120 },
-    { title: 'Category', dataIndex: 'category', key: 'category', width: 120 },
+    {
+      title: 'Category',
+      dataIndex: 'category',
+      key: 'category',
+      width: 120,
+      render: (_, record) => categoryDisplayLabel(record.category) || '—',
+    },
     {
       title: 'Stock',
       dataIndex: 'available_quantity',
@@ -232,17 +588,17 @@ function StockManagement() {
       render: (_, record) => (
         <Space>
           <Tooltip title="Edit">
-            <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+            <AntdButton type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
           </Tooltip>
           <Tooltip title="Delete">
             <Popconfirm
               title="Delete Product"
               description="Are you sure you want to delete this product?"
-              onConfirm={() => handleDelete(record.id)}
+              onConfirm={() => handleDelete(record._id || record.id)}
               okText="Yes"
               cancelText="No"
             >
-              <Button type="link" danger icon={<DeleteOutlined />} />
+              <AntdButton type="link" danger icon={<DeleteOutlined />} />
             </Popconfirm>
           </Tooltip>
         </Space>
@@ -257,79 +613,275 @@ function StockManagement() {
         title="Medicine / Inventory Management" 
         subTitle="Manage medicines, stock levels, batch numbers and expiry dates"
         buttons={[
-          <Button key="add" type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+          <Button key="excel" outlined type="primary" size="default" onClick={handleExportExcel}>
+            <FileExcelOutlined style={{ marginRight: 8 }} />
+            Excel
+          </Button>,
+          <Button key="pdf" outlined type="primary" size="default" onClick={handleExportPdf}>
+            <FilePdfOutlined style={{ marginRight: 8 }} />
+            PDF
+          </Button>,
+          <Button key="add" type="primary" size="default" onClick={handleAdd}>
+            <PlusOutlined style={{ marginRight: 8 }} />
             Add Medicine
           </Button>,
-          <Button key="refresh" icon={<ReloadOutlined />} onClick={fetchReport}>
+          <Button key="refresh" outlined type="primary" size="default" onClick={fetchReport}>
+            <ReloadOutlined style={{ marginRight: 8 }} />
             Refresh
           </Button>
         ]}
       />
       <Main>
-        {/* Statistics Cards */}
-        <Row gutter={16} style={{ marginBottom: 24 }}>
-          <Col xs={24} sm={12} lg={6}>
-            <Card>
-              <Text type="secondary">Total Medicines</Text>
-              <h2 style={{ margin: '8px 0 0 0', color: '#1890ff' }}>{summary?.total_products || 0}</h2>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card>
-              <Text type="secondary">Low Stock Items</Text>
-              <h2 style={{ margin: '8px 0 0 0', color: summary?.low_stock_count > 0 ? '#ff4d4f' : '#52c41a' }}>
-                {summary?.low_stock_count || 0}
-                {summary?.low_stock_count > 0 && <WarningOutlined style={{ marginLeft: 8, color: '#ff4d4f' }} />}
-              </h2>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card>
-              <Text type="secondary">Total Stock Value</Text>
-              <h2 style={{ margin: '8px 0 0 0', color: '#3f8600' }}>
-                ₹{Number(summary?.total_stock_value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </h2>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card>
-              <Text type="secondary">Active Medicines</Text>
-              <h2 style={{ margin: '8px 0 0 0', color: '#52c41a' }}>
-                {products.filter(p => p.status === 'active').length}
-              </h2>
-            </Card>
+        <KpiGrid>
+          <KpiCard>
+            <KpiMain>
+              {loading ? (
+                <Skeleton active paragraph={{ rows: 1 }} />
+              ) : (
+                <>
+                  <KpiValue>{summary?.total_products ?? 0}</KpiValue>
+                  <KpiLabel>Total medicines</KpiLabel>
+                  <KpiTrendMuted>SKUs in catalog</KpiTrendMuted>
+                </>
+              )}
+            </KpiMain>
+            <KpiSparkWrap>
+              <MiniSpark data={sparkTotal} color={KPI_SPARK_COLORS[0]} />
+            </KpiSparkWrap>
+          </KpiCard>
+
+          <KpiCard>
+            <KpiMain>
+              {loading ? (
+                <Skeleton active paragraph={{ rows: 1 }} />
+              ) : (
+                <>
+                  <KpiValue style={{ color: (summary?.low_stock_count ?? 0) > 0 ? '#dc2626' : undefined }}>
+                    {summary?.low_stock_count ?? 0}
+                    {(summary?.low_stock_count ?? 0) > 0 && (
+                      <WarningOutlined style={{ marginLeft: 8, color: '#dc2626', fontSize: 18 }} />
+                    )}
+                  </KpiValue>
+                  <KpiLabel>Low stock items</KpiLabel>
+                  <KpiTrendMuted>At or below minimum</KpiTrendMuted>
+                </>
+              )}
+            </KpiMain>
+            <KpiSparkWrap>
+              <MiniSpark data={sparkLow} color={KPI_SPARK_COLORS[1]} />
+            </KpiSparkWrap>
+          </KpiCard>
+
+          <KpiCard>
+            <KpiMain>
+              {loading ? (
+                <Skeleton active paragraph={{ rows: 1 }} />
+              ) : (
+                <>
+                  <KpiValue style={{ fontSize: 20 }}>{formatPkr(summary?.total_stock_value ?? 0)}</KpiValue>
+                  <KpiLabel>Total stock value</KpiLabel>
+                  <KpiTrendMuted>At cost / valuation</KpiTrendMuted>
+                </>
+              )}
+            </KpiMain>
+            <KpiSparkWrap>
+              <MiniSpark data={sparkValue} color={KPI_SPARK_COLORS[2]} />
+            </KpiSparkWrap>
+          </KpiCard>
+
+          <KpiCard>
+            <KpiMain>
+              {loading ? (
+                <Skeleton active paragraph={{ rows: 1 }} />
+              ) : (
+                <>
+                  <KpiValue>{activeMedicinesCount}</KpiValue>
+                  <KpiLabel>Active medicines</KpiLabel>
+                  <KpiTrendMuted>Available to sell</KpiTrendMuted>
+                </>
+              )}
+            </KpiMain>
+            <KpiSparkWrap>
+              <MiniSpark data={sparkActive} color={KPI_SPARK_COLORS[3]} />
+            </KpiSparkWrap>
+          </KpiCard>
+        </KpiGrid>
+
+        <Row gutter={25}>
+          <Col xs={24}>
+            <ProjectSorting>
+              <div className="project-sort-bar">
+                <div
+                  style={{
+                    padding: '0 10px',
+                    fontSize: 16,
+                    fontWeight: 600,
+                    color: '#272b41',
+                    flexShrink: 0,
+                    alignSelf: 'center',
+                  }}
+                >
+                  Medicine list
+                </div>
+                <div className="project-sort-search" style={{ flex: 1, minWidth: 200, maxWidth: 520 }}>
+                  <Input
+                    placeholder="Search by medicine name, batch number, category or supplier..."
+                    prefix={<SearchOutlined />}
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    allowClear
+                  />
+                </div>
+                <div className="project-sort-group" style={{ flexShrink: 0, padding: '0 10px' }}>
+                  <Badge count={activeFilterCount} size="small" offset={[0, 0]} showZero={false}>
+                    <AntdButton icon={<FilterOutlined />} onClick={() => setFilterModalVisible(true)}>
+                      Filters
+                    </AntdButton>
+                  </Badge>
+                </div>
+              </div>
+            </ProjectSorting>
+
+            <Modal
+              title="Filter medicines"
+              open={filterModalVisible}
+              onCancel={() => setFilterModalVisible(false)}
+              width={560}
+              footer={
+                <Space>
+                  <AntdButton
+                    onClick={() => {
+                      clearFilters();
+                    }}
+                  >
+                    Clear all
+                  </AntdButton>
+                  <AntdButton type="primary" onClick={() => setFilterModalVisible(false)}>
+                    Done
+                  </AntdButton>
+                </Space>
+              }
+              destroyOnClose={false}
+            >
+              <Row gutter={[16, 8]}>
+                <Col span={24}>
+                  <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.75)' }}>
+                    Expiry date range
+                  </div>
+                  <RangePicker
+                    value={expiryDateRange}
+                    onChange={(v) => setExpiryDateRange(v)}
+                    format="YYYY-MM-DD"
+                    allowClear
+                    placeholder={['Expiry from', 'Expiry to']}
+                    style={{ width: '100%' }}
+                  />
+                </Col>
+                <Col xs={24} sm={12}>
+                  <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.75)' }}>
+                    Expiry status
+                  </div>
+                  <Select
+                    value={filterExpiryPreset}
+                    onChange={setFilterExpiryPreset}
+                    style={{ width: '100%' }}
+                  >
+                    <Option value="all">All expiry states</Option>
+                    <Option value="expired">Expired</Option>
+                    <Option value="soon">Expiring ≤ 90 days</Option>
+                    <Option value="ok">Expiry &gt; 90 days</Option>
+                  </Select>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.75)' }}>
+                    Category
+                  </div>
+                  <Select
+                    value={filterCategory}
+                    onChange={setFilterCategory}
+                    style={{ width: '100%' }}
+                    showSearch
+                    optionFilterProp="children"
+                    placeholder="Category"
+                  >
+                    <Option value="all">All categories</Option>
+                    {categories.map((c) => (
+                      <Option key={c._id} value={c._id}>
+                        {c.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.75)' }}>
+                    Status
+                  </div>
+                  <Select value={filterStatus} onChange={setFilterStatus} style={{ width: '100%' }}>
+                    <Option value="all">All statuses</Option>
+                    <Option value="active">Active</Option>
+                    <Option value="inactive">Inactive</Option>
+                  </Select>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.75)' }}>
+                    Stock level
+                  </div>
+                  <Select value={filterStockLevel} onChange={setFilterStockLevel} style={{ width: '100%' }}>
+                    <Option value="all">All stock levels</Option>
+                    <Option value="low">Low stock</Option>
+                    <Option value="ok">Stock OK</Option>
+                  </Select>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.75)' }}>
+                    Supplier
+                  </div>
+                  <Select
+                    value={filterSupplier}
+                    onChange={setFilterSupplier}
+                    style={{ width: '100%' }}
+                    showSearch
+                    optionFilterProp="children"
+                    placeholder="Supplier"
+                  >
+                    <Option value="all">All suppliers</Option>
+                    {supplierOptions.map((name) => (
+                      <Option key={name} value={name}>
+                        {name}
+                      </Option>
+                    ))}
+                  </Select>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.75)' }}>
+                    Prescription
+                  </div>
+                  <Select value={filterPrescription} onChange={setFilterPrescription} style={{ width: '100%' }}>
+                    <Option value="all">All</Option>
+                    <Option value="yes">Rx required</Option>
+                    <Option value="no">Rx not required</Option>
+                  </Select>
+                </Col>
+              </Row>
+            </Modal>
+
+            <CustomTableWrapper>
+              <ProjectLists
+                size="middle"
+                columns={columns}
+                dataSource={paginatedProducts}
+                loading={loading}
+                total={filteredProducts.length}
+                current={pagination.current}
+                pageSize={pagination.pageSize}
+                onChange={handlePageChange}
+                onShowSizeChange={handleSizeChange}
+                scroll={{ x: 1200 }}
+                rowKey={(r) => r._id || r.id}
+              />
+            </CustomTableWrapper>
           </Col>
         </Row>
-
-        {/* Search Bar */}
-        <Card style={{ marginBottom: 16 }}>
-          <Space style={{ width: '100%' }} direction="vertical">
-            <Input
-              placeholder="Search by medicine name, batch number, category or supplier..."
-              prefix={<SearchOutlined />}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              size="large"
-              allowClear
-            />
-          </Space>
-        </Card>
-
-        {/* Medicine List Table */}
-        <Card title="Medicine List">
-          <Table
-            loading={loading}
-            rowKey="_id"
-            columns={columns}
-            dataSource={filteredProducts}
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              showTotal: (total) => `Total ${total} medicines`,
-            }}
-            scroll={{ x: 1200 }}
-          />
-        </Card>
 
         {/* Add/Edit Medicine Modal */}
         <Modal
@@ -380,13 +932,12 @@ function StockManagement() {
                   label="Category"
                   rules={[{ required: true, message: 'Please select category' }]}
                 >
-                  <Select placeholder="Select category">
-                    <Option value="tablet">Tablet</Option>
-                    <Option value="syrup">Syrup</Option>
-                    <Option value="injection">Injection</Option>
-                    <Option value="ointment">Ointment</Option>
-                    <Option value="capsule">Capsule</Option>
-                    <Option value="other">Other</Option>
+                  <Select placeholder="Select category" showSearch optionFilterProp="children">
+                    {categories.map((c) => (
+                      <Option key={c._id} value={c._id}>
+                        {c.name}
+                      </Option>
+                    ))}
                   </Select>
                 </Form.Item>
               </Col>
@@ -413,7 +964,7 @@ function StockManagement() {
                     step={0.01}
                     style={{ width: '100%' }}
                     placeholder="Enter selling price"
-                    prefix="₹"
+                    addonBefore="Rs."
                   />
                 </Form.Item>
               </Col>
@@ -427,7 +978,7 @@ function StockManagement() {
                     step={0.01}
                     style={{ width: '100%' }}
                     placeholder="Enter purchase price"
-                    prefix="₹"
+                    addonBefore="Rs."
                   />
                 </Form.Item>
               </Col>
@@ -520,7 +1071,7 @@ function StockManagement() {
                 >
                   <Space style={{ width: '100%' }}>
                     <Input placeholder="Enter or generate barcode" style={{ width: 'calc(100% - 100px)' }} />
-                    <Button onClick={generateBarcode} icon={<BarcodeOutlined />}>Generate</Button>
+                    <AntdButton onClick={generateBarcode} icon={<BarcodeOutlined />}>Generate</AntdButton>
                   </Space>
                 </Form.Item>
               </Col>
@@ -594,10 +1145,10 @@ function StockManagement() {
 
             <Form.Item>
               <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-                <Button onClick={() => setModalVisible(false)}>Cancel</Button>
-                <Button type="primary" htmlType="submit">
+                <AntdButton onClick={() => setModalVisible(false)}>Cancel</AntdButton>
+                <AntdButton type="primary" htmlType="submit">
                   {editingProduct ? 'Update' : 'Add'} Medicine
-                </Button>
+                </AntdButton>
               </Space>
             </Form.Item>
           </Form>

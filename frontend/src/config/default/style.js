@@ -20,6 +20,16 @@ const ProjectHeader = Styled.div`
 
 const ProjectSorting = Styled.div`
     margin-bottom: 25px;
+    &.in-table-card{
+        margin-bottom: 0;
+        margin-top: -4px;
+        padding-bottom: 18px;
+        border-bottom: 1px solid ${({ theme }) => theme['border-color-light']};
+        .project-sort-bar{
+            margin-left: 0;
+            margin-right: 0;
+        }
+    }
     .project-sort-bar{
         display: flex;
         flex-wrap: wrap;

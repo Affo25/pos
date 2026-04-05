@@ -30,7 +30,8 @@ const saleSlice = createSlice({
 
 const fetchAllSales = () => ({ type: 'sales/fetchAll'});
 const createSale = (saleData) => ({ type: 'sales/create', payload: saleData });
-const updateSale = (id, data) => ({ type: 'sales/update', payload: { id, data } });
+const updateSale = ({ id, saleData }) => ({ type: 'sales/update', payload: { id, data: saleData } });
+const processReturn = (returnData) => ({ type: 'sales/processReturn', payload: returnData });
 const deleteSale = (id) => ({ type: 'sales/delete',payload:  id });
 
 export const {
@@ -40,6 +41,6 @@ export const {
   fetchSalesSuccess,
 } = saleSlice.actions;
 
-export { fetchAllSales, createSale, updateSale, deleteSale };
+export { fetchAllSales, createSale, updateSale, deleteSale, processReturn };
 
 export default saleSlice.reducer;

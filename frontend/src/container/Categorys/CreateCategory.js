@@ -46,7 +46,8 @@ function CreateCategory({ visible, onCancel, category, onSuccess, currentUser })
       };
 
       if (category) {
-        await dispatch(updateCategory(category._id, categoryData));
+        console.log('Updating category with data:', categoryData);
+        await dispatch(updateCategory({ id: category.id, data: categoryData }));
       } else {
         await dispatch(createCategory(categoryData));
       }

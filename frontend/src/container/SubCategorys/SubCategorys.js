@@ -3,7 +3,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Row, Col, Menu, message, Dropdown, Select } from 'antd';
+import { Row, Col, Menu, message, Dropdown, Select, Space, Popconfirm } from 'antd';
 import { Link } from 'react-router-dom';
 import { EditOutlined, DeleteOutlined, SettingOutlined, LinkOutlined } from '@ant-design/icons';
 import FeatherIcon from 'feather-icons-react';
@@ -17,6 +17,7 @@ import { ProjectHeader, ProjectSorting } from '../../config/default/style';
 import { Main } from '../../config/default/styled';
 import { deleteSubCategory, fetchAllSubCategorys } from '../../redux/subcategorys/subcategorySlice';
 import { getComponentPermissions } from '../../config/utils/permission';
+import { fetchAllCategorys } from '../../redux/categorys/categorySlice';
 
 function SubCategorys() {
   const history = useHistory();
@@ -57,9 +58,14 @@ function SubCategorys() {
     });
   };
 
-  const handleDelete = (id) => {
-    dispatch(deleteSubCategory(id));
-
+  const handleDelete = async (id, name) => {
+    try {
+      await dispatch(deleteSubCategory(id)).unwrap();
+      message.success(`SubCategory "${name}" deleted successfully`);
+      dispatch(fetchAllSubCategorys());
+    } catch (error) {
+      message.error(error.message || 'Failed to delete subcategory');
+    }
   };
 
   const showModal = () => {
@@ -86,6 +92,13 @@ function SubCategorys() {
     dispatch(fetchAllSubCategorys());
   }, []);
 
+  // Fetch categories when component mounts
+  useEffect(() => {
+    if (!categorys || categorys.length === 0) {
+      dispatch(fetchAllCategorys());
+    }
+  }, []);
+
   useEffect(() => {
     if (subcategorys && Array.isArray(subcategorys)) {
       let filtered = [...subcategorys];
@@ -93,19 +106,23 @@ function SubCategorys() {
       if (searchTerm) {
         filtered = filtered.filter(
           (item) =>
-            item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.status.toLowerCase().includes(searchTerm.toLowerCase()),
+            (item.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (item.status || '').toLowerCase().includes(searchTerm.toLowerCase()),
         );
       }
 
       if (sortStatus !== 'category') {
-        filtered = filtered.filter((item) => item.status.toLowerCase() === sortStatus.toLowerCase());
+        filtered = filtered.filter((item) => 
+          (item.status || '').toLowerCase() === sortStatus.toLowerCase()
+        );
       }
 
       filtered.sort((a, b) => {
         if (searchTerm) {
-          if (a.name.toLowerCase().includes(searchTerm.toLowerCase())) return -1;
-          if (b.name.toLowerCase().includes(searchTerm.toLowerCase())) return 1;
+          const aName = a.name || '';
+          const bName = b.name || '';
+          if (aName.toLowerCase().includes(searchTerm.toLowerCase())) return -1;
+          if (bName.toLowerCase().includes(searchTerm.toLowerCase())) return 1;
         }
         return 0;
       });
@@ -115,52 +132,91 @@ function SubCategorys() {
       const paginatedData = filtered.slice(start, end);
 
       const formatted = paginatedData.map((subcategory) => {
-        const { _id, id, name, category_id, status } = subcategory;
+        const { _id, id, name, category_id, status, description } = subcategory;
         const categoryName =
-          categorys.find(cat => cat._id === category_id)?.name || '—';
+          categorys?.find(cat => cat._id === category_id)?.name || '—';
 
         return {
           key: _id || id,
           id: _id || id,
-          name,
+          name: name || 'Unnamed',
           category: categoryName,
-          status:
-            status === 'active' ? (
-              <span className="color-success">Active</span>
-            ) : (
-              <span className="color-danger">Inactive</span>
-            ),
-          action: (
-            <Dropdown
-              overlay={
-                <Menu className="custom-dropdown-menu">
-                  <Menu.Item disabled={!canEdit} key="edit" className="custom-menu-item" onClick={() => handleEdit(subcategory)}>
-                    <div className="custom-action-btn edit-btn">
-                      <EditOutlined className="action-icon" />
-                      <span className="action-label">Edit</span>
-                    </div>
-                  </Menu.Item>
-                  <Menu.Item disabled={!canDelete} key="delete" className="custom-menu-item" onClick={() => handleDelete(_id || id)}>
-                    <div className="custom-action-btn delete-btn">
-                      <DeleteOutlined className="action-icon" />
-                      <span className="action-label">Delete</span>
-                    </div>
-                  </Menu.Item>
-                </Menu>
-              }
-              trigger={['click']}
-              overlayClassName="custom-dropdown-overlay"
-            >
-              <Link to="#" className="text-dark dropdown-trigger">
-                <FeatherIcon icon="more-horizontal" size={18} />
-              </Link>
-            </Dropdown>
+          description: description || '—',
+          status: status === 'active' ? (
+            <span className="color-success" style={{ fontWeight: 500, fontSize: '12px' }}>Active</span>
+          ) : (
+            <span className="color-danger" style={{ fontWeight: 500, fontSize: '12px' }}>Inactive</span>
           ),
+         action: (
+  <Space size="small" style={{ gap: '6px' }}>
+    <Button
+      disabled={!canEdit}
+      type="primary"
+      size="small"
+      style={{
+        backgroundColor: '#1890ff',
+        borderColor: '#1890ff',
+        borderRadius: '4px',
+        height: '28px',
+        padding: '0 8px',
+        fontSize: '12px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+        boxShadow: '0 1px 2px rgba(24, 144, 255, 0.2)',
+      }}
+      onClick={() => handleEdit(subcategory)}
+    >
+      <EditOutlined style={{ fontSize: '12px' }} />
+      Edit
+    </Button>
+    
+    <Popconfirm
+      title="Delete SubCategory"
+      description={`Delete "${name}"?`}
+      onConfirm={() => handleDelete(_id || id, name)}
+      okText="Delete"
+      cancelText="Cancel"
+      okButtonProps={{ danger: true, size: 'small' }}
+    >
+      <Button
+        disabled={!canDelete}
+        type="primary"
+        danger
+        size="small"
+        style={{
+          backgroundColor: '#ff4d4f',
+          borderColor: '#ff4d4f',
+          borderRadius: '4px',
+          height: '28px',
+          padding: '0 8px',
+          fontSize: '12px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+          color: 'white',
+          boxShadow: '0 1px 2px rgba(255, 77, 79, 0.2)',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#ff7875';
+          e.currentTarget.style.borderColor = '#ff7875';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#ff4d4f';
+          e.currentTarget.style.borderColor = '#ff4d4f';
+        }}
+      >
+        <DeleteOutlined style={{ fontSize: '12px' }} />
+        Delete
+      </Button>
+    </Popconfirm>
+  </Space>
+),
         };
       });
       setDataSource(formatted);
     }
-  }, [subcategorys, pagination, searchTerm, sortStatus]);
+  }, [subcategorys, categorys, pagination, searchTerm, sortStatus, canEdit, canDelete]);
 
   const handlePageChange = (page, pageSize) => {
     setPagination({
@@ -184,26 +240,43 @@ function SubCategorys() {
       key: 'index',
       render: (text, record, index) => (pagination.current - 1) * pagination.pageSize + index + 1,
       width: 50,
+      align: 'center',
     },
     {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
+      width: 180,
+      ellipsis: true,
     },
     {
       title: 'Category',
       dataIndex: 'category',
       key: 'category',
+      width: 150,
+      ellipsis: true,
+    },
+    {
+      title: 'Description',
+      dataIndex: 'description',
+      key: 'description',
+      width: 200,
+      ellipsis: true,
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
+      width: 80,
+      align: 'center',
     },
     {
-      title: 'Action',
+      title: 'Actions',
       dataIndex: 'action',
       key: 'action',
+      width: 140,
+      align: 'center',
+      fixed: 'right',
     },
   ];
 
@@ -212,8 +285,8 @@ function SubCategorys() {
       <ProjectHeader>
         <PageHeader
           ghost
-          title="SubCategorys"
-          subTitle={<>{loading ? 'Loading...' : `${dataSource.length} SubCategorys`}</>}
+          title="SubCategories"
+          subTitle={<>{loading ? 'Loading...' : `${dataSource.length} SubCategories`}</>}
           buttons={[
             <Button disabled={!canAdd} onClick={showModal} key="1" type="primary" size="default">
               <FeatherIcon icon="plus" size={16} /> Create SubCategory
@@ -227,14 +300,14 @@ function SubCategorys() {
             <ProjectSorting>
               <div className="project-sort-bar">
                 <div className="project-sort-search">
-                  <AutoComplete onSearch={handleSearch} dataSource={notData} placeholder="Search subcategorys" patterns />
+                  <AutoComplete onSearch={handleSearch} dataSource={notData} placeholder="Search subcategories" patterns />
                 </div>
                 <div className="sort-group">
                   <span style={{ display: 'flex', alignItems: 'center' }}>Sort By:</span>
                   <Select defaultValue="category" onChange={(value) => setSortStatus(value)}>
                     <Select.Option value="category">All</Select.Option>
-                    <Select.Option value="Active">Active</Select.Option>
-                    <Select.Option value="InActive">Inactive</Select.Option>
+                    <Select.Option value="active">Active</Select.Option>
+                    <Select.Option value="inactive">Inactive</Select.Option>
                   </Select>
                 </div>
               </div>
@@ -248,6 +321,7 @@ function SubCategorys() {
                 pageSize={pagination.pageSize}
                 onChange={handlePageChange}
                 onShowSizeChange={handleSizeChange}
+                scroll={{ x: 800 }}
               />
             </div>
           </Col>

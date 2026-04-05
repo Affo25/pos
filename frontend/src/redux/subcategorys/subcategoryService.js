@@ -1,6 +1,8 @@
 import Cookies from 'js-cookie';
 
-const API_BASE_URL = 'http://localhost:5000/api/subcategorys';
+import { API_BASE } from '../../config/apiBase';
+
+const API_BASE_URL = `${API_BASE}/subcategorys`;
 const getToken = () => Cookies.get('token');
 
 export const fetchAllSubCategorys = async () => {
@@ -34,7 +36,7 @@ export const createSubCategory = async (subcategoryData) => {
   return data;
 };
 
-export const updateSubCategory = async (id, subcategoryData) => {
+export const updateSubCategory = async ({id, data}) => {
   const token = getToken();
   const response = await fetch(`${API_BASE_URL}/${id}`, {
     method: 'PUT',
@@ -42,12 +44,12 @@ export const updateSubCategory = async (id, subcategoryData) => {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(subcategoryData),
+    body: JSON.stringify(data),
   });
 
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Failed to update subcategory');
-  return data;
+  const datas = await response.json();
+  if (!response.ok) throw new Error(datas.error || 'Failed to update subcategory');
+  return datas;
 };
 
 export const deleteSubCategory = async (id) => {

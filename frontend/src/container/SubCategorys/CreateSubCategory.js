@@ -46,7 +46,7 @@ function CreateSubCategory({ visible, onCancel, subcategory, onSuccess }) {
       const values = await form.validateFields();
 
       if (subcategory) {
-        await dispatch(updateSubCategory(subcategory._id, values));
+        await dispatch(updateSubCategory({ id: subcategory.id, data: values }));
       } else {
         await dispatch(createSubCategory(values));
       }

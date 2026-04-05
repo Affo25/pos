@@ -1,7 +1,9 @@
 import axios from 'axios';
 import actions from './actions';
 
-const API_BASE_URL = 'http://localhost:5000/api/entities';
+import { API_BASE } from '../../config/apiBase';
+
+const API_BASE_URL = `${API_BASE}/entities`;
 
 const {
   singleProjectBegin,

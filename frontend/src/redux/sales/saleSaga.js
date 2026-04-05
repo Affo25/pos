@@ -61,6 +61,25 @@ function* updateSale({ payload: { id, data } }) {
   }
 }
 
+function* processReturn({ payload: returnData }) {
+  try {
+    yield put(operationStart());
+    yield call(saleService.processReturn, returnData);
+    yield put(operationSuccess());
+    toast.success('Return processed successfully', {
+      position: "top-right",
+      autoClose: 3000,
+    });
+    yield call(fetchAllSales);
+  } catch (error) {
+    yield put(operationFailure(error.message));
+    toast.error(error.message, {
+      position: "top-right",
+      autoClose: 5000,
+    });
+  }
+}
+
 function* deleteSale({ payload: id  }) {
   try {
     yield put(operationStart());
@@ -86,5 +105,6 @@ export default function* saleSaga() {
     takeLatest('sales/create', createSale),
     takeLatest('sales/update', updateSale),
     takeLatest('sales/delete', deleteSale),
+    takeLatest('sales/processReturn', processReturn),
   ]);
 }

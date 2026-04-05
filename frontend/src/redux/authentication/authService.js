@@ -1,7 +1,9 @@
 // redux/auth/authService.js
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/users';
+import { API_BASE } from '../../config/apiBase';
+
+const API_URL = `${API_BASE}/users`;
 
 export const loginUser = async (email, password) => {
   const response = await axios.post(`${API_URL}/login`, { email, password });

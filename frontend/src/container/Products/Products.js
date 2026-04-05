@@ -2,9 +2,9 @@
 /* eslint-disable camelcase */
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Row, Col, Menu, Dropdown, Select, Tag, Upload, Card, Typography, Progress, message } from 'antd';
+import { Row, Col, Menu, Dropdown, Select, Tag, Upload, Card, Typography, Progress, message, Avatar, Image,Modal } from 'antd';
 import { Link } from 'react-router-dom';
-import { EditOutlined, DeleteOutlined, InboxOutlined, UploadOutlined, FileExcelOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, InboxOutlined, UploadOutlined, FileExcelOutlined, UserOutlined } from '@ant-design/icons';
 import FeatherIcon from 'feather-icons-react';
 import moment from 'moment';
 import Cookies from 'js-cookie';
@@ -15,6 +15,7 @@ import { PageHeader } from '../../components/page-headers/page-headers';
 import ProjectLists from '../../config/default/List';
 import { ProjectHeader, ProjectSorting } from '../../config/default/style';
 import { Main } from '../../config/default/styled';
+import { API_BASE } from '../../config/apiBase';
 import { deleteProduct, fetchAllProducts } from '../../redux/products/productSlice';
 
 function Products() {
@@ -82,7 +83,6 @@ function Products() {
 
   useEffect(() => {
     dispatch(fetchAllProducts());
-   
   }, [dispatch]);
 
   useEffect(() => {
@@ -112,7 +112,7 @@ function Products() {
       const end = start + pagination.pageSize;
       const paginatedData = filtered.slice(start, end);
 
-      const formatted = paginatedData.map((product) => {
+      const formatted = paginatedData.map((product, idx) => {
         const {
           _id,
           id,
@@ -127,7 +127,27 @@ function Products() {
           manufacturer_registration_no,
           manufacturer,
           medecine_size,
+          image, // ✅ Get image URL from product
+          imageUrl, // Alternative field name
         } = product;
+
+        // ✅ Get the image URL from multiple possible field names
+        const productImage = image || imageUrl || null;
+        
+        // ✅ Generate initials for fallback avatar
+        const getInitials = (productName) => {
+          if (!productName) return 'MD';
+          const words = productName.split(' ');
+          if (words.length >= 2) {
+            return `${words[0][0]}${words[1][0]}`.toUpperCase();
+          }
+          return productName.substring(0, 2).toUpperCase();
+        };
+
+        const categoryLabel =
+          category && typeof category === 'object' && category.name != null
+            ? category.name
+            : String(category || '');
 
         return {
           key: _id || id,
@@ -136,11 +156,11 @@ function Products() {
           medecine_size,
           batch_number,
           expiry_date: expiry_date ? moment(expiry_date).format('DD-MM-YYYY') : '-',
-          category: <Tag color="blue">{category?.toUpperCase()}</Tag>,
+          category: <Tag color="blue">{categoryLabel.toUpperCase()}</Tag>,
           available_quantity,
           unit_price,
-         manufacturer_license_no: <Tag color="blue">{manufacturer_license_no?.toUpperCase()}</Tag>,
-          manufacturer_registration_no:<Tag color="red">{manufacturer_registration_no?.toUpperCase()}</Tag>,
+          manufacturer_license_no: <Tag color="blue">{manufacturer_license_no?.toUpperCase()}</Tag>,
+          manufacturer_registration_no: <Tag color="red">{manufacturer_registration_no?.toUpperCase()}</Tag>,
           manufacturer,
           status:
             status === 'active' ? (
@@ -174,6 +194,43 @@ function Products() {
               </Link>
             </Dropdown>
           ),
+          // ✅ Add image column data with avatar and preview
+          image: (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              {productImage ? (
+                <Avatar 
+                  src={productImage}
+                  size={48}
+                  shape="square"
+                  style={{ cursor: 'pointer', borderRadius: '8px' }}
+                  onClick={() => {
+                    // ✅ Open image preview in modal
+                    Modal.info({
+                      title: 'Product Image',
+                      content: (
+                        <img 
+                          src={productImage} 
+                          alt={name} 
+                          style={{ width: '100%', maxHeight: '400px', objectFit: 'contain' }}
+                        />
+                      ),
+                      icon: null,
+                      width: 500,
+                    });
+                  }}
+                />
+              ) : (
+                <Avatar 
+                  size={48} 
+                  shape="square"
+                  style={{ backgroundColor: '#1890ff', borderRadius: '8px' }}
+                  icon={<UserOutlined />}
+                >
+                  {getInitials(name)}
+                </Avatar>
+              )}
+            </div>
+          ),
         };
       });
 
@@ -198,24 +255,31 @@ function Products() {
   };
 
   const columns = [
+    { 
+      title: 'Image', 
+      dataIndex: 'image', 
+      key: 'image',
+      width: 80,
+      align: 'center',
+    },
     { title: '#', key: 'index', render: (text, record, index) => (pagination.current - 1) * pagination.pageSize + index + 1, width: 50 },
     { title: 'Medicine Name', dataIndex: 'name', key: 'name' },
-     { title: 'Size', dataIndex: 'medicine_size', key: 'medicine_size' },
+    { title: 'Size', dataIndex: 'medicine_size', key: 'medicine_size' },
     { title: 'Batch #', dataIndex: 'batch_number', key: 'batch_number' },
     { title: 'Expiry', dataIndex: 'expiry_date', key: 'expiry_date' },
     { title: 'Category', dataIndex: 'category', key: 'category' },
     { title: 'Qty', dataIndex: 'available_quantity', key: 'available_quantity' },
     { title: 'Price', dataIndex: 'unit_price', key: 'unit_price' },
     { 
-    title: 'Reg & License', 
-    key: 'reg_license', 
-    render: (text, record) => (
-      <div>
-        <div> {record.manufacturer_registration_no || '-'}</div>
-        <div> {record.manufacturer_license_no || '-'}</div>
-      </div>
-    ) 
-  },
+      title: 'Reg & License', 
+      key: 'reg_license', 
+      render: (text, record) => (
+        <div>
+          <div>{record.manufacturer_registration_no || '-'}</div>
+          <div>{record.manufacturer_license_no || '-'}</div>
+        </div>
+      ) 
+    },
     { title: 'Manufacturer', dataIndex: 'manufacturer', key: 'manufacturer' },
     { title: 'Status', dataIndex: 'status', key: 'status' },
     { title: 'Action', dataIndex: 'action', key: 'action' },
@@ -229,7 +293,7 @@ function Products() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://localhost:5000/api/products/import-excel', {
+      const response = await fetch(`${API_BASE}/products/import-excel`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -298,7 +362,8 @@ function Products() {
                   <p className="ant-upload-text">Click or drag Excel file to upload</p>
                   <p className="ant-upload-hint">
                     Supports .xlsx and .xls. Required columns: name, batch_number, expiry_date, category,
-                    supplier_name, unit_price, available_quantity.
+                    supplier_name, unit_price, available_quantity. The category column must match a category
+                    name from Categories (or a valid category ID).
                   </p>
                   <Button type="default" size="small">
                     <UploadOutlined /> Select Excel File
@@ -325,27 +390,29 @@ function Products() {
               </Card>
             )}
 
-            <ProjectSorting>
-              <div className="project-sort-bar">
-                <div className="project-sort-search">
-                  <AutoComplete
-                    onSearch={handleSearch}
-                    dataSource={notData}
-                    placeholder="Search medicines"
-                    patterns
-                  />
-                </div>
-                <div className="sort-group">
-                  <span style={{ display: 'flex', alignItems: 'center' }}>Sort By:</span>
-                  <Select defaultValue="all" onChange={(value) => setSortStatus(value)}>
-                    <Select.Option value="all">All</Select.Option>
-                    <Select.Option value="active">Active</Select.Option>
-                    <Select.Option value="inactive">Inactive</Select.Option>
-                  </Select>
-                </div>
-              </div>
-            </ProjectSorting>
             <ProjectLists
+              toolbar={
+                <ProjectSorting className="in-table-card">
+                  <div className="project-sort-bar">
+                    <div className="project-sort-search">
+                      <AutoComplete
+                        onSearch={handleSearch}
+                        dataSource={notData}
+                        placeholder="Search medicines"
+                        patterns
+                      />
+                    </div>
+                    <div className="sort-group">
+                      <span style={{ display: 'flex', alignItems: 'center' }}>Sort By:</span>
+                      <Select defaultValue="all" onChange={(value) => setSortStatus(value)}>
+                        <Select.Option value="all">All</Select.Option>
+                        <Select.Option value="active">Active</Select.Option>
+                        <Select.Option value="inactive">Inactive</Select.Option>
+                      </Select>
+                    </div>
+                  </div>
+                </ProjectSorting>
+              }
               columns={columns}
               dataSource={dataSource}
               loading={loading}

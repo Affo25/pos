@@ -98,24 +98,29 @@ const ThemeLayout = (WrappedComponent) => {
       };
 
       const footerStyle = {
-        padding: '6px 10px',
-        color: 'rgba(0, 0, 0, 0.65)',
+        padding: '10px 16px',
+        margin: 0,
+        flexShrink: 0,
+        color: darkMode ? 'rgba(226, 232, 240, 0.88)' : 'rgba(0, 0, 0, 0.55)',
         fontSize: '12px',
-        background: 'rgba(255, 255, 255, 0.9)',
+        background: darkMode ? 'rgba(15, 23, 42, 0.75)' : 'rgba(255, 255, 255, 0.82)',
         width: '100%',
-        boxShadow: '0 -4px 8px rgba(146,153,184, 0.05)',
+        borderTop: darkMode ? '1px solid rgba(148, 163, 184, 0.12)' : '1px solid rgba(15, 23, 42, 0.06)',
+        boxShadow: 'none',
         textAlign: 'center',
-        lineHeight: '1.1',
+        lineHeight: 1.35,
       };
 
+      /* Fixed below header: margin-top + height:100vh extended past the viewport and clipped the bottom strip */
       const SideBarStyle = {
-        margin: '63px 0 0 0',
-        padding: '15px 15px 55px 15px',
-        overflowY: 'auto',
-        height: '100vh',
         position: 'fixed',
+        top: 64,
+        bottom: 0,
         [left]: 0,
         zIndex: 998,
+        height: 'auto',
+        padding: '15px 15px 24px 15px',
+        overflow: 'hidden',
       };
 
 
@@ -132,7 +137,7 @@ const ThemeLayout = (WrappedComponent) => {
         const { ChangeLayoutMode } = this.props;
         const thumbStyle = {
           borderRadius: 6,
-          backgroundColor: ChangeLayoutMode ? '#ffffff16' : '#F1F2F6',
+          backgroundColor: ChangeLayoutMode ? '#ffffff22' : 'rgba(99, 102, 241, 0.35)',
           [left]: '2px',
         };
         return <div style={{ ...style, ...thumbStyle }} {...props} />;
@@ -156,7 +161,7 @@ const ThemeLayout = (WrappedComponent) => {
         const { ChangeLayoutMode } = this.props;
         const thumbStyle = {
           borderRadius: 6,
-          backgroundColor: ChangeLayoutMode ? '#ffffff16' : '#F1F2F6',
+          backgroundColor: ChangeLayoutMode ? '#ffffff22' : 'rgba(99, 102, 241, 0.35)',
         };
         return <div style={{ ...style, ...thumbStyle }} {...props} />;
       };
@@ -221,12 +226,14 @@ const ThemeLayout = (WrappedComponent) => {
                     to="/"
                   >
                     <img
-                      src={
-                        !darkMode
-                          ? require(`../static/img/Logo_Dark.svg`).default
-                          : require(`../static/img/Logo_white.png`).default
-                      }
-                      alt=""
+                      src={`${process.env.PUBLIC_URL}/aid-plus-logo.png`}
+                      alt="Aid+"
+                      style={{
+                        maxHeight: 44,
+                        width: 'auto',
+                        objectFit: 'contain',
+                        display: 'block',
+                      }}
                     />
                   </Link>
                 </Col>
@@ -296,7 +303,8 @@ const ThemeLayout = (WrappedComponent) => {
                 <ThemeProvider theme={darkTheme}>
                   <Sider width={280} style={SideBarStyle} collapsed={collapsed} theme={!darkMode ? 'light' : 'dark'}>
                     <Scrollbars
-                      className="custom-scrollbar"
+                      className="custom-scrollbar admin-sider-scrollbars"
+                      style={{ width: '100%', height: '100%' }}
                       autoHide
                       autoHideTimeout={500}
                       autoHideDuration={200}
@@ -305,7 +313,10 @@ const ThemeLayout = (WrappedComponent) => {
                       renderView={renderView}
                       renderTrackVertical={renderTrackVertical}
                     >
-                      <p className="sidebar-nav-title">MAIN MENU</p>
+                      <p className="sidebar-nav-title">
+                        <span className="sidebar-nav-title__accent" aria-hidden />
+                        Main menu
+                      </p>
                       <MenueItems
                         topMenu={topMenu}
                         rtl={rtl}
@@ -318,13 +329,13 @@ const ThemeLayout = (WrappedComponent) => {
                 </ThemeProvider>
               ) : null}
               <Layout className="atbd-main-layout">
-                <Content>
+                <Content className="app-shell-content">
                   <WrappedComponent {...this.props} />
                   <Footer className="admin-footer" style={footerStyle}>
                     <Row>
                       <Col span={6} className="align-center-v">
                         <span className="admin-footer__copyright">
-                          © 2025 <strong>Pharmacy Management System</strong>. All rights reserved.
+                          © {new Date().getFullYear()} <strong>Aid+</strong>. All rights reserved.
                         </span>
                       </Col>
                     </Row>

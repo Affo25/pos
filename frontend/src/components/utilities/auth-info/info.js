@@ -1,27 +1,19 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Avatar } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
-import { Link } from 'react-router-dom';
+import { Link, useRouteMatch } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import FeatherIcon from 'feather-icons-react';
-import { InfoWraper, NavAuth, UserDropDwon } from './auth-info-style';
-import Message from './message';
-import Notification from './notification';
-import Settings from './settings';
-import Support from './support';
+import { InfoWraper, UserDropDwon } from './auth-info-style';
 import { Popover } from '../../popup/popup';
-import { Dropdown } from '../../dropdown/dropdown';
 import Heading from '../../heading/heading';
 import { logoutUser } from '../../../redux/authentication/authSlice';
 
 function AuthInfo() {
   const dispatch = useDispatch();
   const { login } = useSelector((state) => state.auth);
-
-  const [state, setState] = useState({
-    flag: 'english',
-  });
-  const { flag } = state;
+  const { path } = useRouteMatch();
+  const profilePath = `${path}profile`;
 
   const SignOut = (e) => {
     e.preventDefault();
@@ -42,28 +34,8 @@ function AuthInfo() {
         </figure>
         <ul className="user-dropdwon__links">
           <li>
-            <Link to="/Profile">
+            <Link to={profilePath}>
               <FeatherIcon icon="user" /> Profile
-            </Link>
-          </li>
-          <li>
-            <Link to="#">
-              <FeatherIcon icon="settings" /> Settings
-            </Link>
-          </li>
-          <li>
-            <Link to="#">
-              <FeatherIcon icon="dollar-sign" /> Billing
-            </Link>
-          </li>
-          <li>
-            <Link to="#">
-              <FeatherIcon icon="users" /> Activity
-            </Link>
-          </li>
-          <li>
-            <Link to="#">
-              <FeatherIcon icon="bell" /> Help
             </Link>
           </li>
         </ul>
@@ -74,52 +46,11 @@ function AuthInfo() {
     </UserDropDwon>
   );
 
-  const onFlagChangeHandle = (value) => {
-    setState({
-      ...state,
-      flag: value,
-    });
-  };
-
-  const country = (
-    <NavAuth>
-      <Link onClick={() => onFlagChangeHandle('english')} to="#">
-        <img src={require('../../../static/img/flag/english.png')} alt="" />
-        <span>English</span>
-      </Link>
-      <Link onClick={() => onFlagChangeHandle('germany')} to="#">
-        <img src={require('../../../static/img/flag/germany.png')} alt="" />
-        <span>Germany</span>
-      </Link>
-      <Link onClick={() => onFlagChangeHandle('spain')} to="#">
-        <img src={require('../../../static/img/flag/spain.png')} alt="" />
-        <span>Spain</span>
-      </Link>
-      <Link onClick={() => onFlagChangeHandle('turky')} to="#">
-        <img src={require('../../../static/img/flag/turky.png')} alt="" />
-        <span>Turky</span>
-      </Link>
-    </NavAuth>
-  );
-
   return (
     <InfoWraper>
-      <Message />
-      <Notification />
-
-      <Settings />
-      <Support />
-      <div className="nav-author">
-        <Dropdown placement="bottomRight" content={country} trigger="click">
-          <Link to="#" className="head-example">
-            <img src={require(`../../../static/img/flag/${flag}.png`)} alt="" />
-          </Link>
-        </Dropdown>
-      </div>
-
       <div className="nav-author">
         <Popover placement="bottomRight" content={userContent} action="click">
-          <Link to="#" className="head-example">
+          <Link to="#" className="head-example" aria-label="Account menu">
             <Avatar src="https://cdn0.iconfinder.com/data/icons/user-pictures/100/matureman1-512.png" />
           </Link>
         </Popover>

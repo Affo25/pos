@@ -51,8 +51,6 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
       faculties: 'Faculties',
       products: 'Products',
       categorys: 'Categorys',
-      subCategorys: 'SubCategorys',
-      customers: 'Customers',
       sales: 'Sales',
       'pos-billing': 'POSBilling',
       'stock-management': 'StockManagement',
@@ -94,7 +92,7 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
           </NavLink>
         </Menu.Item>
         <Menu.SubMenu key="Setup" title="Setup" icon={!topMenu && <FeatherIcon icon="layers" />}>
-          {canAccess('branchprofiles') && (
+          {/* {canAccess('branchprofiles') && (
             <Menu.Item key="BranchProfiles">
               <NavLink onClick={toggleCollapsed} to={`${path}branchprofiles`}>
                 Branch Profiles
@@ -107,18 +105,11 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
                 Faculties
               </NavLink>
             </Menu.Item>
-          )}
+          )} */}
            {canAccess('categorys') && (
           <Menu.Item icon={!topMenu && <FeatherIcon icon="layers" />} key="Categorys">
             <NavLink onClick={toggleCollapsed} to={`${path}categorys`}>
               Categories
-            </NavLink>
-          </Menu.Item>
-        )}
-        {canAccess('subcategorys') && (
-          <Menu.Item  icon={!topMenu && <FeatherIcon icon="layers" />} key="SubCategorys">
-            <NavLink onClick={toggleCollapsed} to={`${path}subcategorys`}>
-              SubCategories
             </NavLink>
           </Menu.Item>
         )}
@@ -128,14 +119,6 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
           <Menu.Item icon={<FeatherIcon icon="package" />} key="Products">
             <NavLink onClick={toggleCollapsed} to={`${path}products`}>
               Products
-            </NavLink>
-          </Menu.Item>
-        )}
-       
-        {canAccess('customers') && (
-          <Menu.Item icon={!topMenu && <FeatherIcon icon="user-check" />}  key="Customers">
-            <NavLink onClick={toggleCollapsed} to={`${path}customers`}>
-              Customers
             </NavLink>
           </Menu.Item>
         )}
@@ -175,7 +158,7 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
           </Menu.Item>
 
         )}
-        {canAccess('users') && (
+        {canAccess('users') && user?.user_type === 'superAdmin' && (
           <Menu.Item key="Users" icon={!topMenu && <FeatherIcon icon="user-check" />}>
             <NavLink onClick={toggleCollapsed} to={`${path}users`}>
               Users

@@ -1,80 +1,77 @@
-import React, { useEffect } from 'react';
-import { useHistory } from 'react-router-dom';
+import React from 'react';
 import { Form, Input, Button } from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
-import { toast } from 'react-toastify';
-import { AuthWrapper } from './style';
+import {
+  AidLoginPage,
+  AidLoginCard,
+  AidLoginCardTop,
+  AidLoginCardBody,
+} from './style';
 import { loginUser } from '../../../../redux/authentication/authSlice';
-import Heading from '../../../../components/heading/heading';
 
 const SignIn = () => {
-  const history = useHistory();
   const dispatch = useDispatch();
   const [form] = Form.useForm();
 
   const isLoading = useSelector((state) => state.auth.loading);
-  const loginData = useSelector((state) => state.auth.login);
-  const loginError = useSelector((state) => state.auth.error);
-
-  useEffect(() => {
-    if (loginData) {
-      toast.success('Login successful! 🎉', {
-        position: 'top-right',
-        autoClose: 3000,
-      });
-      history.push('/');
-    }
-  }, [loginData]);
-
-  useEffect(() => {
-    if (loginError) {
-      toast.error(loginError || 'Login failed ❌', {
-        position: 'top-right',
-        autoClose: 4000,
-      });
-    }
-  }, [loginError]);
 
   const handleSubmit = (values) => {
     const { username, password } = values;
     dispatch(loginUser({ email: username, password }));
   };
 
+  const logoSrc = `${process.env.PUBLIC_URL}/aid-plus-logo.png`;
+
   return (
-    <AuthWrapper>
-      <div className="auth-contents">
-        <Form name="login" form={form} onFinish={handleSubmit} layout="vertical">
-          <Heading as="h3">
-            Sign in to <span className="color-secondary">Admin</span>
-          </Heading>
-          <Form.Item
-            name="username"
-            rules={[{ required: true, message: 'Please input your email!' }]}
-            label="Email"
+    <AidLoginPage>
+      <AidLoginCard>
+        <AidLoginCardTop aria-hidden />
+        <AidLoginCardBody>
+          <div className="aid-logo-wrap">
+            <img src={logoSrc} alt="" />
+          </div>
+          <div className="aid-brand-name">Aid+ Pharmacy Management System</div>
+          <h2 className="aid-welcome-title">Welcome back</h2>
+          <p className="aid-welcome-sub">Please enter your details to sign in</p>
+
+          <Form
+            name="login"
+            form={form}
+            onFinish={handleSubmit}
+            layout="vertical"
+            requiredMark={false}
           >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="password"
-            rules={[{ required: true, message: 'Please input your password!' }]}
-            label="Password"
-          >
-            <Input.Password placeholder="Password" />
-          </Form.Item>
-          <Form.Item>
-            <Button
-              className="btn-signin"
-              htmlType="submit"
-              type="primary"
-              size="large"
-              loading={isLoading}
+            <Form.Item
+              name="username"
+              rules={[{ required: true, message: 'Please input your email!' }]}
+              label="Your Email Address"
             >
-              Sign In
-            </Button>
-          </Form.Item>
-        </Form>
-      </div>
-    </AuthWrapper>
+              <Input placeholder="name@company.com" autoComplete="email" />
+            </Form.Item>
+            <Form.Item
+              name="password"
+              rules={[{ required: true, message: 'Please input your password!' }]}
+              label="Password"
+            >
+              <Input.Password placeholder="Enter your password" autoComplete="current-password" />
+            </Form.Item>
+
+            <Form.Item style={{ marginBottom: 0 }}>
+              <Button
+                className="aid-signin-submit"
+                htmlType="submit"
+                type="primary"
+                size="large"
+                loading={isLoading}
+                block
+              >
+                Sign in
+              </Button>
+            </Form.Item>
+          </Form>
+        </AidLoginCardBody>
+      </AidLoginCard>
+    </AidLoginPage>
   );
 };
 

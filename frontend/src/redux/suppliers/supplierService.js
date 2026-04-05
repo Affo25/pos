@@ -1,6 +1,8 @@
 import Cookies from 'js-cookie';
 
-const API_BASE_URL = 'http://localhost:5000/api/suppliers';
+import { API_BASE } from '../../config/apiBase';
+
+const API_BASE_URL = `${API_BASE}/suppliers`;
 const getToken = () => Cookies.get('token');
 
 export const fetchAllSuppliers = async () => {
@@ -34,7 +36,7 @@ export const createSupplier = async (supplierData) => {
   return data;
 };
 
-export const updateSupplier = async (id, supplierData) => {
+export const updateSupplier = async ({id, data}) => {
   const token = getToken();
   const response = await fetch(`${API_BASE_URL}/${id}`, {
     method: 'PUT',
@@ -42,12 +44,12 @@ export const updateSupplier = async (id, supplierData) => {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(supplierData),
+    body: JSON.stringify(data),
   });
 
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Failed to update supplier');
-  return data;
+  const datas = await response.json();
+  if (!response.ok) throw new Error(datas.error || 'Failed to update supplier');
+  return datas;
 };
 
 export const deleteSupplier = async (id) => {

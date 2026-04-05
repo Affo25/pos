@@ -1,9 +1,12 @@
 import Styled from 'styled-components';
 
 const Main = Styled.div`
-    padding: 0px 30px 20px;
-    min-height: 715px;
-    background-color: rgb(244, 245, 247);
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    padding: 0px 30px 24px;
+    background: transparent;
     &.grid-boxed{
         padding: 0px 180px 20px;
         @media only screen and (max-width: 1599px){
@@ -62,7 +65,7 @@ const Main = Styled.div`
         padding: 0px 15px;
     }
     @media only screen and (max-width: 991px){
-        min-height: 580px;
+        min-height: 0;
     }
     .w-100{
         width: 100%;

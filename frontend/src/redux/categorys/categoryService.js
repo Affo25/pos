@@ -1,6 +1,8 @@
 import Cookies from 'js-cookie';
 
-const API_BASE_URL = 'http://localhost:5000/api/categorys';
+import { API_BASE } from '../../config/apiBase';
+
+const API_BASE_URL = `${API_BASE}/categorys`;
 const getToken = () => Cookies.get('token');
 
 export const fetchAllCategorys = async () => {
@@ -34,7 +36,7 @@ export const createCategory = async (categoryData) => {
   return data;
 };
 
-export const updateCategory = async (id, categoryData) => {
+export const updateCategory = async ({id, data}) => {
   const token = getToken();
   const response = await fetch(`${API_BASE_URL}/${id}`, {
     method: 'PUT',
@@ -42,12 +44,12 @@ export const updateCategory = async (id, categoryData) => {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(categoryData),
+    body: JSON.stringify(data),
   });
 
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Failed to update category');
-  return data;
+  const datas = await response.json();
+  if (!response.ok) throw new Error(datas.error || 'Failed to update category');
+  return datas;
 };
 
 export const deleteCategory = async (id) => {

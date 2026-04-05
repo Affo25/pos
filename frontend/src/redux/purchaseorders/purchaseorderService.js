@@ -1,6 +1,8 @@
 import Cookies from 'js-cookie';
 
-const API_BASE_URL = 'http://localhost:5000/api/purchaseorders';
+import { API_BASE } from '../../config/apiBase';
+
+const API_BASE_URL = `${API_BASE}/purchaseorders`;
 const getToken = () => Cookies.get('token');
 
 export const fetchAllPurchaseOrders = async () => {
