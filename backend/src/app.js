@@ -11,14 +11,16 @@ const analyticsRoutes = require("./routes/AnalyticsRoutes");
 const facultiesRoutes = require("./routes/facultiesRoutes");
 const branchProfileRoutes = require("./routes/branchProfileRoutes");
 const express = require("express");
-const app = express();
 const cors = require("cors");
+const corsOptions = require("./config/corsOptions");
+
+const app = express();
 
 const userRoutes = require("./routes/userRoutes");
 
 // /health and / are registered on the parent app in server.js before this app is mounted
 
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

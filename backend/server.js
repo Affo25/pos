@@ -2,8 +2,14 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const express = require('express');
+const cors = require('cors');
+const corsOptions = require('./src/config/corsOptions');
+
 const root = express();
 root.set('trust proxy', 1);
+
+// CORS on the root app so OPTIONS preflight and all /api/* responses get headers (required for browser + localhost)
+root.use(cors(corsOptions));
 
 // Registered before any heavy imports — Railway can probe /health as soon as the port is open
 root.get('/health', (req, res) => {
