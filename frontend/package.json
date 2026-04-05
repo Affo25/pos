@@ -79,6 +79,9 @@
     "cross-env": "^7.0.3"
   },
   "homepage": "/",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "cross-env NODE_OPTIONS=--openssl-legacy-provider craco start",
     "build": "cross-env GENERATE_SOURCEMAP=false NODE_OPTIONS=--openssl-legacy-provider craco --max-old-space-size=4096 build",
