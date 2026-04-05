@@ -6,16 +6,18 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "build": "echo Build step not required",
-    "production": "cross-env NODE_ENV=production node server.js",
-    "seed": "node scripts/seeder.js",
-    "health": "node health.js",
-    "db:check": "node scripts/checkDatabase.js",
+    "production": "NODE_ENV=production node server.js",
+    "build": "echo 'Build completed successfully'",
+    "postinstall": "echo '✅ Dependencies installed successfully'",
+    "generate": "node src/code-generator/generator.js",
     "migrate:atlas": "node scripts/migrateLocalToAtlas.js",
-    "generate": "node src/code-generator/generator.js"
+    "health": "node health.js",
+    "seed": "node scripts/seeder.js",
+    "db:check": "node scripts/checkDatabase.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": "22.x",
+    "npm": "10.x"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
