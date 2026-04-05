@@ -1,8 +1,15 @@
 {
   "name": "datalitex",
   "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend"
+  ],
   "scripts": {
-    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "build": "npm run build -w inventory-backend",
+    "start": "node backend/server.js",
+    "start:all": "concurrently \"npm run server\" \"npm run client\"",
+    "start:backend": "npm --workspace backend start",
     "client": "npm --prefix frontend start",
     "server": "npm --prefix backend start",
     "dev": "concurrently \"npm run server-dev\" \"npm run client\"",
