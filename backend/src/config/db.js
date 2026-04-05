@@ -9,9 +9,9 @@ const connectDB = async () => {
                         process.env.DATABASE_URL;
         
         if (!mongoURI) {
-            console.error('❌ No MongoDB URI found in environment variables');
-            console.error('Please set MONGO_URI or MONGODB_URI in your environment');
-            process.exit(1);
+            console.error('❌ No MongoDB URI found. Set MONGO_URI (or MONGODB_URI) in Railway Variables.');
+            console.error('Server stays up for /health; API routes need a database connection.');
+            return;
         }
 
         // Hide sensitive info in logs
