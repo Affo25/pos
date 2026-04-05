@@ -7,7 +7,6 @@ import subcategorySaga from './subcategorys/subcategorySaga';
 import categorySaga from './categorys/categorySaga';
 import productSaga from './products/productSaga';
 
-import facultieSaga from './faculties/facultiesSaga';
 import branchprofileSaga from './branchprofiles/branchprofileSaga';
 import userSaga from './users/userSaga';
 import authSaga from './authentication/authSaga';
@@ -25,7 +24,6 @@ export default function* rootSaga() {
     userSaga(),
     authSaga(),
     branchprofileSaga(),
-    facultieSaga(),
     productSaga(),
     categorySaga(),
     subcategorySaga(),

@@ -5,7 +5,6 @@ import { message } from 'antd';
 import * as authService from './authService';
 import { loginStart, loginSuccess, loginFailure, logoutStart, logoutSuccess, logoutFailure } from './authSlice';
 import { clearBranchProfiles } from '../branchprofiles/branchprofileSlice';
-import { clearFaculties } from '../faculties/facultiesSlice';
 
 function loginErrorText(error) {
   const data = error.response?.data;
@@ -41,7 +40,6 @@ function* logoutUser() {
     Cookies.remove('logedIn');
     Cookies.remove('token');
     localStorage.removeItem('loginData');
-    yield put(clearFaculties());
     yield put(clearBranchProfiles());
     yield put(logoutSuccess());
     message.success('Signed out successfully.');

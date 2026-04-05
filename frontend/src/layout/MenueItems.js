@@ -48,7 +48,6 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
     const menuKeys = {
       users: 'Users',
       pages: 'Pages',
-      faculties: 'Faculties',
       products: 'Products',
       categorys: 'Categorys',
       sales: 'Sales',
@@ -92,21 +91,7 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
           </NavLink>
         </Menu.Item>
         <Menu.SubMenu key="Setup" title="Setup" icon={!topMenu && <FeatherIcon icon="layers" />}>
-          {/* {canAccess('branchprofiles') && (
-            <Menu.Item key="BranchProfiles">
-              <NavLink onClick={toggleCollapsed} to={`${path}branchprofiles`}>
-                Branch Profiles
-              </NavLink>
-            </Menu.Item>
-          )}
-          {canAccess('faculties') && (
-            <Menu.Item key="Faculties">
-              <NavLink onClick={toggleCollapsed} to={`${path}faculties`}>
-                Faculties
-              </NavLink>
-            </Menu.Item>
-          )} */}
-           {canAccess('categorys') && (
+          {canAccess('categorys') && (
           <Menu.Item icon={!topMenu && <FeatherIcon icon="layers" />} key="Categorys">
             <NavLink onClick={toggleCollapsed} to={`${path}categorys`}>
               Categories

@@ -302,7 +302,6 @@ export const DATE_DEFAULT_OPTIONS = [
 
 export const allowedPages = [
   'branchProfiles',
-  'faculties',
   'products',
   'categorys',
   'subCategorys',

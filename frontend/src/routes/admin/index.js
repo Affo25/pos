@@ -21,7 +21,6 @@ const Users = lazy(() => import('../../container/Users/Users'));
 const UserDetails = lazy(() => import('../../container/Users/UserDetails'));
 const Profile = lazy(() => import('../../container/profile/myProfile/Profile'));
 const BranchProfiles = lazy(() => import('../../container/BranchProfiles/BranchProfiles'));
-const Faculties = lazy(() => import('../../container/Faculties/Faculties'));
 const Settings = lazy(() => import('../../container/Settings/Settings'));
 
 function Admin() {
@@ -55,7 +54,6 @@ function Admin() {
         {canAccess('firestore') && <Route path={`${path}firestore`} component={Firebase} />}
         {canAccess('profile') && <Route path={`${path}profile/myProfile`} component={Myprofile} />}
         {canAccess('branchprofiles') && <Route exact path={`${path}branchprofiles`} component={BranchProfiles} />}
-        {canAccess('faculties') && <Route exact path={`${path}faculties`} component={Faculties} />}
         {canAccess('products') && <Route exact path={`${path}products`} component={Products} />}
         <Route exact path={`${path}profile`} component={Profile} />
         {canAccess('categorys') && <Route exact path={`${path}categorys`} component={Categorys} />}

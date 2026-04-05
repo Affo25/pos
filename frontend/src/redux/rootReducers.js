@@ -18,7 +18,6 @@ import { fsCrudReducer, fsSingleCrudReducer } from './firebase/firestore/reducer
 import firebaseAuth from './firebase/auth/reducers';
 import userReducer from './users/userSlice';
 import branchprofileReducer from './branchprofiles/branchprofileSlice';
-import facultiesReducer from './faculties/facultiesSlice';
 import productReducer from './products/productSlice';
 import categoryReducer from './categorys/categorySlice';
 import subcategoryReducer from './subcategorys/subcategorySlice';
@@ -55,7 +54,6 @@ const rootReducers = combineReducers({
   SingleAxiosCrud: axiosSingleCrudReducer,
   ChangeLayoutMode,
   branchprofiles: branchprofileReducer,
-  faculties: facultiesReducer,
   seletedBranch: selectedBranchReducer,
   products: productReducer,
   categorys: categoryReducer,
