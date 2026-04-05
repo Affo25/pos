@@ -18,7 +18,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "generate": "node src/code-generator/generator.js"
+    "generate": "node src/code-generator/generator.js",
+    "migrate:atlas": "node scripts/migrateLocalToAtlas.js"
   },
   "author": "reshni",
   "license": "ISC",
