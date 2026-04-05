@@ -63,7 +63,7 @@ const SaleSchema = new mongoose.Schema({
     required: true,
   },
   admin_id: { type: mongoose.Schema.Types.ObjectId, ref: 'admins', required: true },
-  created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
+  created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Sale', SaleSchema);

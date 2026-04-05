@@ -7,7 +7,7 @@ const subCategoryRoutes = require('./routes/subCategoryRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const productsRoutes = require('./routes/productsRoutes');
 const path = require("path");
-
+const analyticsRoutes = require("./routes/AnalyticsRoutes");
 const facultiesRoutes = require("./routes/facultiesRoutes");
 const branchProfileRoutes = require("./routes/branchProfileRoutes");
 const express = require("express");
@@ -28,7 +28,7 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 app.use("/uploads", express.static(uploadsDir));
-
+app.use("/api/analytics", analyticsRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/branchProfiles", branchProfileRoutes);
 app.use("/api/faculties", facultiesRoutes);

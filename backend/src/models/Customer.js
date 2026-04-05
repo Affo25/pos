@@ -25,7 +25,7 @@ const CustomerSchema = new mongoose.Schema({
     default: 0,
   },
   admin_id: { type: mongoose.Schema.Types.ObjectId, ref: 'admins', required: true },
-  created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
+  created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Customer', CustomerSchema);

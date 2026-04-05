@@ -8,6 +8,12 @@ const ProductsSchema = new mongoose.Schema({
     trim: true,
     comment: 'Exact name of the medicine',
   },
+  sku: {
+    type: String,
+    trim: true,
+    maxlength: 80,
+    comment: 'Stock keeping unit — unique per product when set',
+  },
   batch_number: {
     type: String,
     required: true,
@@ -22,7 +28,7 @@ const ProductsSchema = new mongoose.Schema({
   },
   available_quantity: {
     type: Number,
-    required: false,
+    required: true,
     min: 0,
     default: 0,
     comment: 'Current units in stock',
@@ -35,7 +41,7 @@ const ProductsSchema = new mongoose.Schema({
   },
   unit_price: {
     type: Number,
-    required: false,
+    required: true,
     min: 0,
     default: 0,
     comment: 'Per unit price or MRP',
@@ -140,14 +146,22 @@ const ProductsSchema = new mongoose.Schema({
   },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'users',
+    ref: 'User',
     required: true,
   },
 }, { timestamps: true });
 
-// Pre-save hook to auto calculate total_value
+// Unique SKU when present; sparse allows many documents without sku (legacy) until backfilled
+ProductsSchema.index({ sku: 1 }, { unique: true, sparse: true });
+
+// Auto SKU when missing (avoids E11000 duplicate null on unique sku index); total_value
 ProductsSchema.pre('save', function(next) {
-  this.total_value = this.unit_price * this.available_quantity;
+  if (this.isNew && (this.sku == null || String(this.sku).trim() === '')) {
+    this.sku = `SKU-${this._id.toString()}`;
+  }
+  const price = Number(this.unit_price) || 0;
+  const qty = Number(this.available_quantity) || 0;
+  this.total_value = price * qty;
   next();
 });
 

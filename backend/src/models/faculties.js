@@ -5,7 +5,7 @@ const facultieschema = new mongoose.Schema({
   code: { type: String },
   status: { type: String, default: 'active' },
   admin_id: { type: mongoose.Schema.Types.ObjectId, ref: 'admins', required: true },
-  created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
+  created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 
 }, { timestamps: true });
 

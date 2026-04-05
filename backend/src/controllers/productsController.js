@@ -36,12 +36,50 @@ exports.createProducts = async (req, res) => {
       admin_id: adminId,
       created_by: req.user._id,
     };
+    // Omit empty/null sku so pre-save can assign a unique SKU (avoids E11000 duplicate key { sku: null })
+    if (data.sku == null || (typeof data.sku === 'string' && data.sku.trim() === '')) {
+      delete data.sku;
+    } else if (typeof data.sku === 'string') {
+      data.sku = data.sku.trim();
+    }
+
+    const parseNonNegNumber = (raw, fieldLabel) => {
+      if (raw === undefined || raw === null || raw === '') {
+        return { ok: false, error: `${fieldLabel} is required` };
+      }
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n < 0) {
+        return { ok: false, error: `${fieldLabel} must be a non-negative number` };
+      }
+      return { ok: true, value: n };
+    };
+
+    const aq = parseNonNegNumber(data.available_quantity, 'available_quantity');
+    if (!aq.ok) return res.status(400).json({ error: aq.error });
+    const up = parseNonNegNumber(data.unit_price, 'unit_price');
+    if (!up.ok) return res.status(400).json({ error: up.error });
+    data.available_quantity = aq.value;
+    data.unit_price = up.value;
 
     const newProducts = new Products(data);
     await newProducts.save();
     await newProducts.populate('category', 'name');
     res.status(201).json(newProducts);
   } catch (err) {
+    if (err.code === 11000) {
+      const field = err.keyPattern ? Object.keys(err.keyPattern)[0] : 'field';
+      const msg =
+        field === 'sku'
+          ? 'This SKU is already in use. Enter a different SKU or leave it blank to auto-generate.'
+          : `Duplicate value for ${field}`;
+      return res.status(409).json({ error: msg, field });
+    }
+    if (err.name === 'ValidationError') {
+      const first = Object.values(err.errors || {})[0];
+      return res.status(400).json({
+        error: first?.message || err.message || 'Validation failed',
+      });
+    }
     res.status(500).json({ error: err.message });
   }
 };
@@ -138,7 +176,7 @@ exports.updateProducts = async (req, res) => {
 
     // Handle basic product fields
     const stringFields = [
-      'name', 'batch_number', 'rack_location', 'medicine_size',
+      'name', 'batch_number', 'sku', 'rack_location', 'medicine_size',
       'manufacturer', 'manufacturer_license_no', 'manufacturer_registration_no',
       'storage_instructions', 'notes', 'image'
     ];
@@ -407,6 +445,7 @@ exports.importProductsFromExcel = async (req, res) => {
         manufacturer_license_no: String(row.manufacturer_license_no || '').trim(),
         manufacturer_registration_no: String(row.manufacturer_registration_no || '').trim(),
         medicine_size: String(row.medicine_size || row.medecine_size || '').trim(),
+        sku: `SKU-${new mongoose.Types.ObjectId().toString()}`,
         admin_id: adminId,
         created_by: createdBy,
       });
