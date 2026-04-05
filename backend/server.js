@@ -7,13 +7,6 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 
 let server;
 
-
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    uptime: process.uptime()
-  });
-});
 // Start server FIRST
 const startServer = async () => {
   try {
