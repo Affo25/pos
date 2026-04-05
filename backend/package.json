@@ -8,15 +8,19 @@
     "dev": "nodemon server.js",
     "production": "NODE_ENV=production node server.js",
     "build": "npm ci --omit=dev",
+    "postinstall": "echo '✅ Dependencies installed successfully'",
     "generate": "node src/code-generator/generator.js",
     "migrate:atlas": "node scripts/migrateLocalToAtlas.js",
     "health": "node health.js",
     "seed": "node scripts/seeder.js",
-    "db:check": "node scripts/checkDatabase.js"
+    "db:check": "node scripts/checkDatabase.js",
+    "railway:start": "NODE_ENV=production node server.js",
+    "railway:build": "npm ci --omit=dev --production=false"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
+    "node": "18.x",
+    "npm": "9.x",
+    "yarn": "1.x"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -44,9 +48,14 @@
     "pharmacy",
     "pos",
     "management",
-    "backend"
+    "backend",
+    "railway"
   ],
   "author": "reshni",
   "license": "ISC",
-  "private": false
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "your-repo-url"
+  }
 }
