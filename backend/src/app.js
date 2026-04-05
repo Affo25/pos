@@ -16,13 +16,7 @@ const cors = require("cors");
 
 const userRoutes = require("./routes/userRoutes");
 
-// Liveness for Railway/orchestrators — must stay before /api routes and without auth
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok", uptime: process.uptime() });
-});
-app.get("/", (req, res) => {
-  res.status(200).type("text/plain").send("ok");
-});
+// /health and / are registered on the parent app in server.js before this app is mounted
 
 app.use(cors());
 app.use(express.json());

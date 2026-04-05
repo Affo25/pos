@@ -1,8 +1,19 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-const app = require('./src/app');
-const connectDB = require('./src/config/db');
+const express = require('express');
+const root = express();
+root.set('trust proxy', 1);
+
+// Registered before any heavy imports — Railway can probe /health as soon as the port is open
+root.get('/health', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.status(200).json({ status: 'ok', uptime: process.uptime() });
+});
+root.get('/', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.status(200).type('text/plain').send('ok');
+});
 
 const rawPort = process.env.PORT || '5000';
 const PORT = Number.parseInt(rawPort, 10);
@@ -13,31 +24,26 @@ if (!Number.isFinite(PORT) || PORT < 1) {
   process.exit(1);
 }
 
-let server;
-
 process.on('unhandledRejection', (reason) => {
   console.error('❌ unhandledRejection:', reason);
 });
 
-// Start server FIRST (listen without fixed IPv4-only bind — works with Railway IPv4/IPv6)
-const startServer = async () => {
+// Bind to all IPv4 interfaces (Railway internal checks use this)
+const server = root.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Listening`, server.address());
+  console.log(`📡 Environment: ${NODE_ENV}`);
+
   try {
-    server = app.listen(PORT, () => {
-      const addr = server.address();
-      console.log(`🚀 Server listening`, addr);
-      console.log(`📡 Environment: ${NODE_ENV}`);
-    });
-
-    console.log('🔄 Connecting to MongoDB...');
-    connectDB()
-      .then(() => console.log('✅ MongoDB connected successfully'))
-      .catch((err) => console.error('❌ MongoDB connection failed:', err.message));
-
-    return server;
-  } catch (error) {
-    console.error('❌ Failed to start server:', error.message);
-    process.exit(1);
+    const apiApp = require('./src/app');
+    root.use(apiApp);
+    console.log('✅ API routes mounted');
+  } catch (err) {
+    console.error('❌ Failed to mount API (health still works):', err);
   }
-};
 
-startServer();
+  const connectDB = require('./src/config/db');
+  console.log('🔄 Connecting to MongoDB...');
+  connectDB()
+    .then(() => console.log('✅ MongoDB connected successfully'))
+    .catch((err) => console.error('❌ MongoDB connection failed:', err.message));
+});
