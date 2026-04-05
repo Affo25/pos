@@ -6,7 +6,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const User = require('./models/User');
 
 const allowedPages = [
-  'users', 'branchProfiles', 'departments', 'faculties', 'subjects',
+  'users', 'branchProfiles', 'departments', 'subjects',
   'accountheads', 'feeheads', 'classTypes',
    'notices',
   'news', 'nonAcademics', 'events'

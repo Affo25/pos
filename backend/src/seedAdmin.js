@@ -55,7 +55,7 @@ try {
 }
 
 const allowedPages = [
-  'users', 'branchProfiles', 'departments', 'faculties', 'subjects',
+  'users', 'branchProfiles', 'departments', 'subjects',
   'accountheads', 'feeheads', 'classTypes',
    'notices',
   'news', 'nonAcademics', 'events'

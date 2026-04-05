@@ -17,7 +17,6 @@ module.exports = function setupRoutes(app) {
   const categoryRoutes = require('./routes/categoryRoutes');
   const productsRoutes = require('./routes/productsRoutes');
   const analyticsRoutes = require('./routes/AnalyticsRoutes');
-  const facultiesRoutes = require('./routes/facultiesRoutes');
   const branchProfileRoutes = require('./routes/branchProfileRoutes');
   const userRoutes = require('./routes/userRoutes');
 
@@ -39,7 +38,6 @@ module.exports = function setupRoutes(app) {
   app.use('/api/analytics', analyticsRoutes);
   app.use('/api/users', userRoutes);
   app.use('/api/branchProfiles', branchProfileRoutes);
-  app.use('/api/faculties', facultiesRoutes);
   app.use('/api/products', productsRoutes);
   app.use('/api/categorys', categoryRoutes);
   app.use('/api/subCategorys', subCategoryRoutes);
