@@ -146,20 +146,21 @@ exports.createReturn = async (req, res) => {
     
     // Store return information in sale
     sale.return_items = sale.return_items || [];
-    sale.return_items.push(...createdReturns.map(r => ({
+    sale.return_items.push(...createdReturns.map((r) => ({
       return_id: r._id,
       product_id: r.product_id,
       quantity: r.quantity,
       unit_price: r.unit_price,
       reason: r.reason,
-      created_at: r.createdAt,
-      refund_amount: r.refund_amount
+      created_at: r.createdAt || new Date(),
+      refund_amount: r.refund_amount,
     })));
     
-    // Calculate total return amount
-    sale.total_return_amount = (sale.total_return_amount || 0) + 
-      createdReturns.reduce((sum, r) => sum + r.refund_amount, 0);
-    
+    // Calculate total return amount and reduce invoice net (amount still valid after returns)
+    const batchRefund = createdReturns.reduce((sum, r) => sum + Number(r.refund_amount || 0), 0);
+    sale.total_return_amount = (Number(sale.total_return_amount) || 0) + batchRefund;
+    sale.net_amount = Math.max(0, Number(sale.net_amount || 0) - batchRefund);
+
     await sale.save();
 
     // Populate the returns with product details for response
@@ -172,18 +173,23 @@ exports.createReturn = async (req, res) => {
       .populate('sale_id', 'invoice_no customer_name total_amount net_amount')
       .populate('created_by', 'name email');
 
+    const updatedSale = await Sale.findById(sale_id).lean();
+
     res.status(201).json({
       success: true,
       message: 'Return processed successfully',
       returns: populatedReturns,
+      sale: updatedSale,
       sale_status: sale.status,
       total_return_amount: sale.total_return_amount,
+      net_amount: sale.net_amount,
       summary: {
         total_items_returned: createdReturns.length,
         total_quantity_returned: createdReturns.reduce((sum, r) => sum + r.quantity, 0),
         total_refund_amount: sale.total_return_amount,
-        errors: errors.length > 0 ? errors : null
-      }
+        batch_refund: batchRefund,
+        errors: errors.length > 0 ? errors : null,
+      },
     });
   } catch (err) {
     console.error('Return processing error:', err);

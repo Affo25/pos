@@ -1,6 +1,7 @@
 const Sale = require('../models/Sale');
 const Products = require('../models/Products');
 const Customer = require('../models/Customer');
+const Return = require('../models/Return');
 
 const generateInvoiceNo = () => {
   const ts = Date.now().toString().slice(-8);
@@ -38,8 +39,34 @@ exports.getSales = async (req, res) => {
       query.created_by = req.user.id;
     }
 
-    const sales = await Sale.find(query);
-    res.status(200).json(sales);
+    const sales = await Sale.find(query).lean();
+    if (!sales.length) {
+      return res.status(200).json([]);
+    }
+
+    const saleIds = sales.map((s) => s._id);
+    const returnRows = await Return.find({
+      sale_id: { $in: saleIds },
+      status: { $in: ['approved', 'pending'] },
+    })
+      .select('sale_id product_id quantity')
+      .lean();
+
+    const returnedBySaleProduct = {};
+    returnRows.forEach((r) => {
+      const sid = r.sale_id.toString();
+      const pid = r.product_id.toString();
+      if (!returnedBySaleProduct[sid]) returnedBySaleProduct[sid] = {};
+      returnedBySaleProduct[sid][pid] =
+        (returnedBySaleProduct[sid][pid] || 0) + Number(r.quantity || 0);
+    });
+
+    const enriched = sales.map((s) => ({
+      ...s,
+      returned_qty_by_product: returnedBySaleProduct[s._id.toString()] || {},
+    }));
+
+    res.status(200).json(enriched);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -92,6 +119,8 @@ exports.createBilling = async (req, res) => {
     if (customer_id) {
       const customer = await Customer.findById(customer_id);
       if (customer) customerName = customer.name;
+    } else if (req.user?.name) {
+      customerName = req.user.name;
     }
 
     const saleItems = [];
