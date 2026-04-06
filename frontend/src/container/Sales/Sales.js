@@ -1,10 +1,11 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable camelcase */
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import moment from 'moment';
 import Styled from 'styled-components';
 import { useSelector, useDispatch } from 'react-redux';
-import { Row, Col, Menu, message, Dropdown, Select, Modal, Table, Tag, Tabs, Divider, Skeleton, InputNumber, Typography, Space, Button as AntButton, Descriptions, Input, Form, DatePicker } from 'antd';
+import { Row, Col, Menu, message, Dropdown, Select, Modal, Table, Tag, Tabs, Divider, Skeleton, InputNumber, Typography, Space, Button as AntButton, Descriptions, Input, Form, DatePicker, Radio } from 'antd';
 import { ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Link } from 'react-router-dom';
 import { 
@@ -23,7 +24,8 @@ import { PageHeader } from '../../components/page-headers/page-headers';
 import ProjectLists from '../../config/default/List';
 import { ProjectHeader, ProjectSorting } from '../../config/default/style';
 import { Main } from '../../config/default/styled';
-import { deleteSale, fetchAllSales, updateSale, processReturn } from '../../redux/sales/saleSlice';
+import { deleteSale, fetchAllSales, updateSale, fetchSalesSuccess } from '../../redux/sales/saleSlice';
+import * as saleService from '../../redux/sales/saleService';
 import { getComponentPermissions } from '../../config/utils/permission';
 import { fetchAllCustomers } from '../../redux/customers/customerSlice';
 import { exportListToExcel, exportListToPdf } from '../../utils/listExport';
@@ -37,20 +39,23 @@ import {
   KpiTrendMuted,
 } from '../dashboard/dashboardStyles';
 import { formatPkr } from '../../config/currency';
+import { ScreenWrap } from '../shared/procurementScreenStyles';
 
-const CustomTableWrapper = Styled.div`
-  .ant-table-tbody > tr > td {
-    padding: 12px 10px !important;
-    vertical-align: middle !important;
+/** Larger KPI type — aligned with supplier / procurement screens */
+const StatisticsKpiWrap = Styled.div`
+  ${KpiValue} {
+    font-size: 28px !important;
   }
-  .ant-table-thead > tr > th {
-    padding: 12px 10px !important;
-    font-weight: 600 !important;
-    background-color: #fafafa !important;
-  }
-  .ant-table {
+  ${KpiLabel} {
     font-size: 14px !important;
   }
+  ${KpiTrendMuted} {
+    font-size: 13px !important;
+  }
+`;
+
+/** Table shell from ScreenWrap handles cell typography; keep action cluster compact */
+const SalesTableActions = Styled.div`
   .action-buttons {
     display: flex;
     gap: 4px;
@@ -67,6 +72,17 @@ const CustomTableWrapper = Styled.div`
 
 const { TabPane } = Tabs;
 const { TextArea } = Input;
+const { RangePicker } = DatePicker;
+
+/** Prefer business sale_date, fallback to createdAt */
+function saleMoment(sale) {
+  return moment(sale?.sale_date || sale?.createdAt);
+}
+
+function formatSaleDateTime(sale) {
+  const m = saleMoment(sale);
+  return m.isValid() ? m.format('DD MMM YYYY, hh:mm A') : '—';
+}
 
 const KPI_SPARK_COLORS = ['#c4b5fd', '#fca5a5', '#86efac', '#93c5fd'];
 
@@ -113,6 +129,9 @@ function Sales() {
   const [returnItems, setReturnItems] = useState([]);
   const [returnReason, setReturnReason] = useState('');
   const [activeTab, setActiveTab] = useState('active');
+  /** today | range | all — default: today’s sales only */
+  const [dateMode, setDateMode] = useState('today');
+  const [dateRange, setDateRange] = useState(() => [moment().startOf('day'), moment().endOf('day')]);
   const [salesHistory, setSalesHistory] = useState([]);
   const [statistics, setStatistics] = useState({
     totalSales: 0,
@@ -123,21 +142,16 @@ function Sales() {
 
   const { notData, visible, selectedSale } = state;
 
-  // Calculate statistics
-  useEffect(() => {
-    if (sales && Array.isArray(sales)) {
-      const completed = sales.filter(s => s.status === 'completed');
-      const returned = sales.filter(s => s.status === 'returned');
-      const totalRevenue = completed.reduce((sum, sale) => sum + (sale.net_amount || 0), 0);
-      
-      setStatistics({
-        totalSales: sales.length,
-        totalRevenue,
-        completedOrders: completed.length,
-        returnedOrders: returned.length
-      });
+  const onDateModeChange = useCallback((e) => {
+    const mode = e.target.value;
+    setDateMode(mode);
+    setPagination((p) => ({ ...p, current: 1 }));
+    if (mode === 'today') {
+      setDateRange([moment().startOf('day'), moment().endOf('day')]);
+    } else if (mode === 'range') {
+      setDateRange([moment().startOf('day'), moment().endOf('day')]);
     }
-  }, [sales]);
+  }, []);
 
   const sparkTotalSales = useMemo(() => {
     const n = statistics.totalSales;
@@ -190,20 +204,37 @@ function Sales() {
     });
   };
 
+  const getSaleByIdFromStore = (sale) => {
+    const sid = String(sale?._id || sale?.id || '');
+    if (!sid || !Array.isArray(sales)) return sale;
+    return sales.find((s) => String(s._id || s.id) === sid) || sale;
+  };
+
   const handleViewInvoice = (sale) => {
-    setSelectedInvoice(sale);
+    setSelectedInvoice(getSaleByIdFromStore(sale));
     setInvoiceModalVisible(true);
   };
 
   const handleProcessReturn = (sale) => {
-    setSelectedReturnSale(sale);
-    const initialReturnItems = sale.items?.map(item => ({
-      ...item,
-      returnQuantity: 0,
-      returnReason: '',
-      selected: false
-    })) || [];
+    const src = getSaleByIdFromStore(sale);
+    setSelectedReturnSale(src);
+    const rqMap = src.returned_qty_by_product || {};
+    const initialReturnItems =
+      src.items?.map((item) => {
+        const pid = String(item.product_id);
+        const returnedQty = Number(rqMap[pid] ?? rqMap[item.product_id] ?? 0);
+        const remainingQty = Math.max(0, Number(item.quantity) - returnedQty);
+        return {
+          ...item,
+          returnedQty,
+          remainingQty,
+          returnQuantity: 0,
+          returnReason: '',
+          selected: false,
+        };
+      }) || [];
     setReturnItems(initialReturnItems);
+    setReturnReason('');
     setReturnModalVisible(true);
   };
 
@@ -231,18 +262,38 @@ function Sales() {
       reason: returnReason
     };
 
+    const refundTotal = selectedItems.reduce(
+      (sum, item) => sum + item.returnQuantity * Number(item.unit_price || 0),
+      0
+    );
+
     Modal.confirm({
       title: 'Confirm Return',
-      content: `Total return amount: ₹${selectedItems.reduce((sum, item) => sum + (item.returnQuantity * item.unit_price), 0).toFixed(2)}. This will update stock and sale status.`,
+      content: `Total return amount: ${formatPkr(refundTotal)}. Stock and invoice totals will be updated.`,
       onOk: async () => {
         try {
-          await dispatch(processReturn(returnData));
+          await saleService.processReturn(returnData);
+          const freshList = await saleService.fetchAllSales();
+          dispatch(fetchSalesSuccess(freshList));
+
+          const sid = String(returnData.sale_id);
+          const updated = Array.isArray(freshList)
+            ? freshList.find((s) => String(s._id || s.id) === sid)
+            : null;
+          if (updated) {
+            setSelectedInvoice((prev) =>
+              prev && String(prev._id || prev.id) === sid ? updated : prev
+            );
+          }
+
+          message.success('Return processed — invoice totals updated.');
           setReturnModalVisible(false);
-          dispatch(fetchAllSales());
+          setSelectedReturnSale(null);
+          setReturnItems([]);
         } catch (error) {
-          message.error('Failed to process return');
+          message.error(error?.message || 'Failed to process return');
         }
-      }
+      },
     });
   };
 
@@ -285,7 +336,9 @@ function Sales() {
       let filtered = [...sales];
 
       if (activeTab === 'active') {
-        filtered = filtered.filter(item => item.status === 'completed');
+        filtered = filtered.filter((item) =>
+          ['completed', 'partially_returned'].includes(item.status)
+        );
       } else if (activeTab === 'history') {
         filtered = filtered.filter(item => ['returned', 'partially_returned', 'cancelled'].includes(item.status));
       } else if (activeTab === 'all') {
@@ -308,14 +361,42 @@ function Sales() {
         filtered = filtered.filter((item) => item.status?.toLowerCase() === sortStatus.toLowerCase());
       }
 
-      filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      if (dateMode === 'today') {
+        const start = moment().startOf('day');
+        const end = moment().endOf('day');
+        filtered = filtered.filter((item) => {
+          const m = saleMoment(item);
+          return m.isValid() && m.isSameOrAfter(start) && m.isSameOrBefore(end);
+        });
+      } else if (dateMode === 'range' && dateRange?.[0] && dateRange?.[1]) {
+        const start = dateRange[0].clone().startOf('day');
+        const end = dateRange[1].clone().endOf('day');
+        filtered = filtered.filter((item) => {
+          const m = saleMoment(item);
+          return m.isValid() && m.isSameOrAfter(start) && m.isSameOrBefore(end);
+        });
+      }
+
+      const completedForStats = filtered.filter((s) =>
+        ['completed', 'partially_returned'].includes(s.status)
+      );
+      const returnedForStats = filtered.filter((s) => s.status === 'returned');
+      const totalRevenue = completedForStats.reduce((sum, sale) => sum + (sale.net_amount || 0), 0);
+      setStatistics({
+        totalSales: filtered.length,
+        totalRevenue,
+        completedOrders: completedForStats.length,
+        returnedOrders: returnedForStats.length,
+      });
+
+      filtered.sort((a, b) => saleMoment(b).valueOf() - saleMoment(a).valueOf());
 
       const start = (pagination.current - 1) * pagination.pageSize;
       const end = start + pagination.pageSize;
       const paginatedData = filtered.slice(start, end);
 
       const formatted = paginatedData.map((sale, index) => {
-        const { _id, id, customer_id, total_amount, net_amount, status, invoice_no, createdAt } = sale;
+        const { _id, id, customer_id, total_amount, net_amount, status, invoice_no } = sale;
         const customer = customers.find(cat => cat._id === customer_id);
         const customerName = customer?.name || 'Walk-in Customer';
         
@@ -339,9 +420,9 @@ function Sales() {
           id: _id || id,
           invoice_no: invoice_no || `INV-${_id?.slice(-6)}`,
           customer: customerName,
-          total_amount: `₹${(total_amount || 0).toFixed(2)}`,
-          net_amount: `₹${(net_amount || 0).toFixed(2)}`,
-          date: new Date(createdAt).toLocaleDateString(),
+          total_amount: `₹${Number(total_amount ?? 0).toFixed(2)}`,
+          net_amount: `₹${Number(net_amount ?? 0).toFixed(2)}`,
+          date: formatSaleDateTime(sale),
           status: getStatusTag(),
           action: (
                      <Space size="small">
@@ -351,7 +432,7 @@ function Sales() {
                 onClick={() => handleViewInvoice(sale)}
                 title="View Invoice"
               />
-              {status === 'completed' && (
+              {['completed', 'partially_returned'].includes(status) && (
                 <AntButton 
                   type="text" 
                   icon={<UndoOutlined style={{ color: '#ff9800' }} />} 
@@ -374,7 +455,7 @@ function Sales() {
       setDataSource(formatted);
       setSalesHistory(filtered);
     }
-  }, [sales, pagination, searchTerm, sortStatus, customers, activeTab, canDelete]);
+  }, [sales, pagination, searchTerm, sortStatus, customers, activeTab, canDelete, dateMode, dateRange]);
 
   const handlePageChange = (page, pageSize) => {
     setPagination({
@@ -397,14 +478,15 @@ function Sales() {
       message.warning('No data to export');
       return;
     }
-    const headers = ['Invoice No', 'Customer', 'Date', 'Total (PKR)', 'Net (PKR)', 'Status'];
+    const headers = ['Invoice No', 'Customer', 'Date & time', 'Total (PKR)', 'Net (PKR)', 'Status'];
     const rows = salesHistory.map((sale) => {
       const customer = customers.find((c) => c._id === sale.customer_id);
       const customerName = customer?.name || sale.customer_name || 'Walk-in Customer';
+      const dt = formatSaleDateTime(sale);
       return [
         sale.invoice_no || `INV-${String(sale._id || '').slice(-6)}`,
         customerName,
-        new Date(sale.createdAt || sale.sale_date).toLocaleDateString(),
+        dt === '—' ? '' : dt,
         Number(sale.total_amount || 0).toFixed(2),
         Number(sale.net_amount || 0).toFixed(2),
         sale.status || '',
@@ -424,14 +506,15 @@ function Sales() {
       message.warning('No data to export');
       return;
     }
-    const headers = ['Invoice No', 'Customer', 'Date', 'Total (PKR)', 'Net (PKR)', 'Status'];
+    const headers = ['Invoice No', 'Customer', 'Date & time', 'Total (PKR)', 'Net (PKR)', 'Status'];
     const rows = salesHistory.map((sale) => {
       const customer = customers.find((c) => c._id === sale.customer_id);
       const customerName = customer?.name || sale.customer_name || 'Walk-in Customer';
+      const dt = formatSaleDateTime(sale);
       return [
         sale.invoice_no || `INV-${String(sale._id || '').slice(-6)}`,
         customerName,
-        new Date(sale.createdAt || sale.sale_date).toLocaleDateString(),
+        dt === '—' ? '' : dt,
         Number(sale.total_amount || 0).toFixed(2),
         Number(sale.net_amount || 0).toFixed(2),
         sale.status || '',
@@ -462,17 +545,17 @@ function Sales() {
       ellipsis: true
     },
     { 
+      title: 'Date & time', 
+      dataIndex: 'date', 
+      key: 'date',
+      width: 190
+    },
+    { 
       title: 'Customer', 
       dataIndex: 'customer', 
       key: 'customer',
       width: 200,
       ellipsis: true
-    },
-    { 
-      title: 'Date', 
-      dataIndex: 'date', 
-      key: 'date',
-      width: 120
     },
     { 
       title: 'Total Amount', 
@@ -507,6 +590,7 @@ function Sales() {
 
   // Statistics — same KPI strip as dashboard / stock management
   const StatisticsCards = () => (
+    <StatisticsKpiWrap>
     <KpiGrid>
       <KpiCard>
         <KpiMain>
@@ -516,7 +600,7 @@ function Sales() {
             <>
               <KpiValue>{statistics.totalSales}</KpiValue>
               <KpiLabel>Total sales</KpiLabel>
-              <KpiTrendMuted>All invoices</KpiTrendMuted>
+              <KpiTrendMuted>Matching filters</KpiTrendMuted>
             </>
           )}
         </KpiMain>
@@ -531,9 +615,9 @@ function Sales() {
             <Skeleton active paragraph={{ rows: 1 }} />
           ) : (
             <>
-              <KpiValue style={{ fontSize: 20 }}>{formatPkr(statistics.totalRevenue)}</KpiValue>
+              <KpiValue>{formatPkr(statistics.totalRevenue)}</KpiValue>
               <KpiLabel>Total revenue</KpiLabel>
-              <KpiTrendMuted>Net from completed</KpiTrendMuted>
+              <KpiTrendMuted>Net from completed (filtered)</KpiTrendMuted>
             </>
           )}
         </KpiMain>
@@ -578,15 +662,20 @@ function Sales() {
         </KpiSparkWrap>
       </KpiCard>
     </KpiGrid>
+    </StatisticsKpiWrap>
   );
 
   return (
-    <>
+    <ScreenWrap>
       <ProjectHeader>
         <PageHeader
           ghost
-          title="Sales Management"
-          subTitle={<>{loading ? 'Loading...' : `${salesHistory?.length || 0} Sales Records`}</>}
+          title={<span className="page-title">Sales Management</span>}
+          subTitle={
+            <span className="page-sub">
+              {loading ? 'Loading…' : `${salesHistory?.length || 0} sales in current view`}
+            </span>
+          }
           buttons={[
             <Button key="excel" outlined type="primary" size="default" onClick={handleExportExcel}>
               <FileExcelOutlined style={{ marginRight: 8 }} />
@@ -604,9 +693,10 @@ function Sales() {
       </ProjectHeader>
       <Main>
         <StatisticsCards />
-        
+
         <Row gutter={25}>
           <Col xs={24}>
+            <div className="toolbar-card">
             <ProjectSorting>
               <div className="project-sort-bar">
                 <div className="project-sort-search">
@@ -621,30 +711,58 @@ function Sales() {
                     <Select.Option value="partially_returned">Partially Returned</Select.Option>
                   </Select>
                 </div>
+                <div className="sort-group" style={{ flexWrap: 'wrap', gap: 8 }}>
+                  <span style={{ display: 'flex', alignItems: 'center' }}>Sale date:</span>
+                  <Radio.Group value={dateMode} onChange={onDateModeChange} size="small">
+                    <Radio.Button value="today">Today</Radio.Button>
+                    <Radio.Button value="range">Date range</Radio.Button>
+                    <Radio.Button value="all">All dates</Radio.Button>
+                  </Radio.Group>
+                  {dateMode === 'range' && (
+                    <RangePicker
+                      value={dateRange}
+                      onChange={(dates) => {
+                        if (dates?.[0] && dates?.[1]) {
+                          setDateRange(dates);
+                          setPagination((p) => ({ ...p, current: 1 }));
+                        }
+                      }}
+                      format="DD/MM/YYYY"
+                    />
+                  )}
+                </div>
               </div>
             </ProjectSorting>
-            
-            <Tabs activeKey={activeTab} onChange={setActiveTab} style={{ marginTop: 16 }}>
+            </div>
+
+            <Tabs
+              activeKey={activeTab}
+              onChange={setActiveTab}
+              className="list-screen-tabs"
+              style={{ marginTop: 8 }}
+            >
               <TabPane tab="Active Sales" key="active" />
               <TabPane tab="Sales History" key="history" />
               <TabPane tab="Returns" key="returns" />
               <TabPane tab="All Sales" key="all" />
             </Tabs>
-            
-            <CustomTableWrapper>
-              <ProjectLists
-                size="middle"
-                columns={columns}
-                dataSource={dataSource}
-                loading={loading}
-                total={salesHistory?.length || 0}
-                current={pagination.current}
-                pageSize={pagination.pageSize}
-                onChange={handlePageChange}
-                onShowSizeChange={handleSizeChange}
-                scroll={{ x: 1100 }}
-              />
-            </CustomTableWrapper>
+
+            <div className="table-shell" style={{ marginTop: 12 }}>
+              <SalesTableActions>
+                <ProjectLists
+                  size="middle"
+                  columns={columns}
+                  dataSource={dataSource}
+                  loading={loading}
+                  total={salesHistory?.length || 0}
+                  current={pagination.current}
+                  pageSize={pagination.pageSize}
+                  onChange={handlePageChange}
+                  onShowSizeChange={handleSizeChange}
+                  scroll={{ x: 1100 }}
+                />
+              </SalesTableActions>
+            </div>
           </Col>
         </Row>
         
@@ -687,7 +805,9 @@ function Sales() {
                     {selectedInvoice.customer_phone && <div>{selectedInvoice.customer_phone}</div>}
                   </Col>
                   <Col span={12} style={{ textAlign: 'right' }}>
-                    <div><strong>Date:</strong> {new Date(selectedInvoice.createdAt).toLocaleDateString()}</div>
+                    <div>
+                      <strong>Date & time:</strong> {formatSaleDateTime(selectedInvoice)}
+                    </div>
                     <div><strong>Status:</strong> {selectedInvoice.status}</div>
                   </Col>
                 </Row>
@@ -696,26 +816,103 @@ function Sales() {
                   dataSource={selectedInvoice.items}
                   pagination={false}
                   size="small"
-                  rowKey="product_id"
+                  rowKey={(row, i) => `inv-${row.product_id}-${i}`}
                   columns={[
                     { title: 'Item', dataIndex: 'product_name', key: 'product_name' },
-                    { title: 'Quantity', dataIndex: 'quantity', key: 'quantity', align: 'center' },
-                    { title: 'Unit Price', dataIndex: 'unit_price', key: 'unit_price', align: 'right', render: (v) => `₹${Number(v).toFixed(2)}` },
-                    { title: 'Total', dataIndex: 'line_total', key: 'line_total', align: 'right', render: (v) => `₹${Number(v).toFixed(2)}` },
+                    { title: 'Qty', dataIndex: 'quantity', key: 'quantity', align: 'center' },
+                    {
+                      title: 'Unit',
+                      dataIndex: 'unit_price',
+                      key: 'unit_price',
+                      align: 'right',
+                      render: (v) => formatPkr(v),
+                    },
+                    {
+                      title: 'Line total',
+                      dataIndex: 'line_total',
+                      key: 'line_total',
+                      align: 'right',
+                      render: (v) => formatPkr(v),
+                    },
                   ]}
                 />
-                
+
+                {Number(selectedInvoice.total_return_amount) > 0 &&
+                  Array.isArray(selectedInvoice.return_items) &&
+                  selectedInvoice.return_items.length > 0 && (
+                    <>
+                      <Divider orientation="left">Returns</Divider>
+                      <Table
+                        dataSource={selectedInvoice.return_items.map((row, idx) => {
+                          const pid = String(row.product_id || '');
+                          const line = selectedInvoice.items?.find(
+                            (it) => String(it.product_id) === pid
+                          );
+                          return { ...row, key: `ret-${idx}`, productLabel: line?.product_name || pid };
+                        })}
+                        pagination={false}
+                        size="small"
+                        rowKey={(row) => row.key}
+                        columns={[
+                          { title: 'Product', dataIndex: 'productLabel', key: 'productLabel', ellipsis: true },
+                          { title: 'Qty', dataIndex: 'quantity', key: 'quantity', align: 'center' },
+                          {
+                            title: 'Refund',
+                            dataIndex: 'refund_amount',
+                            key: 'refund_amount',
+                            align: 'right',
+                            render: (v) => formatPkr(v),
+                          },
+                        ]}
+                      />
+                    </>
+                  )}
+
                 <Divider />
-                
+
                 <Row justify="end">
-                  <Col span={8}>
-                    <Row><Col span={12}>Subtotal:</Col><Col span={12} style={{ textAlign: 'right' }}>₹{Number(selectedInvoice.total_amount || 0).toFixed(2)}</Col></Row>
-                    {selectedInvoice.discount > 0 && (
-                      <Row><Col span={12}>Discount:</Col><Col span={12} style={{ textAlign: 'right' }}>₹{Number(selectedInvoice.discount || 0).toFixed(2)}</Col></Row>
+                  <Col span={10}>
+                    <Row>
+                      <Col span={12}>Subtotal (lines):</Col>
+                      <Col span={12} style={{ textAlign: 'right' }}>
+                        {formatPkr(selectedInvoice.total_amount)}
+                      </Col>
+                    </Row>
+                    {Number(selectedInvoice.discount_amount ?? selectedInvoice.discount ?? 0) > 0 && (
+                      <Row>
+                        <Col span={12}>Discount:</Col>
+                        <Col span={12} style={{ textAlign: 'right' }}>
+                          {formatPkr(selectedInvoice.discount_amount ?? selectedInvoice.discount)}
+                        </Col>
+                      </Row>
                     )}
-                    <Row><Col span={12}>Tax:</Col><Col span={12} style={{ textAlign: 'right' }}>₹{Number((selectedInvoice.net_amount - (selectedInvoice.total_amount - (selectedInvoice.discount || 0))) || 0).toFixed(2)}</Col></Row>
+                    <Row>
+                      <Col span={12}>Tax:</Col>
+                      <Col span={12} style={{ textAlign: 'right' }}>
+                        {formatPkr(selectedInvoice.tax_amount)}
+                      </Col>
+                    </Row>
+                    {Number(selectedInvoice.total_return_amount) > 0 && (
+                      <Row>
+                        <Col span={12}>Returns / refunds:</Col>
+                        <Col span={12} style={{ textAlign: 'right', color: '#b45309' }}>
+                          −{formatPkr(selectedInvoice.total_return_amount)}
+                        </Col>
+                      </Row>
+                    )}
                     <Divider style={{ margin: '8px 0' }} />
-                    <Row><Col span={12}><strong>Total:</strong></Col><Col span={12} style={{ textAlign: 'right' }}><strong>₹{Number(selectedInvoice.net_amount || 0).toFixed(2)}</strong></Col></Row>
+                    <Row>
+                      <Col span={12}>
+                        <strong>Net (after returns):</strong>
+                      </Col>
+                      <Col span={12} style={{ textAlign: 'right' }}>
+                        <strong>
+                          {formatPkr(
+                            Number(selectedInvoice.net_amount ?? 0)
+                          )}
+                        </strong>
+                      </Col>
+                    </Row>
                   </Col>
                 </Row>
                 
@@ -746,23 +943,34 @@ function Sales() {
                 <Descriptions.Item label="Customer">
                   {customers.find(c => c._id === selectedReturnSale.customer_id)?.name || 'Walk-in Customer'}
                 </Descriptions.Item>
-                <Descriptions.Item label="Original Amount">₹{Number(selectedReturnSale.net_amount).toFixed(2)}</Descriptions.Item>
+                <Descriptions.Item label="Current net (invoice)">
+                  {formatPkr(selectedReturnSale.net_amount)}
+                </Descriptions.Item>
+                {Number(selectedReturnSale.total_return_amount) > 0 && (
+                  <Descriptions.Item label="Returned so far">
+                    {formatPkr(selectedReturnSale.total_return_amount)}
+                  </Descriptions.Item>
+                )}
               </Descriptions>
-              
-              <h4>Select Items to Return</h4>
+
+              <h4>Select items to return</h4>
+              <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+                Only quantities not already returned can be selected. The invoice net amount updates after you confirm.
+              </Typography.Text>
               <Table
                 dataSource={returnItems}
                 pagination={false}
                 size="small"
-                rowKey="product_id"
+                rowKey={(r, i) => `ret-${r.product_id}-${i}`}
                 columns={[
                   {
                     title: 'Select',
                     key: 'select',
-                    width: 60,
+                    width: 56,
                     render: (_, record, index) => (
                       <input
                         type="checkbox"
+                        disabled={record.remainingQty <= 0}
                         checked={record.selected}
                         onChange={(e) => {
                           const newItems = [...returnItems];
@@ -770,41 +978,70 @@ function Sales() {
                           if (!e.target.checked) {
                             newItems[index].returnQuantity = 0;
                           } else {
-                            newItems[index].returnQuantity = record.quantity;
+                            newItems[index].returnQuantity = record.remainingQty;
                           }
                           setReturnItems(newItems);
                         }}
                       />
-                    )
+                    ),
                   },
                   { title: 'Product', dataIndex: 'product_name', key: 'product_name' },
-                  { title: 'Original Qty', dataIndex: 'quantity', key: 'quantity', align: 'center', width: 100 },
                   {
-                    title: 'Return Qty',
+                    title: 'Sold',
+                    dataIndex: 'quantity',
+                    key: 'quantity',
+                    align: 'center',
+                    width: 72,
+                  },
+                  {
+                    title: 'Already returned',
+                    key: 'returnedQty',
+                    align: 'center',
+                    width: 120,
+                    render: (_, record) => record.returnedQty || 0,
+                  },
+                  {
+                    title: 'Can return',
+                    key: 'remainingQty',
+                    align: 'center',
+                    width: 96,
+                    render: (_, record) => record.remainingQty ?? 0,
+                  },
+                  {
+                    title: 'Return qty',
                     key: 'returnQuantity',
                     width: 120,
                     render: (_, record, index) => (
                       <InputNumber
                         min={0}
-                        max={record.quantity}
+                        max={record.remainingQty}
                         value={record.returnQuantity}
-                        disabled={!record.selected}
+                        disabled={!record.selected || record.remainingQty <= 0}
                         onChange={(value) => {
                           const newItems = [...returnItems];
-                          newItems[index].returnQuantity = value;
+                          newItems[index].returnQuantity = value ?? 0;
                           setReturnItems(newItems);
                         }}
                         style={{ width: '100%' }}
                       />
-                    )
+                    ),
                   },
-                  { title: 'Unit Price', dataIndex: 'unit_price', key: 'unit_price', align: 'right', render: (v) => `₹${Number(v).toFixed(2)}` },
                   {
-                    title: 'Return Amount',
+                    title: 'Unit',
+                    dataIndex: 'unit_price',
+                    key: 'unit_price',
+                    align: 'right',
+                    width: 100,
+                    render: (v) => formatPkr(v),
+                  },
+                  {
+                    title: 'Return amount',
                     key: 'returnAmount',
                     align: 'right',
-                    render: (_, record) => `₹${(record.returnQuantity * record.unit_price).toFixed(2)}`
-                  }
+                    width: 120,
+                    render: (_, record) =>
+                      formatPkr(Number(record.returnQuantity || 0) * Number(record.unit_price || 0)),
+                  },
                 ]}
               />
               
@@ -819,16 +1056,24 @@ function Sales() {
               
               <div style={{ textAlign: 'right', marginTop: 16 }}>
                 <Typography.Text strong>
-                  Total Return Amount: ₹{returnItems.reduce((sum, item) => 
-                    sum + (item.selected ? item.returnQuantity * item.unit_price : 0), 0
-                  ).toFixed(2)}
+                  Total return amount:{' '}
+                  {formatPkr(
+                    returnItems.reduce(
+                      (sum, item) =>
+                        sum +
+                        (item.selected
+                          ? Number(item.returnQuantity || 0) * Number(item.unit_price || 0)
+                          : 0),
+                      0
+                    )
+                  )}
                 </Typography.Text>
               </div>
             </div>
           )}
         </Modal>
       </Main>
-    </>
+    </ScreenWrap>
   );
 }
 

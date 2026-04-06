@@ -1,19 +1,20 @@
 /* eslint-disable camelcase */
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
 import Cookies from 'js-cookie';
 import {
   Button, Col, InputNumber, Row, Select, Table,
-  Input, Modal, Empty, Spin, DatePicker, 
-  message,  Avatar
+  Input, Modal, Empty, Spin, DatePicker,
+  message,
 } from 'antd';
 import {
  PrinterOutlined,
  ReloadOutlined,
   FileTextOutlined, SaveOutlined,
   CreditCardOutlined, DollarCircleOutlined, BankOutlined,
-  PhoneOutlined, WalletOutlined, ShoppingCartOutlined,
+  WalletOutlined, ShoppingCartOutlined,
   UserOutlined, CalendarOutlined, SearchOutlined,
-  TagOutlined,  TeamOutlined,
+  TagOutlined,
 } from '@ant-design/icons';
 import { toast } from 'react-toastify';
 import { PageHeader } from '../../components/page-headers/page-headers';
@@ -23,12 +24,10 @@ import { API_BASE } from '../../config/apiBase';
 const { Search } = Input;
 
 const API_PRODUCTS = `${API_BASE}/products`;
-const API_CUSTOMERS = `${API_BASE}/customers`;
 const API_BILLING = `${API_BASE}/sales/billing`;
 
 const TABS = [
   { key: 'items', label: 'Cart', icon: <ShoppingCartOutlined /> },
-  { key: 'customer', label: 'Customer', icon: <TeamOutlined /> },
   { key: 'payment', label: 'Payment', icon: <CreditCardOutlined /> },
 ];
 
@@ -40,11 +39,11 @@ const PAYMENT_METHODS = [
 ];
 
 function POSBilling() {
+  const { login } = useSelector((state) => state.auth);
+  const cashierName = login?.name || 'Staff';
+
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [customerDetails, setCustomerDetails] = useState(null);
   const [rows, setRows] = useState([]);
   const [saving, setSaving] = useState(false);
   const [invoice, setInvoice] = useState(null);
@@ -64,17 +63,12 @@ function POSBilling() {
     setLoading(true);
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const [pRes, cRes] = await Promise.all([
-        fetch(API_PRODUCTS, { headers }),
-        fetch(API_CUSTOMERS, { headers })
-      ]);
+      const pRes = await fetch(API_PRODUCTS, { headers });
       const pData = await pRes.json();
-      const cData = await cRes.json();
       const productsArray = Array.isArray(pData) ? pData : [];
       const activeProducts = productsArray.filter(p => p.status === 'active');
       setProducts(activeProducts);
       setFilteredProducts(activeProducts);
-      setCustomers(Array.isArray(cData) ? cData : []);
     } catch {
       toast.error('Failed to load data');
     } finally {
@@ -134,17 +128,12 @@ function POSBilling() {
     return { subtotal, discountAmount, tax, net };
   }, [rows, discount, discountType]);
 
-  const handleCustomerSelect = (customerId) => {
-    setSelectedCustomer(customerId);
-    setCustomerDetails(customers.find(c => getEntityId(c) === customerId));
-  };
-
   const createBilling = async () => {
     if (!rows.length) { toast.error('Please add at least one item'); return; }
     const invalidRow = rows.find(r => !r.product_id || Number(r.quantity || 0) <= 0);
     if (invalidRow) { toast.error('All items need valid quantities'); return; }
     const payload = {
-      customer_id: selectedCustomer || null,
+      customer_id: null,
       invoice_number: invoiceNumber,
       po_number: poNumber,
       project_detail: projectDetail,
@@ -166,7 +155,7 @@ function POSBilling() {
       if (!response.ok) throw new Error(data.error || 'Failed to create invoice');
       setInvoice(data);
       toast.success('Invoice created successfully');
-      setRows([]); setSelectedCustomer(null); setCustomerDetails(null);
+      setRows([]);
       setDiscount(0); setPaymentMode('cash'); setProjectDetail(''); setIssuedDate(null);
     } catch (e) {
       toast.error(e.message);
@@ -328,13 +317,32 @@ function POSBilling() {
         }
 
         .catalog-header {
-          padding: 20px 24px;
+          padding: 22px 24px 18px;
           border-bottom: 1px solid #e5e7eb;
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 16px;
-          background: linear-gradient(135deg, #ffffff, #f9fafb);
+          background: linear-gradient(135deg, #f3e8ff 0%, #ffffff 100%);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .catalog-header::before {
+          content: '';
+          position: absolute;
+          top: -40px;
+          right: -40px;
+          width: 120px;
+          height: 120px;
+          background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, transparent 70%);
+          border-radius: 50%;
+          pointer-events: none;
+        }
+
+        .catalog-header > * {
+          position: relative;
+          z-index: 1;
         }
 
         .catalog-title {
@@ -703,37 +711,6 @@ function POSBilling() {
 
         .btn-invoice:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-        /* Customer tab */
-        .customer-select .ant-select-selector {
-          background: #ffffff !important;
-          border-color: #e5e7eb !important;
-          color: #111827 !important;
-          border-radius: 10px !important;
-        }
-        .customer-select .ant-select-selection-placeholder { color: #9ca3af !important; }
-        .customer-select .ant-select-arrow { color: #9ca3af !important; }
-
-        .customer-info-card {
-          background: #f9fafb;
-          border: 1px solid #e5e7eb;
-          border-radius: 12px;
-          padding: 14px 16px;
-          margin-top: 12px;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .customer-info-card::before {
-          content: '';
-          position: absolute;
-          left: 0; top: 0; bottom: 0;
-          width: 3px;
-          background: linear-gradient(180deg, #3b82f6, #8b5cf6);
-        }
-
-        .customer-name { font-weight: 700; color: #111827; font-size: 14px; margin-bottom: 6px; }
-        .customer-meta { font-size: 12px; color: #6b7280; display: flex; align-items: center; gap: 6px; margin-top: 4px; }
-
         .notes-area textarea {
           background: #ffffff !important;
           border-color: #e5e7eb !important;
@@ -910,7 +887,25 @@ function POSBilling() {
 
               {/* Header */}
               <div className="billing-header">
-                <div className="billing-header-title">Billing Dashboard</div>
+                <div>
+                  <div className="billing-header-title">Billing Dashboard</div>
+                  <div
+                    style={{
+                      marginTop: 8,
+                      fontSize: 13,
+                      color: '#4b5563',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                  >
+                    <UserOutlined style={{ color: '#8b5cf6' }} />
+                    <span>
+                      <strong style={{ color: '#6b7280', fontWeight: 600 }}>Customer:</strong>{' '}
+                      {cashierName}
+                    </span>
+                  </div>
+                </div>
                 <div className="inv-chips">
                   <div className="inv-chip"><FileTextOutlined />{invoiceNumber}</div>
                   <div className="inv-chip"><TagOutlined />{poNumber}</div>
@@ -952,51 +947,6 @@ function POSBilling() {
                   </div>
                 )}
 
-                {activeTab === 'customer' && (
-                  <div style={{ minHeight: 260 }}>
-                    <Select
-                      className="customer-select"
-                      placeholder="Select customer…"
-                      style={{ width: '100%' }}
-                      value={selectedCustomer}
-                      onChange={handleCustomerSelect}
-                      showSearch
-                      size="large"
-                      allowClear
-                    >
-                      {customers.map(c => (
-                        <Select.Option key={getEntityId(c)} value={getEntityId(c)}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#111827' }}>
-                            <Avatar size={18} icon={<UserOutlined />} style={{ background: '#e5e7eb' }} />
-                            {c.name}
-                            {c.phone && <span style={{ color: '#9ca3af', fontSize: 11 }}>{c.phone}</span>}
-                          </span>
-                        </Select.Option>
-                      ))}
-                    </Select>
-
-                    {customerDetails && (
-                      <div className="customer-info-card">
-                        <div className="customer-name">{customerDetails.name}</div>
-                        {customerDetails.email && <div className="customer-meta"><UserOutlined />{customerDetails.email}</div>}
-                        {customerDetails.phone && <div className="customer-meta"><PhoneOutlined />{customerDetails.phone}</div>}
-                        {customerDetails.address && <div className="customer-meta">{customerDetails.address}</div>}
-                      </div>
-                    )}
-
-                    <div style={{ marginTop: 16 }}>
-                      <div className="date-label">Notes / Project Detail</div>
-                      <Input.TextArea
-                        className="notes-area"
-                        placeholder="Optional notes…"
-                        rows={3}
-                        value={projectDetail}
-                        onChange={e => setProjectDetail(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                )}
-
                 {activeTab === 'payment' && (
                   <div style={{ minHeight: 260 }}>
                     <div className="payment-grid">
@@ -1034,6 +984,17 @@ function POSBilling() {
                           />
                         </div>
                       </div>
+                    </div>
+
+                    <div style={{ marginTop: 16 }}>
+                      <div className="date-label">Notes / Project Detail</div>
+                      <Input.TextArea
+                        className="notes-area"
+                        placeholder="Optional notes…"
+                        rows={3}
+                        value={projectDetail}
+                        onChange={e => setProjectDetail(e.target.value)}
+                      />
                     </div>
                   </div>
                 )}

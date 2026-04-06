@@ -30,21 +30,19 @@ import {
   KpiTrendMuted,
 } from '../dashboard/dashboardStyles';
 import { formatPkr } from '../../config/currency';
+import { ScreenWrap } from '../shared/procurementScreenStyles';
 import { API_BASE } from '../../config/apiBase';
 import moment from 'moment';
 
-const CustomTableWrapper = Styled.div`
-  .ant-table-tbody > tr > td {
-    padding: 12px 10px !important;
-    vertical-align: middle !important;
+const StockKpiWrap = Styled.div`
+  ${KpiValue} {
+    font-size: 28px !important;
   }
-  .ant-table-thead > tr > th {
-    padding: 12px 10px !important;
-    font-weight: 600 !important;
-    background-color: #fafafa !important;
-  }
-  .ant-table {
+  ${KpiLabel} {
     font-size: 14px !important;
+  }
+  ${KpiTrendMuted} {
+    font-size: 13px !important;
   }
 `;
 
@@ -607,11 +605,11 @@ function StockManagement() {
   ];
 
   return (
-    <>
+    <ScreenWrap>
       <PageHeader 
         ghost 
-        title="Medicine / Inventory Management" 
-        subTitle="Manage medicines, stock levels, batch numbers and expiry dates"
+        title={<span className="page-title">Medicine & inventory</span>}
+        subTitle={<span className="page-sub">Stock levels, batches, expiry, and valuation</span>}
         buttons={[
           <Button key="excel" outlined type="primary" size="default" onClick={handleExportExcel}>
             <FileExcelOutlined style={{ marginRight: 8 }} />
@@ -632,6 +630,8 @@ function StockManagement() {
         ]}
       />
       <Main>
+     
+        <StockKpiWrap>
         <KpiGrid>
           <KpiCard>
             <KpiMain>
@@ -678,7 +678,7 @@ function StockManagement() {
                 <Skeleton active paragraph={{ rows: 1 }} />
               ) : (
                 <>
-                  <KpiValue style={{ fontSize: 20 }}>{formatPkr(summary?.total_stock_value ?? 0)}</KpiValue>
+                  <KpiValue>{formatPkr(summary?.total_stock_value ?? 0)}</KpiValue>
                   <KpiLabel>Total stock value</KpiLabel>
                   <KpiTrendMuted>At cost / valuation</KpiTrendMuted>
                 </>
@@ -706,17 +706,17 @@ function StockManagement() {
             </KpiSparkWrap>
           </KpiCard>
         </KpiGrid>
+        </StockKpiWrap>
 
         <Row gutter={25}>
           <Col xs={24}>
+            <div className="toolbar-card">
             <ProjectSorting>
               <div className="project-sort-bar">
                 <div
+                  className="toolbar-section-label"
                   style={{
                     padding: '0 10px',
-                    fontSize: 16,
-                    fontWeight: 600,
-                    color: '#272b41',
                     flexShrink: 0,
                     alignSelf: 'center',
                   }}
@@ -741,6 +741,7 @@ function StockManagement() {
                 </div>
               </div>
             </ProjectSorting>
+            </div>
 
             <Modal
               title="Filter medicines"
@@ -865,7 +866,7 @@ function StockManagement() {
               </Row>
             </Modal>
 
-            <CustomTableWrapper>
+            <div className="table-shell">
               <ProjectLists
                 size="middle"
                 columns={columns}
@@ -879,7 +880,7 @@ function StockManagement() {
                 scroll={{ x: 1200 }}
                 rowKey={(r) => r._id || r.id}
               />
-            </CustomTableWrapper>
+            </div>
           </Col>
         </Row>
 
@@ -1154,7 +1155,7 @@ function StockManagement() {
           </Form>
         </Modal>
       </Main>
-    </>
+    </ScreenWrap>
   );
 }
 

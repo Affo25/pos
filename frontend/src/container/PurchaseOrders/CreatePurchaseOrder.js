@@ -26,6 +26,7 @@ import {
   fetchAllPurchaseOrders,
 } from '../../redux/purchaseorders/purchaseorderSlice';
 import { BasicFormWrapper } from '../../config/default/styled';
+import { ProcurementFormStyles } from '../shared/procurementScreenStyles';
 import { fetchAllSuppliers } from '../../redux/suppliers/supplierSlice';
 import { fetchAllProducts } from '../../redux/products/productSlice';
 
@@ -174,7 +175,7 @@ function CreatePurchaseOrder({ visible, onCancel, purchaseorder, onSuccess }) {
       title={purchaseorder ? 'Edit Purchase Order' : 'Create Purchase Order'}
       visible={visible}
       onCancel={onCancel}
-      width={800}
+      width={1200}
       footer={[
         <Button key="cancel" onClick={onCancel}>
           Cancel
@@ -184,8 +185,9 @@ function CreatePurchaseOrder({ visible, onCancel, purchaseorder, onSuccess }) {
         </Button>,
       ]}
     >
-      <BasicFormWrapper>
-        <Form form={form} layout="vertical">
+      <ProcurementFormStyles>
+        <BasicFormWrapper>
+          <Form form={form} layout="vertical" size="large">
           <Row gutter={16}>
             <Col span={8}>
               <Form.Item
@@ -237,10 +239,10 @@ function CreatePurchaseOrder({ visible, onCancel, purchaseorder, onSuccess }) {
           </Row>
         </Form>
 
-        <hr style={{ margin: '20px 0', border: '0.5px solid #eee' }} />
-        <h3>Add Items</h3>
-        
-        <Form form={itemForm} layout="vertical">
+        <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
+        <div className="section-heading">Line items</div>
+
+        <Form form={itemForm} layout="vertical" size="large">
           <Row gutter={16} align="bottom">
             <Col span={8}>
               <Form.Item
@@ -300,10 +302,11 @@ function CreatePurchaseOrder({ visible, onCancel, purchaseorder, onSuccess }) {
           columns={columns} 
           pagination={false} 
           rowKey={(record, index) => index}
-          size="small"
+          size="middle"
           style={{ marginTop: 20 }}
         />
-      </BasicFormWrapper>
+        </BasicFormWrapper>
+      </ProcurementFormStyles>
     </Modal>
   );
 }

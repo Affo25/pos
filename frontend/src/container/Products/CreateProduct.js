@@ -13,10 +13,12 @@ import {
   Tabs,
   Space,
   Button as AntButton,
+  Divider,
 } from 'antd';
 import propTypes from 'prop-types';
 import { useDispatch, useSelector } from 'react-redux';
 import moment from 'moment';
+import styled from 'styled-components';
 
 import { Modal } from '../../components/modals/antd-modals';
 import { Button } from '../../components/buttons/buttons';
@@ -33,6 +35,45 @@ import { BasicFormWrapper } from '../../config/default/styled';
 const { Option } = Select;
 const { TextArea } = Input;
 const { TabPane } = Tabs;
+
+const ProductModalForm = styled.div`
+  padding: 4px 4px 8px;
+
+  .ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 20px;
+  }
+
+  .ant-tabs-content-holder {
+    padding-top: 8px;
+  }
+
+  .ant-tabs-tabpane {
+    padding-top: 12px;
+  }
+
+  /* More air between labels + controls and between rows */
+  .ant-form-item {
+    margin-bottom: 26px !important;
+  }
+
+  .ant-row + .ant-row {
+    margin-top: 10px;
+  }
+
+  .section-gap {
+    margin: 28px 0 22px;
+  }
+
+  .section-gap.ant-divider-horizontal.ant-divider-with-text {
+    margin: 32px 0 24px;
+  }
+
+  .section-gap:first-child {
+    margin-top: 0;
+  }
+`;
 
 function CreateProduct({ visible, onCancel, product }) {
   const [form] = Form.useForm();
@@ -300,7 +341,7 @@ function CreateProduct({ visible, onCancel, product }) {
       title={product ? 'Edit Medicine' : 'Create Medicine'}
       visible={visible}
       onCancel={onCancel}
-      width={1000}
+      width={1200}
       footer={[
         <Space key="actions" direction="horizontal" style={{ width: '100%', justifyContent: 'space-between' }}>
           <Space>
@@ -327,9 +368,11 @@ function CreateProduct({ visible, onCancel, product }) {
       ]}
     >
       <BasicFormWrapper>
+        <ProductModalForm>
         <Form 
           form={form} 
           layout="vertical"
+          size="large"
           initialValues={{
             available_quantity: 0,
             unit_price: 0,
@@ -343,7 +386,7 @@ function CreateProduct({ visible, onCancel, product }) {
             
             {/* ===== BASIC INFO ===== */}
             <TabPane tab="Basic Info" key="1">
-              <Row gutter={16}>
+              <Row gutter={[20, 0]}>
                 <Col span={12}>
                   <Form.Item 
                     name="name" 
@@ -380,7 +423,11 @@ function CreateProduct({ visible, onCancel, product }) {
                 </Col>
               </Row>
 
-              <Row gutter={16}>
+              <Divider className="section-gap" plain orientation="left" style={{ fontSize: 14, color: '#64748b' }}>
+                Batch & dates
+              </Divider>
+
+              <Row gutter={[20, 0]}>
                 <Col span={12}>
                   <Form.Item 
                     name="batch_number" 
@@ -402,7 +449,11 @@ function CreateProduct({ visible, onCancel, product }) {
                 </Col>
               </Row>
 
-              <Row gutter={16}>
+              <Divider className="section-gap" plain orientation="left" style={{ fontSize: 14, color: '#64748b' }}>
+                Supplier & location
+              </Divider>
+
+              <Row gutter={[20, 0]}>
                 <Col span={12}>
                   <Form.Item 
                     name="supplier_name" 
@@ -435,7 +486,11 @@ function CreateProduct({ visible, onCancel, product }) {
                 </Col>
               </Row>
 
-              <Row gutter={16}>
+              <Divider className="section-gap" plain orientation="left" style={{ fontSize: 14, color: '#64748b' }}>
+                Packaging
+              </Divider>
+
+              <Row gutter={[20, 0]}>
                 <Col span={12}>
                   <Form.Item 
                     name="medicine_size" 
@@ -450,7 +505,7 @@ function CreateProduct({ visible, onCancel, product }) {
 
             {/* ===== MANUFACTURER ===== */}
             <TabPane tab="Manufacturer Info" key="2">
-              <Row gutter={16}>
+              <Row gutter={[20, 0]}>
                 <Col span={12}>
                   <Form.Item 
                     name="manufacturer" 
@@ -468,7 +523,11 @@ function CreateProduct({ visible, onCancel, product }) {
                 </Col>
               </Row>
 
-              <Row gutter={16}>
+              <Divider className="section-gap" plain orientation="left" style={{ fontSize: 14, color: '#64748b' }}>
+                Registration & notes
+              </Divider>
+
+              <Row gutter={[20, 0]}>
                 <Col span={12}>
                   <Form.Item name="manufacturer_registration_no" label="Registration No">
                     <Input placeholder="Enter registration number" />
@@ -485,7 +544,7 @@ function CreateProduct({ visible, onCancel, product }) {
 
             {/* ===== STOCK ===== */}
             <TabPane tab="Pricing & Stock" key="3">
-              <Row gutter={16}>
+              <Row gutter={[20, 0]}>
                 <Col span={8}>
                   <Form.Item 
                     name="available_quantity" 
@@ -523,7 +582,11 @@ function CreateProduct({ visible, onCancel, product }) {
                 </Col>
               </Row>
 
-              <Row gutter={16}>
+              <Divider className="section-gap" plain orientation="left" style={{ fontSize: 14, color: '#64748b' }}>
+                Tax & status
+              </Divider>
+
+              <Row gutter={[20, 0]}>
                 <Col span={8}>
                   <Form.Item name="discount" label="Discount %">
                     <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="Enter discount" />
@@ -556,6 +619,10 @@ function CreateProduct({ visible, onCancel, product }) {
                 <Select mode="tags" placeholder="Enter alternative medicines" />
               </Form.Item>
 
+              <Divider className="section-gap" plain orientation="left" style={{ fontSize: 14, color: '#64748b' }}>
+                Media
+              </Divider>
+
               <Form.Item name="image" label="Image URL">
                 <Input placeholder="Enter image URL" />
               </Form.Item>
@@ -563,6 +630,7 @@ function CreateProduct({ visible, onCancel, product }) {
 
           </Tabs>
         </Form>
+        </ProductModalForm>
       </BasicFormWrapper>
     </Modal>
   );

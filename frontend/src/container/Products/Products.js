@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable camelcase */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Row, Col, Menu, Dropdown, Select, Tag, Upload, Card, Typography, Progress, message, Avatar, Image,Modal } from 'antd';
 import { Link } from 'react-router-dom';
@@ -17,6 +17,7 @@ import { ProjectHeader, ProjectSorting } from '../../config/default/style';
 import { Main } from '../../config/default/styled';
 import { API_BASE } from '../../config/apiBase';
 import { deleteProduct, fetchAllProducts } from '../../redux/products/productSlice';
+import { ScreenWrap } from '../shared/procurementScreenStyles';
 
 function Products() {
   const dispatch = useDispatch();
@@ -85,32 +86,39 @@ function Products() {
     dispatch(fetchAllProducts());
   }, [dispatch]);
 
+  const filteredProducts = useMemo(() => {
+    if (!products || !Array.isArray(products)) return [];
+    let filtered = [...products];
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter((item) => (item.name || '').toLowerCase().includes(term));
+    }
+
+    if (sortStatus !== 'all') {
+      filtered = filtered.filter(
+        (item) => item.status?.toLowerCase() === sortStatus.toLowerCase(),
+      );
+    }
+
+    filtered.sort((a, b) => {
+      if (!searchTerm) return (a.name || '').localeCompare(b.name || '');
+      const term = searchTerm.toLowerCase();
+      const nameA = (a.name || '').toLowerCase();
+      const nameB = (b.name || '').toLowerCase();
+      if (nameA.includes(term) && !nameB.includes(term)) return -1;
+      if (nameB.includes(term) && !nameA.includes(term)) return 1;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+
+    return filtered;
+  }, [products, searchTerm, sortStatus]);
+
   useEffect(() => {
-    if (products && Array.isArray(products)) {
-      let filtered = [...products];
-
-      if (searchTerm) {
-        const term = searchTerm.toLowerCase();
-        filtered = filtered.filter((item) => (item.name || '').toLowerCase().includes(term));
-      }
-
-      if (sortStatus !== 'all') {
-        filtered = filtered.filter((item) => item.status.toLowerCase() === sortStatus.toLowerCase());
-      }
-
-      filtered.sort((a, b) => {
-        if (!searchTerm) return 0;
-        const term = searchTerm.toLowerCase();
-        const nameA = (a.name || '').toLowerCase();
-        const nameB = (b.name || '').toLowerCase();
-        if (nameA.includes(term)) return -1;
-        if (nameB.includes(term)) return 1;
-        return 0;
-      });
-
+    if (filteredProducts.length) {
       const start = (pagination.current - 1) * pagination.pageSize;
       const end = start + pagination.pageSize;
-      const paginatedData = filtered.slice(start, end);
+      const paginatedData = filteredProducts.slice(start, end);
 
       const formatted = paginatedData.map((product, idx) => {
         const {
@@ -152,13 +160,21 @@ function Products() {
         return {
           key: _id || id,
           id: _id || id,
-          name,
+          name: <span style={{ fontWeight: 600, color: '#0f172a' }}>{name}</span>,
           medecine_size,
           batch_number,
           expiry_date: expiry_date ? moment(expiry_date).format('DD-MM-YYYY') : '-',
-          category: <Tag color="blue">{categoryLabel.toUpperCase()}</Tag>,
+          category: (
+            <Tag color="blue" style={{ fontSize: 13, padding: '2px 10px', margin: 0 }}>
+              {categoryLabel.toUpperCase()}
+            </Tag>
+          ),
           available_quantity,
-          unit_price,
+          unit_price: (
+            <span style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+              {unit_price != null ? Number(unit_price).toFixed(2) : '—'}
+            </span>
+          ),
           manufacturer_license_no: <Tag color="blue">{manufacturer_license_no?.toUpperCase()}</Tag>,
           manufacturer_registration_no: <Tag color="red">{manufacturer_registration_no?.toUpperCase()}</Tag>,
           manufacturer,
@@ -235,8 +251,10 @@ function Products() {
       });
 
       setDataSource(formatted);
+    } else {
+      setDataSource([]);
     }
-  }, [products, pagination, searchTerm, sortStatus]);
+  }, [filteredProducts, pagination]);
 
   const handlePageChange = (page, pageSize) => {
     setPagination({
@@ -259,30 +277,37 @@ function Products() {
       title: 'Image', 
       dataIndex: 'image', 
       key: 'image',
-      width: 80,
+      width: 88,
       align: 'center',
     },
-    { title: '#', key: 'index', render: (text, record, index) => (pagination.current - 1) * pagination.pageSize + index + 1, width: 50 },
-    { title: 'Medicine Name', dataIndex: 'name', key: 'name' },
-    { title: 'Size', dataIndex: 'medicine_size', key: 'medicine_size' },
-    { title: 'Batch #', dataIndex: 'batch_number', key: 'batch_number' },
-    { title: 'Expiry', dataIndex: 'expiry_date', key: 'expiry_date' },
-    { title: 'Category', dataIndex: 'category', key: 'category' },
-    { title: 'Qty', dataIndex: 'available_quantity', key: 'available_quantity' },
-    { title: 'Price', dataIndex: 'unit_price', key: 'unit_price' },
-    { 
-      title: 'Reg & License', 
-      key: 'reg_license', 
-      render: (text, record) => (
-        <div>
-          <div>{record.manufacturer_registration_no || '-'}</div>
-          <div>{record.manufacturer_license_no || '-'}</div>
-        </div>
-      ) 
+    {
+      title: '#',
+      key: 'index',
+      width: 56,
+      align: 'center',
+      render: (text, record, index) => (pagination.current - 1) * pagination.pageSize + index + 1,
     },
-    { title: 'Manufacturer', dataIndex: 'manufacturer', key: 'manufacturer' },
-    { title: 'Status', dataIndex: 'status', key: 'status' },
-    { title: 'Action', dataIndex: 'action', key: 'action' },
+    { title: 'Medicine name', dataIndex: 'name', key: 'name', ellipsis: true, width: 200 },
+    { title: 'Size', dataIndex: 'medecine_size', key: 'medicine_size', width: 100, ellipsis: true },
+    { title: 'Batch #', dataIndex: 'batch_number', key: 'batch_number', width: 120, ellipsis: true },
+    { title: 'Expiry', dataIndex: 'expiry_date', key: 'expiry_date', width: 120 },
+    { title: 'Category', dataIndex: 'category', key: 'category', width: 130 },
+    { title: 'Qty', dataIndex: 'available_quantity', key: 'available_quantity', width: 80, align: 'right' },
+    { title: 'Price', dataIndex: 'unit_price', key: 'unit_price', width: 100, align: 'right' },
+    { 
+      title: 'Reg & license', 
+      key: 'reg_license',
+      width: 160,
+      render: (text, record) => (
+        <div style={{ fontSize: 14, lineHeight: 1.5 }}>
+          <div>{record.manufacturer_registration_no || '—'}</div>
+          <div>{record.manufacturer_license_no || '—'}</div>
+        </div>
+      ),
+    },
+    { title: 'Manufacturer', dataIndex: 'manufacturer', key: 'manufacturer', ellipsis: true },
+    { title: 'Status', dataIndex: 'status', key: 'status', width: 100, align: 'center' },
+    { title: '', dataIndex: 'action', key: 'action', width: 56, align: 'center', fixed: 'right' },
   ];
 
   const handleExcelUpload = async (file) => {
@@ -319,12 +344,16 @@ function Products() {
   };
 
   return (
-    <>
+    <ScreenWrap>
       <ProjectHeader>
         <PageHeader
           ghost
-          title="Medicines"
-          subTitle={<>{loading ? 'Loading...' : `${dataSource.length} Medicines`}</>}
+          title={<span className="page-title">Medicines</span>}
+          subTitle={
+            <span className="page-sub">
+              {loading ? 'Loading…' : `${filteredProducts.length} in view · ${products?.length || 0} total SKUs`}
+            </span>
+          }
           buttons={[
             <Button onClick={() => setShowExcelUpload((prev) => !prev)} key="excel" type="success" size="default">
               <UploadOutlined size={16} /> {showExcelUpload ? 'Hide Excel Upload' : 'Upload Excel'}
@@ -336,6 +365,7 @@ function Products() {
         />
       </ProjectHeader>
       <Main>
+      
         <Row gutter={25}>
           <Col xs={24}>
             {showExcelUpload && (
@@ -390,42 +420,48 @@ function Products() {
               </Card>
             )}
 
-            <ProjectLists
-              toolbar={
-                <ProjectSorting className="in-table-card">
-                  <div className="project-sort-bar">
-                    <div className="project-sort-search">
-                      <AutoComplete
-                        onSearch={handleSearch}
-                        dataSource={notData}
-                        placeholder="Search medicines"
-                        patterns
-                      />
-                    </div>
-                    <div className="sort-group">
-                      <span style={{ display: 'flex', alignItems: 'center' }}>Sort By:</span>
-                      <Select defaultValue="all" onChange={(value) => setSortStatus(value)}>
-                        <Select.Option value="all">All</Select.Option>
-                        <Select.Option value="active">Active</Select.Option>
-                        <Select.Option value="inactive">Inactive</Select.Option>
-                      </Select>
-                    </div>
+            <div className="toolbar-card">
+              <ProjectSorting>
+                <div className="project-sort-bar">
+                  <div className="project-sort-search">
+                    <AutoComplete
+                      onSearch={handleSearch}
+                      dataSource={notData}
+                      placeholder="Search by medicine name"
+                      patterns
+                    />
                   </div>
-                </ProjectSorting>
-              }
-              columns={columns}
-              dataSource={dataSource}
-              loading={loading}
-              total={products?.length || 0}
-              pageSize={pagination.pageSize}
-              onChange={handlePageChange}
-              onShowSizeChange={handleSizeChange}
-            />
+                  <div className="sort-group">
+                    <span style={{ display: 'flex', alignItems: 'center' }}>Status</span>
+                    <Select defaultValue="all" onChange={(value) => setSortStatus(value)} style={{ minWidth: 140 }}>
+                      <Select.Option value="all">All</Select.Option>
+                      <Select.Option value="active">Active</Select.Option>
+                      <Select.Option value="inactive">Inactive</Select.Option>
+                    </Select>
+                  </div>
+                </div>
+              </ProjectSorting>
+            </div>
+
+            <div className="table-shell" style={{ marginTop: 12 }}>
+              <ProjectLists
+                columns={columns}
+                dataSource={dataSource}
+                loading={loading}
+                total={filteredProducts.length}
+                current={pagination.current}
+                pageSize={pagination.pageSize}
+                onChange={handlePageChange}
+                onShowSizeChange={handleSizeChange}
+                size="middle"
+                scroll={{ x: 1400 }}
+              />
+            </div>
           </Col>
         </Row>
         <CreateProduct visible={visible} onCancel={onCancel} product={selectedProduct} />
       </Main>
-    </>
+    </ScreenWrap>
   );
 }
 

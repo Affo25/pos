@@ -9,6 +9,7 @@ import { Modal } from '../../components/modals/antd-modals';
 import { Button } from '../../components/buttons/buttons';
 import { createSupplier, updateSupplier } from '../../redux/suppliers/supplierSlice';
 import { BasicFormWrapper } from '../../config/default/styled';
+import { ProcurementFormStyles } from '../shared/procurementScreenStyles';
 
 function CreateSupplier({ visible, onCancel, supplier, onSuccess }) {
   const [form] = Form.useForm();
@@ -79,8 +80,9 @@ function CreateSupplier({ visible, onCancel, supplier, onSuccess }) {
         onCancel();
       }}
     >
-      <BasicFormWrapper>
-        <Form form={form} layout="vertical">
+      <ProcurementFormStyles>
+        <BasicFormWrapper>
+          <Form form={form} layout="vertical" size="large">
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
@@ -119,7 +121,8 @@ function CreateSupplier({ visible, onCancel, supplier, onSuccess }) {
             </Col>
           </Row>
         </Form>
-      </BasicFormWrapper>
+        </BasicFormWrapper>
+      </ProcurementFormStyles>
     </Modal>
   );
 }

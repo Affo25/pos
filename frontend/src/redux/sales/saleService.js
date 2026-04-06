@@ -64,7 +64,13 @@ export const processReturn = async (returnData) => {
   });
 
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || data.message || 'Failed to process return');
+  if (!response.ok) {
+    const errMsg =
+      Array.isArray(data.errors) && data.errors.length
+        ? data.errors.join('; ')
+        : data.error || data.message || 'Failed to process return';
+    throw new Error(errMsg);
+  }
   return data;
 };
 

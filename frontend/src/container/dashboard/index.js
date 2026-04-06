@@ -223,10 +223,10 @@ function Dashboard() {
     return Array.from({ length: 7 }, (_, i) => base * (0.4 + ((i * 13) % 50) / 100));
   }, [weeklyBarData, areaData, currentRevTotal]);
 
-  const sparkCustomers = useMemo(() => {
-    const n = Number(extra?.totalCustomers) || 0;
+  const sparkProducts = useMemo(() => {
+    const n = Number(extra?.totalProducts) || 0;
     return Array.from({ length: 7 }, (_, i) => Math.max(1, n * (0.55 + ((i * 17) % 40) / 100)));
-  }, [extra?.totalCustomers]);
+  }, [extra?.totalProducts]);
 
   const sparkLowStock = useMemo(() => {
     const n = Number(extra?.lowStockItems) || 0;
@@ -252,10 +252,9 @@ function Dashboard() {
     const kpiHeaders = ['Metric', 'Value'];
     const kpiRows = [
       ['Period / month sales', stats?.todaysSales?.formattedValue ?? '—'],
-      ['Total customers', String(extra?.totalCustomers ?? '—')],
+      ['Total products', String(extra?.totalProducts ?? '—')],
       ['Low stock items', String(extra?.lowStockItems ?? '—')],
       ['Pending orders', String(extra?.pendingOrders ?? '—')],
-      ['Total products', String(extra?.totalProducts ?? '—')],
       ["Today's sales (calendar)", stats?.literalToday?.formattedValue ?? '—'],
     ];
 
@@ -299,7 +298,7 @@ function Dashboard() {
 
     const kpiRows = [
       ['Period / month sales', stats?.todaysSales?.formattedValue ?? '—'],
-      ['Total customers', String(extra?.totalCustomers ?? '—')],
+      ['Total products', String(extra?.totalProducts ?? '—')],
       ['Low stock', String(extra?.lowStockItems ?? '—')],
       ['Pending orders', String(extra?.pendingOrders ?? '—')],
       ["Today's sales", stats?.literalToday?.formattedValue ?? '—'],
@@ -442,7 +441,6 @@ function Dashboard() {
     })) ?? [];
 
   const greeting = dashboard?.welcome?.greeting;
-  const userTrend = stats?.systemUsers?.percentageChange;
 
   const renderTrend = (pct) => {
     if (pct == null || !Number.isFinite(pct)) {
@@ -521,14 +519,14 @@ function Dashboard() {
                   <Skeleton active paragraph={{ rows: 1 }} />
                 ) : (
                   <>
-                    <KpiValue>{extra?.totalCustomers ?? 0}</KpiValue>
-                    <KpiLabel>Total customers</KpiLabel>
-                    {renderTrend(userTrend)}
+                    <KpiValue>{extra?.totalProducts ?? 0}</KpiValue>
+                    <KpiLabel>Total products</KpiLabel>
+                    <KpiTrendMuted>Items in your catalog</KpiTrendMuted>
                   </>
                 )}
               </KpiMain>
               <KpiSparkWrap>
-                <MiniSpark data={sparkCustomers} color={kpiSparkColors[1]} />
+                <MiniSpark data={sparkProducts} color={kpiSparkColors[1]} />
               </KpiSparkWrap>
             </KpiCard>
 

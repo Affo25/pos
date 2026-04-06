@@ -3,9 +3,17 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Row, Col, Menu, message, Dropdown, Select } from 'antd';
+import { Row, Col, Menu, message, Dropdown, Select, Tag } from 'antd';
+import {
+  ShoppingOutlined,
+  ClockCircleOutlined,
+  CheckCircleOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  FileExcelOutlined,
+  FilePdfOutlined,
+} from '@ant-design/icons';
 import { Link } from 'react-router-dom';
-import { EditOutlined, DeleteOutlined, SettingOutlined, LinkOutlined, FileExcelOutlined, FilePdfOutlined } from '@ant-design/icons';
 import FeatherIcon from 'feather-icons-react';
 import { useHistory } from 'react-router-dom/cjs/react-router-dom.min';
 import CreatePurchaseOrder from './CreatePurchaseOrder';
@@ -19,6 +27,13 @@ import { deletePurchaseOrder, fetchAllPurchaseOrders } from '../../redux/purchas
 import { getComponentPermissions } from '../../config/utils/permission';
 import { fetchAllSuppliers } from '../../redux/suppliers/supplierSlice';
 import { exportListToExcel, exportListToPdf } from '../../utils/listExport';
+import { ScreenWrap } from '../shared/procurementScreenStyles';
+
+function formatStatusLabel(status) {
+  if (!status) return '—';
+  const s = String(status);
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
 function PurchaseOrders() {
   const history = useHistory();
@@ -116,6 +131,13 @@ function PurchaseOrders() {
     return filtered;
   }, [purchaseorders, searchTerm, sortStatus]);
 
+  const poStats = useMemo(() => {
+    const list = filteredPurchaseOrders;
+    const pending = list.filter((p) => p.status === 'pending').length;
+    const received = list.filter((p) => p.status === 'received').length;
+    return { total: list.length, pending, received };
+  }, [filteredPurchaseOrders]);
+
   useEffect(() => {
     if (filteredPurchaseOrders.length) {
       const start = (pagination.current - 1) * pagination.pageSize;
@@ -133,6 +155,9 @@ function PurchaseOrders() {
         const totalItems = items?.length || 0;
         const totalAmount = items?.reduce((sum, item) => sum + (item.quantity * item.price), 0) || 0;
 
+        const statusColor =
+          status === 'received' ? 'success' : status === 'pending' ? 'warning' : 'error';
+
         return {
           key: _id || id,
           id: _id || id,
@@ -140,19 +165,18 @@ function PurchaseOrders() {
           order_date: new Date(order_date).toLocaleDateString(),
           supplier: supplierName,
           total_items: totalItems,
-          total_amount: totalAmount.toFixed(2),
-          status: (
-            <span
-              className={
-                status === 'received'
-                  ? 'color-success'
-                  : status === 'pending'
-                    ? 'color-warning'
-                    : 'color-danger'
-              }
-            >
-              {status}
+          total_amount: (
+            <span style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+              {totalAmount.toFixed(2)}
             </span>
+          ),
+          status: (
+            <Tag
+              color={statusColor}
+              style={{ fontSize: 14, padding: '4px 12px', margin: 0, borderRadius: 8 }}
+            >
+              {formatStatusLabel(status)}
+            </Tag>
           ),
           action: (
             <Dropdown
@@ -262,6 +286,8 @@ function PurchaseOrders() {
     {
       title: '#',
       key: 'index',
+      width: 56,
+      align: 'center',
       render: (text, record, index) =>
         (pagination.current - 1) * pagination.pageSize + index + 1,
     },
@@ -269,47 +295,65 @@ function PurchaseOrders() {
       title: 'Order No',
       dataIndex: 'order_number',
       key: 'order_number',
+      width: 160,
+      ellipsis: true,
+      render: (text) => <span style={{ fontWeight: 600, color: '#0f172a' }}>{text}</span>,
     },
     {
       title: 'Order Date',
       dataIndex: 'order_date',
       key: 'order_date',
+      width: 130,
     },
     {
       title: 'Supplier',
       dataIndex: 'supplier',
       key: 'supplier',
+      ellipsis: true,
     },
     {
       title: 'Items',
       dataIndex: 'total_items',
       key: 'total_items',
+      width: 88,
+      align: 'center',
     },
     {
-      title: 'Total Amount',
+      title: 'Total (PKR)',
       dataIndex: 'total_amount',
       key: 'total_amount',
+      width: 130,
+      align: 'right',
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
+      width: 140,
+      align: 'center',
     },
     {
-      title: 'Action',
+      title: '',
       dataIndex: 'action',
       key: 'action',
+      width: 56,
+      align: 'center',
+      fixed: 'right',
     },
   ];
 
 
   return (
-    <>
+    <ScreenWrap>
       <ProjectHeader>
         <PageHeader
           ghost
-          title="PurchaseOrders"
-          subTitle={<>{loading ? 'Loading...' : `${filteredPurchaseOrders.length} Purchase orders`}</>}
+          title={<span className="page-title">Purchase orders</span>}
+          subTitle={
+            <span className="page-sub">
+              {loading ? 'Loading…' : `${filteredPurchaseOrders.length} orders in current view`}
+            </span>
+          }
           buttons={[
             <Button key="excel" outlined type="primary" size="default" onClick={handleExportExcel}>
               <FileExcelOutlined style={{ marginRight: 8 }} />
@@ -320,39 +364,82 @@ function PurchaseOrders() {
               PDF
             </Button>,
             <Button onClick={showModal} key="1" type="primary" size="default">
-              <FeatherIcon icon="plus" size={16} /> Create PurchaseOrder
+              <FeatherIcon icon="plus" size={16} /> New order
             </Button>,
           ]}
         />
       </ProjectHeader>
       <Main>
+     
         <Row gutter={25}>
           <Col xs={24}>
-            <ProjectSorting>
-              <div className="project-sort-bar">
-                <div className="project-sort-search">
-                  <AutoComplete onSearch={handleSearch} dataSource={notData} placeholder="Search purchaseorders" patterns />
+            <div className="kpi-row">
+              <div className="kpi-tile">
+                <div className="kpi-label">
+                  <ShoppingOutlined style={{ marginRight: 6, opacity: 0.85 }} />
+                  Total orders
                 </div>
-                <div className="sort-group">
-                  <span style={{ display: 'flex', alignItems: 'center' }}>Sort By:</span>
-                  <Select defaultValue="all" onChange={(value) => setSortStatus(value)}>
-                    <Select.Option value="all">All</Select.Option>
-                    <Select.Option value="pending">Pending</Select.Option>
-                    <Select.Option value="received">Received</Select.Option>
-                    <Select.Option value="cancelled">Cancelled</Select.Option>
-                  </Select>
-                </div>
+                <div className="kpi-value">{poStats.total}</div>
+                <div className="kpi-hint">Matching filters</div>
               </div>
-            </ProjectSorting>
-            <div>
+              <div className="kpi-tile">
+                <div className="kpi-label">
+                  <ClockCircleOutlined style={{ marginRight: 6, opacity: 0.85 }} />
+                  Pending
+                </div>
+                <div className="kpi-value" style={{ color: '#d97706' }}>
+                  {poStats.pending}
+                </div>
+                <div className="kpi-hint">Awaiting receipt</div>
+              </div>
+              <div className="kpi-tile">
+                <div className="kpi-label">
+                  <CheckCircleOutlined style={{ marginRight: 6, opacity: 0.85 }} />
+                  Received
+                </div>
+                <div className="kpi-value" style={{ color: '#059669' }}>
+                  {poStats.received}
+                </div>
+                <div className="kpi-hint">Completed lines</div>
+              </div>
+            </div>
+
+            <div className="toolbar-card">
+              <ProjectSorting>
+                <div className="project-sort-bar">
+                  <div className="project-sort-search">
+                    <AutoComplete
+                      onSearch={handleSearch}
+                      dataSource={notData}
+                      placeholder="Search by order # or status"
+                      patterns
+                    />
+                  </div>
+                  <div className="sort-group">
+                    <span style={{ display: 'flex', alignItems: 'center' }}>Status</span>
+                    <Select defaultValue="all" onChange={(value) => setSortStatus(value)} style={{ minWidth: 140 }}>
+                      <Select.Option value="all">All</Select.Option>
+                      <Select.Option value="pending">Pending</Select.Option>
+                      <Select.Option value="received">Received</Select.Option>
+                      <Select.Option value="cancelled">Cancelled</Select.Option>
+                    </Select>
+                  </div>
+                </div>
+              </ProjectSorting>
+            </div>
+
+            <div className="table-shell">
               <ProjectLists
                 columns={columns}
                 dataSource={dataSource}
                 loading={loading}
                 total={filteredPurchaseOrders.length}
+                current={pagination.current}
                 pageSize={pagination.pageSize}
                 onChange={handlePageChange}
                 onShowSizeChange={handleSizeChange}
+                size="middle"
+                scroll={{ x: 1020 }}
               />
             </div>
           </Col>
@@ -366,7 +453,7 @@ function PurchaseOrders() {
           }}
         />
       </Main>
-    </>
+    </ScreenWrap>
   );
 }
 
