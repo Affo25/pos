@@ -44,7 +44,7 @@ try {
 
 const ${modelName}Schema = new mongoose.Schema({
 ${generateFields(fields)},
-  admin_id: { type: mongoose.Schema.Types.ObjectId, ref: 'admins', required: true },
+  admin_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
 }, { timestamps: true });
 

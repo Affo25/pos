@@ -62,7 +62,7 @@ const SaleSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
-  admin_id: { type: mongoose.Schema.Types.ObjectId, ref: 'admins', required: true },
+  admin_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });
 

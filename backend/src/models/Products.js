@@ -123,7 +123,7 @@ const ProductsSchema = new mongoose.Schema({
   },
   admin_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'admins',
+    ref: 'User',
     required: true,
   },
     manufacturer_license_no: {

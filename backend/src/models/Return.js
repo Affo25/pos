@@ -43,7 +43,7 @@ const ReturnSchema = new mongoose.Schema({
   },
   admin_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'admins',
+    ref: 'User',
     required: true,
   },
   created_by: {
