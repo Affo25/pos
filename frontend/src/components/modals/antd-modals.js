@@ -4,7 +4,7 @@ import { ModalStyled } from './styled';
 import { Button } from '../buttons/buttons';
 
 const Modal = props => {
-  const { onCancel, className, onOk, visible, title, type, color, footer, width, children } = props;
+  const { onCancel, className, onOk, visible, title, type, color, footer, width, children, bodyStyle, style } = props;
 
   return (
     <ModalStyled
@@ -15,6 +15,8 @@ const Modal = props => {
       type={color ? type : false}
       width={width}
       className={className}
+      bodyStyle={bodyStyle}
+      style={style}
       footer={
         footer || footer === null
           ? footer
@@ -47,6 +49,8 @@ Modal.propTypes = {
   type: PropTypes.string,
   footer: PropTypes.arrayOf(object),
   width: PropTypes.number,
+  bodyStyle: PropTypes.object,
+  style: PropTypes.object,
   color: PropTypes.oneOfType([PropTypes.bool, PropTypes.string]),
   children: PropTypes.oneOfType([PropTypes.object, PropTypes.string, PropTypes.node]),
 };

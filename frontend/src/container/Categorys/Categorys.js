@@ -1,7 +1,8 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Row, Col, Menu, message, Dropdown, Select } from 'antd';
+import Styled from 'styled-components';
+import { Row, Col, Menu, message, Dropdown, Select, Tag } from 'antd';
 import { Link } from 'react-router-dom';
 import { EditOutlined, DeleteOutlined, SettingOutlined, LinkOutlined } from '@ant-design/icons';
 import FeatherIcon from 'feather-icons-react';
@@ -15,6 +16,33 @@ import { ProjectHeader, ProjectSorting } from '../../config/default/style';
 import { Main } from '../../config/default/styled';
 import { deleteCategory, fetchAllCategorys } from '../../redux/categorys/categorySlice';
 import { getComponentPermissions } from '../../config/utils/permission';
+import { ScreenWrap } from '../shared/procurementScreenStyles';
+
+/** Matches stock table: keeps grid within viewport; stacked cells */
+const CategoryTableOuter = Styled.div`
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+
+  .category-cell-title {
+    font-weight: 600;
+    color: #0f172a;
+    font-size: 14px;
+    line-height: 1.35;
+    word-break: break-word;
+  }
+  .category-cell-line {
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.45;
+    margin-top: 2px;
+  }
+  .category-cell-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+`;
 
 function Categorys() {
   const history = useHistory();
@@ -82,87 +110,65 @@ function Categorys() {
     dispatch(fetchAllCategorys());
   }, []);
 
-  useEffect(() => {
-    if (categorys && Array.isArray(categorys)) {
-      let filtered = [...categorys];
+  const filteredCategories = useMemo(() => {
+    if (!categorys || !Array.isArray(categorys)) return [];
+    let filtered = [...categorys];
 
-      if (searchTerm) {
-        filtered = filtered.filter((item) => {
-          // ✅ Safe check for undefined values
-          const itemName = item?.name || '';
-          const itemStatus = item?.status || '';
-          const searchTermLower = searchTerm.toLowerCase();
-          
-          return (
-            itemName.toLowerCase().includes(searchTermLower) ||
-            itemStatus.toLowerCase().includes(searchTermLower)
-          );
-        });
-      }
-
-      if (sortStatus !== 'category') {
-        filtered = filtered.filter((item) => {
-          // ✅ Safe check for status
-          const itemStatus = item?.status || '';
-          return itemStatus.toLowerCase() === sortStatus.toLowerCase();
-        });
-      }
-
-      filtered.sort((a, b) => {
-        if (searchTerm) {
-          const aName = a?.name || '';
-          const bName = b?.name || '';
-          const searchTermLower = searchTerm.toLowerCase();
-          
-          if (aName.toLowerCase().includes(searchTermLower)) return -1;
-          if (bName.toLowerCase().includes(searchTermLower)) return 1;
-        }
-        return 0;
+    if (searchTerm) {
+      filtered = filtered.filter((item) => {
+        const itemName = item?.name || '';
+        const itemStatus = item?.status || '';
+        const searchTermLower = searchTerm.toLowerCase();
+        return (
+          itemName.toLowerCase().includes(searchTermLower) ||
+          itemStatus.toLowerCase().includes(searchTermLower)
+        );
       });
+    }
 
+    if (sortStatus !== 'category') {
+      filtered = filtered.filter((item) => {
+        const itemStatus = item?.status || '';
+        return itemStatus.toLowerCase() === sortStatus.toLowerCase();
+      });
+    }
+
+    filtered.sort((a, b) => {
+      if (searchTerm) {
+        const aName = a?.name || '';
+        const bName = b?.name || '';
+        const searchTermLower = searchTerm.toLowerCase();
+        if (aName.toLowerCase().includes(searchTermLower)) return -1;
+        if (bName.toLowerCase().includes(searchTermLower)) return 1;
+      }
+      return (a?.name || '').localeCompare(b?.name || '');
+    });
+
+    return filtered;
+  }, [categorys, searchTerm, sortStatus]);
+
+  useEffect(() => {
+    if (filteredCategories.length) {
       const start = (pagination.current - 1) * pagination.pageSize;
       const end = start + pagination.pageSize;
-      const paginatedData = filtered.slice(start, end);
+      const paginatedData = filteredCategories.slice(start, end);
 
       const formatted = paginatedData.map((category) => {
         const { _id, id, name, description, status } = category;
         return {
           key: _id || id,
           id: _id || id,
-          name: name || 'Unnamed Category', // ✅ Fallback for undefined name
-          description: description || 'No description', // ✅ Fallback for undefined description
-          status: status || 'inactive', // ✅ Fallback for undefined status
-          action: (
-            <Dropdown
-              overlay={
-                <Menu className="custom-dropdown-menu">
-                  <Menu.Item disabled={!canEdit} key="edit" className="custom-menu-item" onClick={() => handleEdit(category)}>
-                    <div className="custom-action-btn edit-btn">
-                      <EditOutlined className="action-icon" />
-                      <span className="action-label">Edit</span>
-                    </div>
-                  </Menu.Item>
-                  <Menu.Item disabled={!canDelete} key="delete" className="custom-menu-item" onClick={() => handleDelete(_id || id)}>
-                    <div className="custom-action-btn delete-btn">
-                      <DeleteOutlined className="action-icon" />
-                      <span className="action-label">Delete</span>
-                    </div>
-                  </Menu.Item>
-                </Menu>
-              }
-              trigger={['click']}
-              overlayClassName="custom-dropdown-overlay"
-            >
-              <Link to="#" className="text-dark dropdown-trigger">
-                <FeatherIcon icon="more-horizontal" size={18} />
-              </Link>
-            </Dropdown>
-          ),
+          name: name || 'Unnamed Category',
+          description: description || 'No description',
+          status: status || 'inactive',
+          sourceCategory: category,
         };
       });
       setDataSource(formatted);
+    } else {
+      setDataSource([]);
     }
-  }, [categorys, pagination, searchTerm, sortStatus, canEdit, canDelete]);
+  }, [filteredCategories, pagination]);
 
   const handlePageChange = (page, pageSize) => {
     setPagination({
@@ -184,33 +190,81 @@ function Categorys() {
     {
       title: '#',
       key: 'index',
+      width: 44,
+      align: 'center',
       render: (text, record, index) => (pagination.current - 1) * pagination.pageSize + index + 1,
-      width: 50,
     },
     {
-      title: 'Name',
-      dataIndex: 'name',
-      key: 'name',
+      title: 'Category',
+      key: 'category_block',
+      ellipsis: true,
+      render: (_, record) => (
+        <div className="category-cell-stack">
+          <div className="category-cell-title">{record.name}</div>
+          <div className="category-cell-line">{record.description}</div>
+        </div>
+      ),
     },
     {
-      title: 'Description',
-      dataIndex: 'description',
-      key: 'description',
+      title: 'Status',
+      key: 'status',
+      width: 110,
+      render: (_, record) => (
+        <Tag color={record.status === 'active' ? 'success' : 'default'} style={{ margin: 0 }}>
+          {record.status === 'active' ? 'Active' : 'Inactive'}
+        </Tag>
+      ),
     },
     {
-      title: 'Action',
-      dataIndex: 'action',
+      title: '',
       key: 'action',
+      width: 56,
+      align: 'center',
+      fixed: 'right',
+      render: (_, record) => {
+        const cat = record.sourceCategory;
+        const cid = record.id;
+        return (
+          <Dropdown
+            overlay={
+              <Menu className="custom-dropdown-menu">
+                <Menu.Item disabled={!canEdit} key="edit" className="custom-menu-item" onClick={() => handleEdit(cat)}>
+                  <div className="custom-action-btn edit-btn">
+                    <EditOutlined className="action-icon" />
+                    <span className="action-label">Edit</span>
+                  </div>
+                </Menu.Item>
+                <Menu.Item disabled={!canDelete} key="delete" className="custom-menu-item" onClick={() => handleDelete(cid)}>
+                  <div className="custom-action-btn delete-btn">
+                    <DeleteOutlined className="action-icon" />
+                    <span className="action-label">Delete</span>
+                  </div>
+                </Menu.Item>
+              </Menu>
+            }
+            trigger={['click']}
+            overlayClassName="custom-dropdown-overlay"
+          >
+            <Link to="#" className="text-dark dropdown-trigger">
+              <FeatherIcon icon="more-horizontal" size={18} />
+            </Link>
+          </Dropdown>
+        );
+      },
     },
   ];
 
   return (
-    <>
+    <ScreenWrap>
       <ProjectHeader>
         <PageHeader
           ghost
-          title="Categories"
-          subTitle={<>{loading ? 'Loading...' : `${dataSource.length} Categories`}</>}
+          title={<span className="page-title">Categories</span>}
+          subTitle={
+            <span className="page-sub">
+              {loading ? 'Loading…' : `${filteredCategories.length} in view · ${categorys?.length || 0} total`}
+            </span>
+          }
           buttons={[
             <Button disabled={!canAdd} onClick={showModal} key="1" type="primary" size="default">
               <FeatherIcon icon="plus" size={16} /> Create Category
@@ -219,34 +273,44 @@ function Categorys() {
         />
       </ProjectHeader>
       <Main>
-        <Row gutter={25}>
-          <Col xs={24}>
-            <ProjectSorting>
-              <div className="project-sort-bar">
-                <div className="project-sort-search">
-                  <AutoComplete onSearch={handleSearch} dataSource={notData} placeholder="Search categories" patterns />
+       
+        <Row gutter={[20, 20]} style={{ width: '100%', maxWidth: '100%', marginInline: 0 }}>
+          <Col xs={24} style={{ maxWidth: '100%', paddingInline: 0 }}>
+            <div className="toolbar-card">
+              <ProjectSorting>
+                <div className="project-sort-bar">
+                  <div className="project-sort-search" style={{ flex: 1, minWidth: 160, maxWidth: 480 }}>
+                    <AutoComplete onSearch={handleSearch} dataSource={notData} placeholder="Search categories" patterns />
+                  </div>
+                  <div className="sort-group">
+                    <span style={{ display: 'flex', alignItems: 'center' }}>Status</span>
+                    <Select defaultValue="category" onChange={(value) => setSortStatus(value)} style={{ minWidth: 140 }}>
+                      <Select.Option value="category">All</Select.Option>
+                      <Select.Option value="active">Active</Select.Option>
+                      <Select.Option value="inactive">Inactive</Select.Option>
+                    </Select>
+                  </div>
                 </div>
-                <div className="sort-group">
-                  <span style={{ display: 'flex', alignItems: 'center' }}>Sort By:</span>
-                  <Select defaultValue="category" onChange={(value) => setSortStatus(value)}>
-                    <Select.Option value="category">All</Select.Option>
-                    <Select.Option value="active">Active</Select.Option>
-                    <Select.Option value="inactive">Inactive</Select.Option>
-                  </Select>
-                </div>
-              </div>
-            </ProjectSorting>
-            <div>
-              <ProjectLists
-                columns={columns}
-                dataSource={dataSource}
-                loading={loading}
-                total={categorys?.length || 0}
-                pageSize={pagination.pageSize}
-                onChange={handlePageChange}
-                onShowSizeChange={handleSizeChange}
-              />
+              </ProjectSorting>
             </div>
+
+            <CategoryTableOuter className="category-table-outer">
+              <div className="table-shell">
+                <ProjectLists
+                  columns={columns}
+                  dataSource={dataSource}
+                  loading={loading}
+                  total={filteredCategories.length}
+                  current={pagination.current}
+                  pageSize={pagination.pageSize}
+                  onChange={handlePageChange}
+                  onShowSizeChange={handleSizeChange}
+                  size="middle"
+                  scroll={{ x: 520 }}
+                  rowKey="key"
+                />
+              </div>
+            </CategoryTableOuter>
           </Col>
         </Row>
         <CreateCategory
@@ -258,7 +322,7 @@ function Categorys() {
           }}
         />
       </Main>
-    </>
+    </ScreenWrap>
   );
 }
 

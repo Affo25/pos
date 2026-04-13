@@ -35,6 +35,10 @@ import { API_BASE } from '../../config/apiBase';
 import moment from 'moment';
 
 const StockKpiWrap = Styled.div`
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   ${KpiValue} {
     font-size: 28px !important;
   }
@@ -43,6 +47,35 @@ const StockKpiWrap = Styled.div`
   }
   ${KpiTrendMuted} {
     font-size: 13px !important;
+  }
+  ${KpiGrid} {
+    min-width: min(100%, 320px);
+  }
+`;
+
+/** Keeps table + cards within viewport; stacked cells use these classes */
+const StockTableOuter = Styled.div`
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+
+  .stock-cell-title {
+    font-weight: 600;
+    color: #0f172a;
+    font-size: 14px;
+    line-height: 1.35;
+    word-break: break-word;
+  }
+  .stock-cell-line {
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.45;
+    margin-top: 2px;
+  }
+  .stock-cell-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
 `;
 
@@ -82,6 +115,39 @@ function expiryPresetMatch(product, preset) {
   if (preset === 'soon') return d >= now && d <= soonEnd;
   if (preset === 'ok') return d > soonEnd;
   return true;
+}
+
+function renderExpiryTag(value) {
+  if (!value) {
+    return (
+      <Tag color="default" style={{ margin: 0, fontSize: 12 }}>
+        —
+      </Tag>
+    );
+  }
+  const expired = new Date(value) < new Date();
+  const expiringSoon =
+    new Date(value) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) && !expired;
+  const label = new Date(value).toLocaleDateString();
+  if (expired) {
+    return (
+      <Tag color="error" style={{ margin: 0, fontSize: 12 }}>
+        {label} · Expired
+      </Tag>
+    );
+  }
+  if (expiringSoon) {
+    return (
+      <Tag color="warning" style={{ margin: 0, fontSize: 12 }}>
+        {label} · Soon
+      </Tag>
+    );
+  }
+  return (
+    <Tag color="blue" style={{ margin: 0, fontSize: 12 }}>
+      {label}
+    </Tag>
+  );
 }
 
 const KPI_SPARK_COLORS = ['#c4b5fd', '#fca5a5', '#86efac', '#93c5fd'];
@@ -510,83 +576,75 @@ function StockManagement() {
 
   const columns = [
     {
-      title: 'S.No',
+      title: '#',
       key: 'sno',
-      width: 60,
+      width: 44,
+      align: 'center',
       render: (_, __, index) => (pagination.current - 1) * pagination.pageSize + index + 1,
     },
-    { title: 'Product Name', dataIndex: 'name', key: 'name', width: 200 },
-    { title: 'Batch No', dataIndex: 'batch_number', key: 'batch_number', width: 120 },
     {
-      title: 'Category',
-      dataIndex: 'category',
-      key: 'category',
-      width: 120,
-      render: (_, record) => categoryDisplayLabel(record.category) || '—',
-    },
-    {
-      title: 'Stock',
-      dataIndex: 'available_quantity',
-      key: 'available_quantity',
-      width: 100,
-      render: (value, record) => {
-        const isLowStock = value <= (record.minimum_stock_alert || 5);
-        return (
-          <Badge 
-            status={isLowStock ? 'error' : 'success'} 
-            text={
-              <span style={{ color: isLowStock ? '#ff4d4f' : '#52c41a', fontWeight: 'bold' }}>
-                {value} units
-              </span>
-            }
-          />
-        );
-      },
-    },
-    { title: 'Min Alert', dataIndex: 'minimum_stock_alert', key: 'minimum_stock_alert', width: 80 },
-    { title: 'Selling Price', dataIndex: 'unit_price', key: 'unit_price', width: 120, render: (v) => `₹${Number(v).toFixed(2)}` },
-    { title: 'Purchase Price', dataIndex: 'purchase_price', key: 'purchase_price', width: 120, render: (v) => v ? `₹${Number(v).toFixed(2)}` : '-' },
-    {
-      title: 'Expiry Date',
-      dataIndex: 'expiry_date',
-      key: 'expiry_date',
-      width: 120,
-      render: (value) => {
-        const expired = value && new Date(value) < new Date();
-        const expiringSoon = value && new Date(value) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
-        let color = 'blue';
-        let text = value ? new Date(value).toLocaleDateString() : '-';
-        
-        if (expired) {
-          color = 'error';
-          text = <span style={{ color: '#ff4d4f' }}>{text} (Expired)</span>;
-        } else if (expiringSoon) {
-          color = 'warning';
-          text = <span style={{ color: '#faad14' }}>{text} (Expiring Soon)</span>;
-        }
-        
-        return <Tag color={color}>{text}</Tag>;
-      },
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      width: 100,
-      render: (value) => (
-        <Tag color={value === 'active' ? 'success' : 'default'}>
-          {value === 'active' ? 'Active' : 'Inactive'}
-        </Tag>
+      title: 'Product',
+      key: 'product_block',
+      ellipsis: true,
+      render: (_, record) => (
+        <div className="stock-cell-stack">
+          <div className="stock-cell-title">{record.name || '—'}</div>
+          <div className="stock-cell-line">Batch: {record.batch_number || '—'}</div>
+          <div className="stock-cell-line">{categoryDisplayLabel(record.category) || '—'}</div>
+        </div>
       ),
     },
     {
-      title: 'Action',
-      key: 'action',
-      width: 120,
+      title: 'Stock & prices',
+      key: 'stock_prices',
+      render: (_, record) => {
+        const value = record.available_quantity;
+        const low = Number(value) <= Number(record.minimum_stock_alert || 5);
+        return (
+          <div className="stock-cell-stack">
+            <div>
+              <Badge status={low ? 'error' : 'success'} />
+              <span style={{ color: low ? '#dc2626' : '#16a34a', fontWeight: 600 }}>
+                {value ?? 0} units
+              </span>
+              <span className="stock-cell-line" style={{ display: 'inline', marginLeft: 6 }}>
+                · Min alert: {record.minimum_stock_alert ?? '—'}
+              </span>
+            </div>
+            <div className="stock-cell-line">Sell: {formatPkr(record.unit_price)}</div>
+            <div className="stock-cell-line">
+              Buy:{' '}
+              {record.purchase_price != null && record.purchase_price !== ''
+                ? formatPkr(record.purchase_price)
+                : '—'}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      title: 'Expiry & status',
+      key: 'expiry_status',
+      width: 150,
       render: (_, record) => (
-        <Space>
+        <div className="stock-cell-stack">
+          {renderExpiryTag(record.expiry_date)}
+          <Tag color={record.status === 'active' ? 'success' : 'default'} style={{ margin: 0, fontSize: 12, width: 'fit-content' }}>
+            {record.status === 'active' ? 'Active' : 'Inactive'}
+          </Tag>
+        </div>
+      ),
+    },
+    {
+      title: '',
+      key: 'action',
+      width: 88,
+      align: 'center',
+      fixed: 'right',
+      render: (_, record) => (
+        <Space size="small">
           <Tooltip title="Edit">
-            <AntdButton type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+            <AntdButton type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
           </Tooltip>
           <Tooltip title="Delete">
             <Popconfirm
@@ -596,7 +654,7 @@ function StockManagement() {
               okText="Yes"
               cancelText="No"
             >
-              <AntdButton type="link" danger icon={<DeleteOutlined />} />
+              <AntdButton type="link" size="small" danger icon={<DeleteOutlined />} />
             </Popconfirm>
           </Tooltip>
         </Space>
@@ -708,8 +766,8 @@ function StockManagement() {
         </KpiGrid>
         </StockKpiWrap>
 
-        <Row gutter={25}>
-          <Col xs={24}>
+        <Row gutter={[20, 20]} style={{ width: '100%', maxWidth: '100%', marginInline: 0 }}>
+          <Col xs={24} style={{ maxWidth: '100%', paddingInline: 0 }}>
             <div className="toolbar-card">
             <ProjectSorting>
               <div className="project-sort-bar">
@@ -866,21 +924,23 @@ function StockManagement() {
               </Row>
             </Modal>
 
-            <div className="table-shell">
-              <ProjectLists
-                size="middle"
-                columns={columns}
-                dataSource={paginatedProducts}
-                loading={loading}
-                total={filteredProducts.length}
-                current={pagination.current}
-                pageSize={pagination.pageSize}
-                onChange={handlePageChange}
-                onShowSizeChange={handleSizeChange}
-                scroll={{ x: 1200 }}
-                rowKey={(r) => r._id || r.id}
-              />
-            </div>
+            <StockTableOuter className="stock-table-outer">
+              <div className="table-shell">
+                <ProjectLists
+                  size="middle"
+                  columns={columns}
+                  dataSource={paginatedProducts}
+                  loading={loading}
+                  total={filteredProducts.length}
+                  current={pagination.current}
+                  pageSize={pagination.pageSize}
+                  onChange={handlePageChange}
+                  onShowSizeChange={handleSizeChange}
+                  scroll={{ x: 720 }}
+                  rowKey={(r) => r._id || r.id}
+                />
+              </div>
+            </StockTableOuter>
           </Col>
         </Row>
 

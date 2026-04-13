@@ -330,7 +330,9 @@ const ThemeLayout = (WrappedComponent) => {
               ) : null}
               <Layout className="atbd-main-layout">
                 <Content className="app-shell-content">
-                  <WrappedComponent {...this.props} />
+                  <div className="app-shell-main-scroll">
+                    <WrappedComponent {...this.props} />
+                  </div>
                   <Footer className="admin-footer" style={footerStyle}>
                     <Row>
                       <Col span={6} className="align-center-v">

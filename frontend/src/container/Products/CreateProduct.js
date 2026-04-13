@@ -37,37 +37,36 @@ const { TextArea } = Input;
 const { TabPane } = Tabs;
 
 const ProductModalForm = styled.div`
-  padding: 4px 4px 8px;
+  padding: 0;
 
   .ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
-    padding: 12px 20px;
+    padding: 8px 16px;
   }
 
   .ant-tabs-content-holder {
-    padding-top: 8px;
+    padding-top: 4px;
   }
 
   .ant-tabs-tabpane {
-    padding-top: 12px;
+    padding-top: 6px;
   }
 
-  /* More air between labels + controls and between rows */
   .ant-form-item {
-    margin-bottom: 26px !important;
+    margin-bottom: 14px !important;
   }
 
   .ant-row + .ant-row {
-    margin-top: 10px;
+    margin-top: 0;
   }
 
   .section-gap {
-    margin: 28px 0 22px;
+    margin: 12px 0 10px;
   }
 
   .section-gap.ant-divider-horizontal.ant-divider-with-text {
-    margin: 32px 0 24px;
+    margin: 14px 0 12px;
   }
 
   .section-gap:first-child {
@@ -341,10 +340,15 @@ function CreateProduct({ visible, onCancel, product }) {
       title={product ? 'Edit Medicine' : 'Create Medicine'}
       visible={visible}
       onCancel={onCancel}
-      width={1200}
+      width={1400}
+      bodyStyle={{
+        maxHeight: '72vh',
+        overflowY: 'auto',
+        padding: '8px 20px 12px',
+      }}
       footer={[
         <Space key="actions" direction="horizontal" style={{ width: '100%', justifyContent: 'space-between' }}>
-          <Space>
+          {/* <Space>
             <AntButton 
               onClick={generateDummyData} 
               loading={generating}
@@ -355,9 +359,9 @@ function CreateProduct({ visible, onCancel, product }) {
             <AntButton onClick={clearAllFields}>
               Clear All
             </AntButton>
-          </Space>
+          </Space> */}
           <Space>
-            <Button key="cancel" onClick={onCancel}>
+            <Button key="cancel" type="danger" onClick={onCancel}>
               Cancel
             </Button>
             <Button key="save" type="primary" onClick={handleOk}>
@@ -372,7 +376,7 @@ function CreateProduct({ visible, onCancel, product }) {
         <Form 
           form={form} 
           layout="vertical"
-          size="large"
+          size="middle"
           initialValues={{
             available_quantity: 0,
             unit_price: 0,
@@ -386,8 +390,8 @@ function CreateProduct({ visible, onCancel, product }) {
             
             {/* ===== BASIC INFO ===== */}
             <TabPane tab="Basic Info" key="1">
-              <Row gutter={[20, 0]}>
-                <Col span={12}>
+              <Row gutter={[16, 0]}>
+                <Col xs={24} sm={12} xl={8}>
                   <Form.Item 
                     name="name" 
                     label="Medicine Name" 
@@ -396,8 +400,7 @@ function CreateProduct({ visible, onCancel, product }) {
                     <Input placeholder="Enter medicine name" />
                   </Form.Item>
                 </Col>
-
-                <Col span={12}>
+                <Col xs={24} sm={12} xl={8}>
                   <Form.Item 
                     name="category" 
                     label="Category" 
@@ -421,14 +424,7 @@ function CreateProduct({ visible, onCancel, product }) {
                     </Select>
                   </Form.Item>
                 </Col>
-              </Row>
-
-              <Divider className="section-gap" plain orientation="left" style={{ fontSize: 14, color: '#64748b' }}>
-                Batch & dates
-              </Divider>
-
-              <Row gutter={[20, 0]}>
-                <Col span={12}>
+                <Col xs={24} sm={12} xl={8}>
                   <Form.Item 
                     name="batch_number" 
                     label="Batch Number" 
@@ -437,8 +433,14 @@ function CreateProduct({ visible, onCancel, product }) {
                     <Input placeholder="Enter batch number" />
                   </Form.Item>
                 </Col>
+              </Row>
 
-                <Col span={12}>
+              <Divider className="section-gap" plain orientation="left" style={{ fontSize: 13, color: '#64748b', margin: '10px 0' }}>
+                Expiry, supplier & packaging
+              </Divider>
+
+              <Row gutter={[16, 0]}>
+                <Col xs={24} sm={12} xl={8}>
                   <Form.Item 
                     name="expiry_date" 
                     label="Expiry Date" 
@@ -447,14 +449,7 @@ function CreateProduct({ visible, onCancel, product }) {
                     <DatePicker style={{ width: '100%' }} />
                   </Form.Item>
                 </Col>
-              </Row>
-
-              <Divider className="section-gap" plain orientation="left" style={{ fontSize: 14, color: '#64748b' }}>
-                Supplier & location
-              </Divider>
-
-              <Row gutter={[20, 0]}>
-                <Col span={12}>
+                <Col xs={24} sm={12} xl={8}>
                   <Form.Item 
                     name="supplier_name" 
                     label="Supplier Name" 
@@ -478,26 +473,21 @@ function CreateProduct({ visible, onCancel, product }) {
                     </Select>
                   </Form.Item>
                 </Col>
-
-                <Col span={12}>
+                <Col xs={24} sm={12} xl={8}>
                   <Form.Item name="rack_location" label="Rack Location">
                     <Input placeholder="Enter rack location" />
                   </Form.Item>
                 </Col>
               </Row>
 
-              <Divider className="section-gap" plain orientation="left" style={{ fontSize: 14, color: '#64748b' }}>
-                Packaging
-              </Divider>
-
-              <Row gutter={[20, 0]}>
-                <Col span={12}>
+              <Row gutter={[16, 0]}>
+                <Col xs={24} sm={12} xl={8}>
                   <Form.Item 
                     name="medicine_size" 
                     label="Medicine Size" 
                     rules={[{ required: true, message: 'Please enter medicine size' }]}
                   >
-                    <Input placeholder="Enter medicine size" />
+                    <Input placeholder="e.g. 10×10" />
                   </Form.Item>
                 </Col>
               </Row>
@@ -505,8 +495,8 @@ function CreateProduct({ visible, onCancel, product }) {
 
             {/* ===== MANUFACTURER ===== */}
             <TabPane tab="Manufacturer Info" key="2">
-              <Row gutter={[20, 0]}>
-                <Col span={12}>
+              <Row gutter={[16, 0]}>
+                <Col xs={24} sm={12} xl={8}>
                   <Form.Item 
                     name="manufacturer" 
                     label="Manufacturer Name" 
@@ -515,28 +505,22 @@ function CreateProduct({ visible, onCancel, product }) {
                     <Input placeholder="Enter manufacturer name" />
                   </Form.Item>
                 </Col>
-
-                <Col span={12}>
+                <Col xs={24} sm={12} xl={8}>
                   <Form.Item name="manufacturer_license_no" label="License No">
                     <Input placeholder="Enter license number" />
                   </Form.Item>
                 </Col>
-              </Row>
-
-              <Divider className="section-gap" plain orientation="left" style={{ fontSize: 14, color: '#64748b' }}>
-                Registration & notes
-              </Divider>
-
-              <Row gutter={[20, 0]}>
-                <Col span={12}>
+                <Col xs={24} sm={12} xl={8}>
                   <Form.Item name="manufacturer_registration_no" label="Registration No">
                     <Input placeholder="Enter registration number" />
                   </Form.Item>
                 </Col>
+              </Row>
 
-                <Col span={12}>
-                  <Form.Item name="manufacturer_details" label="Details">
-                    <TextArea rows={2} />
+              <Row gutter={[16, 0]}>
+                <Col span={24}>
+                  <Form.Item name="manufacturer_details" label="Details" style={{ marginBottom: 0 }}>
+                    <TextArea rows={2} placeholder="Notes" />
                   </Form.Item>
                 </Col>
               </Row>
@@ -544,8 +528,8 @@ function CreateProduct({ visible, onCancel, product }) {
 
             {/* ===== STOCK ===== */}
             <TabPane tab="Pricing & Stock" key="3">
-              <Row gutter={[20, 0]}>
-                <Col span={8}>
+              <Row gutter={[16, 0]}>
+                <Col xs={24} sm={12} xl={8}>
                   <Form.Item 
                     name="available_quantity" 
                     label="Quantity" 
@@ -554,12 +538,11 @@ function CreateProduct({ visible, onCancel, product }) {
                     <InputNumber 
                       min={0} 
                       style={{ width: '100%' }} 
-                      placeholder="Enter quantity"
+                      placeholder="Qty"
                     />
                   </Form.Item>
                 </Col>
-
-                <Col span={8}>
+                <Col xs={24} sm={12} xl={8}>
                   <Form.Item 
                     name="unit_price" 
                     label="Price" 
@@ -568,38 +551,35 @@ function CreateProduct({ visible, onCancel, product }) {
                     <InputNumber 
                       min={0} 
                       style={{ width: '100%' }} 
-                      placeholder="Enter price"
+                      placeholder="Price"
                       formatter={value => `PKR ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                       parser={value => value.replace(/PKR\s?|(,*)/g, '')}
                     />
                   </Form.Item>
                 </Col>
-
-                <Col span={8}>
+                <Col xs={24} sm={12} xl={8}>
                   <Form.Item name="minimum_stock_alert" label="Min Alert">
-                    <InputNumber min={0} style={{ width: '100%' }} placeholder="Enter minimum alert" />
+                    <InputNumber min={0} style={{ width: '100%' }} placeholder="Min stock" />
                   </Form.Item>
                 </Col>
               </Row>
 
-              <Divider className="section-gap" plain orientation="left" style={{ fontSize: 14, color: '#64748b' }}>
+              <Divider className="section-gap" plain orientation="left" style={{ fontSize: 13, color: '#64748b', margin: '10px 0' }}>
                 Tax & status
               </Divider>
 
-              <Row gutter={[20, 0]}>
-                <Col span={8}>
+              <Row gutter={[16, 0]}>
+                <Col xs={24} sm={12} xl={8}>
                   <Form.Item name="discount" label="Discount %">
-                    <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="Enter discount" />
+                    <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="%" />
                   </Form.Item>
                 </Col>
-
-                <Col span={8}>
+                <Col xs={24} sm={12} xl={8}>
                   <Form.Item name="gst" label="GST %">
-                    <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="Enter GST" />
+                    <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="%" />
                   </Form.Item>
                 </Col>
-
-                <Col span={8}>
+                <Col xs={24} sm={12} xl={8}>
                   <Form.Item name="status" label="Status" initialValue="active">
                     <Select>
                       {STATUS.map((opt) => (
@@ -615,17 +595,18 @@ function CreateProduct({ visible, onCancel, product }) {
 
             {/* ===== EXTRA ===== */}
             <TabPane tab="Additional Info" key="4">
-              <Form.Item name="alternative_medicines" label="Alternatives">
-                <Select mode="tags" placeholder="Enter alternative medicines" />
-              </Form.Item>
-
-              <Divider className="section-gap" plain orientation="left" style={{ fontSize: 14, color: '#64748b' }}>
-                Media
-              </Divider>
-
-              <Form.Item name="image" label="Image URL">
-                <Input placeholder="Enter image URL" />
-              </Form.Item>
+              <Row gutter={[16, 0]}>
+                <Col xs={24} md={12}>
+                  <Form.Item name="alternative_medicines" label="Alternatives">
+                    <Select mode="tags" placeholder="Alternative medicines" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item name="image" label="Image URL">
+                    <Input placeholder="https://…" />
+                  </Form.Item>
+                </Col>
+              </Row>
             </TabPane>
 
           </Tabs>

@@ -682,20 +682,43 @@ const Div = Styled.div`
         }
     }
 
-    /* Main column: transparent so full-viewport Div background shows through; footer pinned */
+    /* Main column: header + sidebar fixed; only this middle scrolls; footer stays at bottom of viewport */
     .app-shell-content.ant-layout-content{
         display: flex;
         flex-direction: column;
         flex: 1 1 auto;
         width: 100%;
-        min-height: calc(100vh - 64px);
+        height: calc(100vh - 64px);
+        max-height: calc(100vh - 64px);
+        min-height: 0;
         padding: 0 !important;
         background: transparent !important;
         box-shadow: none;
+        overflow: hidden;
+    }
+
+    .app-shell-main-scroll{
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
     }
 
     .app-shell-content .admin-footer{
-        margin-top: auto;
+        flex-shrink: 0;
+        margin-top: 0;
+    }
+
+    @media print {
+        .app-shell-content.ant-layout-content {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+        .app-shell-main-scroll {
+            overflow: visible !important;
+        }
     }
 
     .admin-sider-scrollbars{
