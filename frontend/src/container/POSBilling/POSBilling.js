@@ -90,6 +90,30 @@ function POSBilling() {
 
   const getEntityId = (entity) => entity?._id || entity?.id || null;
 
+  const getProductExpiry = (product) => product?.expiry_date ?? product?.expiryDate;
+
+  /**
+   * Calendar-day expiry (local): selling is allowed on the printed expiry day.
+   * Ignores bad sentinels: `null`, `''`, `false`, `0` → `new Date(false)` / `Date(0)` = 1970 → wrongly "expired".
+   */
+  const isExpiryPassed = (raw) => {
+    if (raw == null || raw === '' || raw === false) return false;
+    if (typeof raw === 'number' && raw === 0) return false;
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime()) || d.getTime() === 0) return false;
+    const expDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const today = new Date();
+    const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return expDay < todayDay;
+  };
+
+  const isOutOfStock = (product) => {
+    const q = product?.available_quantity;
+    if (q == null || q === '') return false;
+    const n = Number(q);
+    return Number.isFinite(n) && n <= 0;
+  };
+
   const updateRow = (key, patch) => {
     setRows(prev => prev.map(r => {
       if (r.key !== key) return r;
@@ -103,14 +127,24 @@ function POSBilling() {
   };
 
   const addProductToCart = (product, quantity = 1) => {
-    if (new Date(product.expiry_date) < new Date()) { toast.error(`${product.name} is expired`); return; }
-    if (product.available_quantity < quantity) { toast.error(`Insufficient stock. Available: ${product.available_quantity}`); return; }
+    const expRaw = getProductExpiry(product);
+    if (isExpiryPassed(expRaw)) {
+      toast.warning(`${product.name}: past expiry date — confirm before sale`);
+    }
+    const avail = Number(product.available_quantity);
+    if (Number.isFinite(avail) && avail < quantity) {
+      toast.error(`Insufficient stock. Available: ${avail}`);
+      return;
+    }
     const productId = getEntityId(product);
     if (!productId) { toast.error('Invalid product'); return; }
     const existingRow = rows.find(row => row.product_id === productId);
     if (existingRow) {
       const newQty = (existingRow.quantity || 0) + quantity;
-      if (newQty > product.available_quantity) { toast.error(`Only ${product.available_quantity - existingRow.quantity} more available`); return; }
+      if (Number.isFinite(avail) && newQty > avail) {
+        toast.error(`Only ${avail - existingRow.quantity} more available`);
+        return;
+      }
       updateRow(existingRow.key, { quantity: newQty });
     } else {
       setRows(prev => [...prev, { key: Date.now(), product_id: productId, quantity, unit_price: Number(product.unit_price || 0), product_details: product }]);
@@ -211,23 +245,31 @@ function POSBilling() {
       key: 'action',
       width: 56,
       render: (_, product) => {
-        const expired = new Date(product.expiry_date) < new Date();
-        const outOfStock = product.available_quantity === 0;
+        const expired = isExpiryPassed(getProductExpiry(product));
+        const outOfStock = isOutOfStock(product);
+        const disabled = outOfStock;
         return (
          <button
   type="button"
   onClick={() => addProductToCart(product, 1)}
-  disabled={expired || outOfStock}
+  disabled={disabled}
+  title={outOfStock ? 'Out of stock' : expired ? 'Past expiry — click to add (confirm at counter)' : 'Add to cart'}
   style={{
     width: 32, height: 32, borderRadius: 8, border: 'none',
-    background: expired || outOfStock ? '#e5e7eb' : '#dbeafe',
-    color: expired || outOfStock ? '#9ca3af' : '#3b82f6',
-    cursor: expired || outOfStock ? 'not-allowed' : 'pointer',
+    background: disabled ? '#e5e7eb' : expired ? '#fef3c7' : '#dbeafe',
+    color: disabled ? '#9ca3af' : expired ? '#b45309' : '#3b82f6',
+    cursor: disabled ? 'not-allowed' : 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 16, transition: 'all 0.2s',
   }}
-  onMouseEnter={e => { if (!expired && !outOfStock) e.currentTarget.style.background = '#bfdbfe'; }}
-  onMouseLeave={e => { if (!expired && !outOfStock) e.currentTarget.style.background = '#dbeafe'; }}
+  onMouseEnter={e => {
+    if (disabled) return;
+    e.currentTarget.style.background = expired ? '#fde68a' : '#bfdbfe';
+  }}
+  onMouseLeave={e => {
+    if (disabled) return;
+    e.currentTarget.style.background = expired ? '#fef3c7' : '#dbeafe';
+  }}
 >+</button>
         );
       },
