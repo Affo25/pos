@@ -29,17 +29,6 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
     return allowedPages.includes(page);
   };
 
-  const [openKeys, setOpenKeys] = React.useState(!topMenu ? [pathSegments[0] || 'dashboard'] : []);
-
-  const onOpenChange = (keys) => {
-    const latestKey = keys[keys.length - 1];
-    setOpenKeys(latestKey !== 'recharts' ? [latestKey] : keys);
-  };
-
-  const onClick = (item) => {
-    if (item.keyPath.length === 1) setOpenKeys([]);
-  };
-
   const getSelectedKey = () => {
     if (pathSegments.length === 0) return ['home'];
 
@@ -64,91 +53,99 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
 
   useEffect(() => {
     dispatch(fetchAllBranchProfiles());
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     if (branchprofiles.length > 0) {
       const firstBranchId = selectedBranchId || branchprofiles[0]._id;
       dispatch(setSelectedBranch(firstBranchId));
     }
-  }, [branchprofiles, selectedBranchId]);
+  }, [branchprofiles, selectedBranchId, dispatch]);
+
+  const groupTitle = (label) => <span className="sidebar-group-label">{label}</span>;
 
   return (
     <>
       <Menu
         mode={!topMenu || window.innerWidth <= 991 ? 'inline' : 'horizontal'}
         theme={darkMode ? 'dark' : 'light'}
-        onOpenChange={onOpenChange}
-        onClick={onClick}
         selectedKeys={selectedKey}
-        defaultOpenKeys={!topMenu ? [pathSegments[0] || 'dashboard'] : []}
         overflowedIndicator={<FeatherIcon icon="more-vertical" />}
-        openKeys={openKeys}
       >
-        <Menu.Item key="home" icon={!topMenu && <FeatherIcon icon="home" />}>
-          <NavLink onClick={toggleCollapsed} to={`${path}`}>
-            Dashboard
-          </NavLink>
-        </Menu.Item>
-        <Menu.SubMenu key="Setup" title="Setup" icon={!topMenu && <FeatherIcon icon="layers" />}>
+        <Menu.ItemGroup title={groupTitle('Insights')}>
+          <Menu.Item key="home" icon={!topMenu && <FeatherIcon icon="home" />}>
+            <NavLink onClick={toggleCollapsed} to={`${path}`}>
+              Dashboard
+            </NavLink>
+          </Menu.Item>
+        </Menu.ItemGroup>
+
+        <Menu.ItemGroup title={groupTitle('Sales')}>
+          {canAccess('sales') && (
+            <Menu.Item icon={!topMenu && <FeatherIcon icon="shopping-cart" />} key="POSBilling">
+              <NavLink onClick={toggleCollapsed} to={`${path}pos-billing`}>
+                Sell
+              </NavLink>
+            </Menu.Item>
+          )}
+          {canAccess('sales') && (
+            <Menu.Item icon={!topMenu && <FeatherIcon icon="file-text" />} key="Sales">
+              <NavLink onClick={toggleCollapsed} to={`${path}sales`}>
+                Sales
+              </NavLink>
+            </Menu.Item>
+          )}
+        </Menu.ItemGroup>
+
+        <Menu.ItemGroup title={groupTitle('Inventory')}>
           {canAccess('categorys') && (
-          <Menu.Item icon={!topMenu && <FeatherIcon icon="layers" />} key="Categorys">
-            <NavLink onClick={toggleCollapsed} to={`${path}categorys`}>
-              Categories
-            </NavLink>
-          </Menu.Item>
-        )}
-        </Menu.SubMenu>
+            <Menu.Item icon={!topMenu && <FeatherIcon icon="layers" />} key="Categorys">
+              <NavLink onClick={toggleCollapsed} to={`${path}categorys`}>
+                Categories
+              </NavLink>
+            </Menu.Item>
+          )}
+          {canAccess('products') && (
+            <Menu.Item icon={!topMenu && <FeatherIcon icon="package" />} key="Products">
+              <NavLink onClick={toggleCollapsed} to={`${path}products`}>
+                Products
+              </NavLink>
+            </Menu.Item>
+          )}
+          {canAccess('products') && (
+            <Menu.Item icon={!topMenu && <FeatherIcon icon="archive" />} key="StockManagement">
+              <NavLink onClick={toggleCollapsed} to={`${path}stock-management`}>
+                Stock Management
+              </NavLink>
+            </Menu.Item>
+          )}
+        </Menu.ItemGroup>
 
-        {canAccess('products') && (
-          <Menu.Item icon={<FeatherIcon icon="package" />} key="Products">
-            <NavLink onClick={toggleCollapsed} to={`${path}products`}>
-              Products
-            </NavLink>
-          </Menu.Item>
-        )}
-        {canAccess('sales') && (
-          <Menu.Item icon={!topMenu && <FeatherIcon icon="user-check" />}  key="Sales">
-            <NavLink onClick={toggleCollapsed} to={`${path}sales`}>
-              Sales
-            </NavLink>
-          </Menu.Item>
-        )}
-        {canAccess('sales') && (
-          <Menu.Item icon={!topMenu && <FeatherIcon icon="credit-card" />} key="POSBilling">
-            <NavLink onClick={toggleCollapsed} to={`${path}pos-billing`}>
-              POS Billing
-            </NavLink>
-          </Menu.Item>
-        )}
-        {canAccess('products') && (
-          <Menu.Item icon={!topMenu && <FeatherIcon icon="archive" />} key="StockManagement">
-            <NavLink onClick={toggleCollapsed} to={`${path}stock-management`}>
-              Stock Management
-            </NavLink>
-          </Menu.Item>
-        )}
-        {canAccess('purchaseorders') && (
-          <Menu.Item icon={!topMenu && <FeatherIcon icon="user-check" />} key="PurchaseOrders">
-            <NavLink onClick={toggleCollapsed} to={`${path}purchaseorders`}>
-              PurchaseOrders
-            </NavLink>
-          </Menu.Item>
-        )}
-        {canAccess('suppliers') && (
-          <Menu.Item icon={<FeatherIcon icon="truck" />} key="Suppliers">
-            <NavLink onClick={toggleCollapsed} to={`${path}suppliers`}>
-              Suppliers
-            </NavLink>
-          </Menu.Item>
+        <Menu.ItemGroup title={groupTitle('Purchasing')}>
+          {canAccess('purchaseorders') && (
+            <Menu.Item icon={!topMenu && <FeatherIcon icon="shopping-bag" />} key="PurchaseOrders">
+              <NavLink onClick={toggleCollapsed} to={`${path}purchaseorders`}>
+                Purchase Orders
+              </NavLink>
+            </Menu.Item>
+          )}
+          {canAccess('suppliers') && (
+            <Menu.Item icon={!topMenu && <FeatherIcon icon="truck" />} key="Suppliers">
+              <NavLink onClick={toggleCollapsed} to={`${path}suppliers`}>
+                Suppliers
+              </NavLink>
+            </Menu.Item>
+          )}
+        </Menu.ItemGroup>
 
-        )}
         {canAccess('users') && user?.user_type === 'superAdmin' && (
-          <Menu.Item key="Users" icon={!topMenu && <FeatherIcon icon="user-check" />}>
-            <NavLink onClick={toggleCollapsed} to={`${path}users`}>
-              Users
-            </NavLink>
-          </Menu.Item>
+          <Menu.ItemGroup title={groupTitle('System')}>
+            <Menu.Item key="Users" icon={!topMenu && <FeatherIcon icon="users" />}>
+              <NavLink onClick={toggleCollapsed} to={`${path}users`}>
+                Users
+              </NavLink>
+            </Menu.Item>
+          </Menu.ItemGroup>
         )}
       </Menu>
     </>

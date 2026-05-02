@@ -1,11 +1,14 @@
 import Styled from 'styled-components';
 
 /* Page width wrapper — canvas bg comes from layout .app-shell-content */
+/** Warm cream canvas + forest accents — aligns with POS “tea shop” retail shell */
 export const DashboardPage = Styled.div`
   max-width: 1600px;
   margin: 0 auto;
-  padding: 8px 0 8px;
+  padding: 12px 4px 20px;
   width: 100%;
+  background: linear-gradient(180deg, #fdfcf0 0%, #f7f5eb 55%, #f3f1ea 100%);
+  border-radius: 12px;
 `;
 
 export const KpiGrid = Styled.div`
@@ -22,19 +25,20 @@ export const KpiGrid = Styled.div`
 `;
 
 export const KpiCard = Styled.div`
-  background: #fff;
+  background: #fffefb;
   border-radius: 12px;
   padding: 18px 18px 14px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
-  border: 1px solid rgba(15, 23, 42, 0.05);
+  box-shadow: 0 2px 10px rgba(26, 58, 52, 0.06);
+  border: 1px solid rgba(26, 58, 52, 0.1);
   display: flex;
   align-items: stretch;
   justify-content: space-between;
   gap: 12px;
   min-height: 118px;
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
   &:hover {
-    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 8px 24px rgba(26, 58, 52, 0.1);
+    border-color: rgba(26, 58, 52, 0.18);
   }
 `;
 
@@ -49,7 +53,7 @@ export const KpiMain = Styled.div`
 export const KpiValue = Styled.div`
   font-size: 22px;
   font-weight: 700;
-  color: #1f2937;
+  color: #1a3a34;
   line-height: 1.2;
   letter-spacing: -0.02em;
 `;
@@ -85,10 +89,10 @@ export const KpiSparkWrap = Styled.div`
 `;
 
 export const RevenueCard = Styled.div`
-  background: #fff;
+  background: #fffefb;
   border-radius: 12px;
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  border: 1px solid rgba(26, 58, 52, 0.1);
+  box-shadow: 0 2px 10px rgba(26, 58, 52, 0.05);
   overflow: hidden;
 `;
 

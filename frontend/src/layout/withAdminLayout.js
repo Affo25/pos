@@ -207,6 +207,7 @@ const ThemeLayout = (WrappedComponent) => {
         <Div darkMode={darkMode}>
           <Layout className="layout">
             <Header
+              className="admin-shell-header"
               style={{
                 position: 'fixed',
                 width: '100%',
@@ -313,10 +314,12 @@ const ThemeLayout = (WrappedComponent) => {
                       renderView={renderView}
                       renderTrackVertical={renderTrackVertical}
                     >
-                      <p className="sidebar-nav-title">
-                        <span className="sidebar-nav-title__accent" aria-hidden />
-                        Main menu
-                      </p>
+                      <div className="sidebar-brand">
+                        <Link to="/" className="sidebar-brand__title">
+                          Aid+
+                        </Link>
+                        <div className="sidebar-brand__tagline">Pharmacy Suite</div>
+                      </div>
                       <MenueItems
                         topMenu={topMenu}
                         rtl={rtl}

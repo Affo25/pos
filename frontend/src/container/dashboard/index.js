@@ -238,7 +238,7 @@ function Dashboard() {
     return Array.from({ length: 7 }, (_, i) => Math.max(0, n * (0.45 + ((i * 19) % 50) / 100)));
   }, [extra?.pendingOrders]);
 
-  const kpiSparkColors = ['#c4b5fd', '#fca5a5', '#86efac', '#93c5fd'];
+  const kpiSparkColors = ['#a8e6cf', '#f9cfa8', '#c8e6c9', '#b8d4e8'];
 
   const handleExportExcel = () => {
     if (!dashboard && !recentActivities?.length && !topProducts?.length) {

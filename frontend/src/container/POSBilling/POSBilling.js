@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+/* eslint-disable no-underscore-dangle */
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import Cookies from 'js-cookie';
@@ -9,17 +10,22 @@ import {
 } from 'antd';
 import {
  PrinterOutlined,
- ReloadOutlined,
-  FileTextOutlined, SaveOutlined,
+  FileTextOutlined,
   CreditCardOutlined, DollarCircleOutlined, BankOutlined,
   WalletOutlined, ShoppingCartOutlined,
   UserOutlined, CalendarOutlined, SearchOutlined,
   TagOutlined,
+  PauseCircleOutlined,
+  PlayCircleOutlined,
+  FallOutlined,
+  EditOutlined,
+  ColumnWidthOutlined,
+  DollarOutlined,
 } from '@ant-design/icons';
 import { toast } from 'react-toastify';
-import { PageHeader } from '../../components/page-headers/page-headers';
 import { Main } from '../../config/default/styled';
 import { API_BASE } from '../../config/apiBase';
+import { formatPkr } from '../../config/currency';
 
 const { Search } = Input;
 
@@ -40,8 +46,6 @@ const PAYMENT_METHODS = [
 
 function POSBilling() {
   const { login } = useSelector((state) => state.auth);
-  const cashierName = login?.name || 'Staff';
-
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [rows, setRows] = useState([]);
@@ -56,8 +60,66 @@ function POSBilling() {
   const [paymentMode, setPaymentMode] = useState('cash');
   const [issuedDate, setIssuedDate] = useState(null);
   const [activeTab, setActiveTab] = useState('items');
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [customerName, setCustomerName] = useState('Walk-in');
+  const [customerModalOpen, setCustomerModalOpen] = useState(false);
+  const [customerDraft, setCustomerDraft] = useState('Walk-in');
 
   const token = Cookies.get('token');
+
+  const productCategoryName = (p) => {
+    const c = p?.category;
+    if (c && typeof c === 'object' && c.name) return String(c.name);
+    return 'General';
+  };
+
+  const categoryOptions = useMemo(() => {
+    const names = new Set();
+    products.forEach((p) => names.add(productCategoryName(p)));
+    return ['All', ...Array.from(names).sort((a, b) => a.localeCompare(b))];
+  }, [products]);
+
+  const displayedProducts = useMemo(() => {
+    if (activeCategory === 'All') return filteredProducts;
+    return filteredProducts.filter((p) => productCategoryName(p) === activeCategory);
+  }, [filteredProducts, activeCategory]);
+
+  const holdCart = () => {
+    if (!rows.length) {
+      message.info('Cart is empty');
+      return;
+    }
+    try {
+      sessionStorage.setItem('pos_hold_order', JSON.stringify(rows));
+      setRows([]);
+      message.success('Order held');
+    } catch {
+      message.error('Could not hold order');
+    }
+  };
+
+  const resumeCart = () => {
+    const raw = sessionStorage.getItem('pos_hold_order');
+    if (!raw) {
+      message.info('No held order');
+      return;
+    }
+    try {
+      const held = JSON.parse(raw);
+      if (Array.isArray(held) && held.length) {
+        setRows(held);
+        sessionStorage.removeItem('pos_hold_order');
+        message.success('Order resumed');
+      }
+    } catch {
+      message.error('Could not resume order');
+    }
+  };
+
+  const clearTicket = () => {
+    setRows([]);
+    setDiscount(0);
+  };
 
   const fetchInitialData = async () => {
     setLoading(true);
@@ -200,81 +262,36 @@ function POSBilling() {
 
   const printInvoice = () => window.print();
 
-  const productColumns = [
-    {
-      title: 'PRODUCT',
-      dataIndex: 'name',
-      key: 'name',
-      render: (_, product) => (
-        <div style={{ padding: '2px 0' }}>
-          <div style={{ fontWeight: 600, color: '#1f2937', fontSize: 13 }}>{product.name}</div>
-          <div style={{ color: '#6b7280', fontSize: 11, marginTop: 2 }}>
-            {product.batch_number || '—'} · {product.supplier_name || 'No supplier'}
-          </div>
+  const renderProductCard = (product) => {
+    const pid = getEntityId(product);
+    const expired = isExpiryPassed(getProductExpiry(product));
+    const outOfStock = isOutOfStock(product);
+    const disabled = outOfStock;
+    const qty = product.available_quantity;
+    const stockNum = Number(qty);
+    const low = Number.isFinite(stockNum) && stockNum <= (product.minimum_stock_alert || 5);
+    const catUpper = productCategoryName(product).toUpperCase();
+    const priceStr = formatPkr(Number(product.unit_price || 0));
+    const stockLabel = Number.isFinite(stockNum) ? `${stockNum} left` : '—';
+
+    return (
+      <button
+        key={pid}
+        type="button"
+        className={`pos-product-card${disabled ? ' is-disabled' : ''}${expired ? ' is-expired' : ''}`}
+        onClick={() => !disabled && addProductToCart(product, 1)}
+        disabled={disabled}
+        title={disabled ? 'Out of stock' : expired ? 'Past expiry — tap to add (confirm)' : 'Add to ticket'}
+      >
+        <div className="pos-product-card__cat">{catUpper}</div>
+        <div className="pos-product-card__name">{product.name}</div>
+        <div className="pos-product-card__row">
+          <span className="pos-product-card__price">{priceStr}</span>
+          <span className={`pos-product-card__stock${low ? ' is-low' : ''}`}>{stockLabel}</span>
         </div>
-      ),
-    },
-    {
-      title: 'PRICE',
-      dataIndex: 'unit_price',
-      key: 'unit_price',
-      width: 100,
-      render: (v) => <span style={{ color: '#3b82f6', fontWeight: 700, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>PKR {Number(v || 0).toFixed(0)}</span>,
-    },
-    {
-      title: 'STOCK',
-      dataIndex: 'available_quantity',
-      key: 'available_quantity',
-      width: 72,
-      align: 'center',
-      render: (qty, product) => {
-        const low = qty <= (product.minimum_stock_alert || 5);
-        return (
-          <span style={{
-            display: 'inline-block', minWidth: 36, padding: '2px 8px', borderRadius: 20,
-            fontSize: 11, fontWeight: 700, fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-            background: low ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
-            color: low ? '#dc2626' : '#16a34a',
-            border: `1px solid ${low ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.25)'}`,
-          }}>{qty}</span>
-        );
-      },
-    },
-    {
-      title: '',
-      key: 'action',
-      width: 56,
-      render: (_, product) => {
-        const expired = isExpiryPassed(getProductExpiry(product));
-        const outOfStock = isOutOfStock(product);
-        const disabled = outOfStock;
-        return (
-         <button
-  type="button"
-  onClick={() => addProductToCart(product, 1)}
-  disabled={disabled}
-  title={outOfStock ? 'Out of stock' : expired ? 'Past expiry — click to add (confirm at counter)' : 'Add to cart'}
-  style={{
-    width: 32, height: 32, borderRadius: 8, border: 'none',
-    background: disabled ? '#e5e7eb' : expired ? '#fef3c7' : '#dbeafe',
-    color: disabled ? '#9ca3af' : expired ? '#b45309' : '#3b82f6',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 16, transition: 'all 0.2s',
-  }}
-  onMouseEnter={e => {
-    if (disabled) return;
-    e.currentTarget.style.background = expired ? '#fde68a' : '#bfdbfe';
-  }}
-  onMouseLeave={e => {
-    if (disabled) return;
-    e.currentTarget.style.background = expired ? '#fef3c7' : '#dbeafe';
-  }}
->+</button>
-        );
-      },
-    },
-  ];
+      </button>
+    );
+  };
 
   const cartColumns = [
     {
@@ -285,7 +302,7 @@ function POSBilling() {
         return (
           <div>
             <div style={{ fontWeight: 600, color: '#374151', fontSize: 13 }}>{product?.name || 'Product'}</div>
-            <div style={{ color: '#3b82f6', fontSize: 11, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>PKR {Number(row.unit_price || 0).toFixed(2)}/unit</div>
+            <div style={{ color: '#64748b', fontSize: 11, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>PKR {Number(row.unit_price || 0).toFixed(2)}/unit</div>
           </div>
         );
       },
@@ -310,7 +327,7 @@ function POSBilling() {
       width: 90,
       align: 'right',
       render: (_, row) => (
-        <span style={{ color: '#8b5cf6', fontWeight: 700, fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 13 }}>
+        <span style={{ color: '#1a3a34', fontWeight: 700, fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 13 }}>
           PKR {(Number(row.quantity || 0) * Number(row.unit_price || 0)).toFixed(0)}
         </span>
       ),
@@ -339,9 +356,15 @@ function POSBilling() {
         .print-only { display: none; }
 
         .pos-root {
-          background: #f3f4f6;
+          --pos-cream: #fdfcf0;
+          --pos-cream-deep: #f5f0e4;
+          --pos-forest: #1a3a34;
+          --pos-forest-muted: rgba(26, 58, 52, 0.65);
+          background: var(--pos-cream);
           min-height: 100vh;
-          padding: 24px;
+          padding: 0 12px 20px !important;
+          margin: 0 !important;
+          width: 100%;
           font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
           -webkit-font-smoothing: antialiased;
         }
@@ -351,47 +374,24 @@ function POSBilling() {
         /* Left panel */
         .catalog-panel {
           background: #ffffff;
-          border: 1px solid #e5e7eb;
-          border-radius: 20px;
+          border: 1px solid rgba(26, 58, 52, 0.12);
+          border-radius: 12px;
           overflow: hidden;
-          height: 100%;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          width: 100%;
+          box-shadow: 0 2px 12px rgba(26, 58, 52, 0.06);
         }
 
         .catalog-header {
-          padding: 22px 24px 18px;
-          border-bottom: 1px solid #e5e7eb;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-          background: linear-gradient(135deg, #f3e8ff 0%, #ffffff 100%);
-          position: relative;
-          overflow: hidden;
-        }
-
-        .catalog-header::before {
-          content: '';
-          position: absolute;
-          top: -40px;
-          right: -40px;
-          width: 120px;
-          height: 120px;
-          background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, transparent 70%);
-          border-radius: 50%;
-          pointer-events: none;
-        }
-
-        .catalog-header > * {
-          position: relative;
-          z-index: 1;
+          padding: 16px 20px 12px;
+          border-bottom: 1px solid rgba(26, 58, 52, 0.08);
+          background: linear-gradient(180deg, #fffefb 0%, #fdfcf0 100%);
         }
 
         .catalog-title {
           font-family: 'Inter', system-ui, sans-serif;
-          font-size: 18px;
+          font-size: 17px;
           font-weight: 700;
-          color: #111827;
+          color: var(--pos-forest);
           margin: 0;
           display: flex;
           align-items: center;
@@ -400,13 +400,158 @@ function POSBilling() {
 
         .catalog-title-dot {
           width: 8px; height: 8px;
-          background: #3b82f6;
+          background: var(--pos-forest);
           border-radius: 50%;
-          box-shadow: 0 0 8px #3b82f6;
           display: inline-block;
         }
 
-        .search-dark input {
+        .catalog-toolbar {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 16px 10px;
+          flex-wrap: wrap;
+          background: #fff;
+          border-bottom: 1px solid rgba(26, 58, 52, 0.06);
+        }
+        .catalog-toolbar .search-tea {
+          flex: 1;
+          min-width: 200px;
+        }
+        .catalog-toolbar-actions {
+          display: flex;
+          gap: 8px;
+          flex-shrink: 0;
+        }
+        .btn-tea-outline {
+          border-radius: 8px !important;
+          border-color: rgba(26, 58, 52, 0.25) !important;
+          color: var(--pos-forest) !important;
+          font-weight: 600 !important;
+          background: #fff !important;
+        }
+        .btn-tea-outline:hover {
+          border-color: var(--pos-forest) !important;
+          color: var(--pos-forest) !important;
+        }
+
+        .category-chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          padding: 10px 16px 12px;
+          background: var(--pos-cream-deep);
+          border-bottom: 1px solid rgba(26, 58, 52, 0.06);
+        }
+        .category-chip {
+          border: 1px solid rgba(26, 58, 52, 0.2);
+          background: #fff;
+          color: var(--pos-forest-muted);
+          border-radius: 999px;
+          padding: 6px 14px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.2s, color 0.2s, border-color 0.2s;
+        }
+        .category-chip:hover {
+          border-color: var(--pos-forest);
+          color: var(--pos-forest);
+        }
+        .category-chip.active {
+          background: var(--pos-forest);
+          border-color: var(--pos-forest);
+          color: #fff;
+        }
+
+        .pos-product-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 12px;
+          padding: 16px;
+          max-height: min(56vh, 560px);
+          overflow-y: auto;
+        }
+        @media (max-width: 1199px) {
+          .pos-product-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 575px) {
+          .pos-product-grid { grid-template-columns: 1fr; }
+        }
+
+        .pos-product-card {
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          text-align: left;
+          background: #fff;
+          border: 1px solid rgba(26, 58, 52, 0.12);
+          border-radius: 8px;
+          padding: 12px 14px;
+          min-height: 104px;
+          cursor: pointer;
+          transition: box-shadow 0.2s, border-color 0.2s, transform 0.15s;
+          font-family: inherit;
+        }
+        .pos-product-card:hover:not(:disabled) {
+          border-color: rgba(26, 58, 52, 0.35);
+          box-shadow: 0 4px 14px rgba(26, 58, 52, 0.1);
+        }
+        .pos-product-card.is-disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .pos-product-card.is-expired:not(.is-disabled) {
+          border-color: rgba(180, 83, 9, 0.35);
+          background: #fffbeb;
+        }
+        .pos-product-card__cat {
+          font-size: 10px;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          color: #94a3b8;
+          text-transform: uppercase;
+          margin-bottom: 6px;
+        }
+        .pos-product-card__name {
+          font-size: 14px;
+          font-weight: 600;
+          color: #1e293b;
+          line-height: 1.35;
+          flex: 1;
+          margin-bottom: 10px;
+        }
+        .pos-product-card__row {
+          display: flex;
+          justify-content: space-between;
+          align-items: baseline;
+          gap: 8px;
+          margin-top: auto;
+        }
+        .pos-product-card__price {
+          font-size: 15px;
+          font-weight: 700;
+          color: var(--pos-forest);
+        }
+        .pos-product-card__stock {
+          font-size: 11px;
+          font-weight: 600;
+          color: #64748b;
+        }
+        .pos-product-card__stock.is-low {
+          color: #dc2626;
+        }
+
+        .pos-catalog-empty {
+          padding: 48px 24px;
+          text-align: center;
+        }
+        .loading-text {
+          color: var(--pos-forest-muted);
+          font-size: 13px;
+        }
+
+        .search-tea input {
           background: #ffffff !important;
           border-color: #e5e7eb !important;
           color: #111827 !important;
@@ -414,11 +559,11 @@ function POSBilling() {
           font-size: 13px;
         }
 
-        .search-dark input::placeholder { color: #9ca3af !important; }
-        .search-dark .ant-input-search-button {
+        .search-tea input::placeholder { color: #94a3b8 !important; }
+        .search-tea .ant-input-search-button {
           background: #ffffff !important;
-          border-color: #e5e7eb !important;
-          color: #6b7280 !important;
+          border-color: rgba(26, 58, 52, 0.18) !important;
+          color: var(--pos-forest) !important;
           border-radius: 0 10px 10px 0 !important;
         }
 
@@ -471,59 +616,149 @@ function POSBilling() {
         }
         .dark-table .ant-pagination-total-text { color: #9ca3af; font-size: 12px; }
 
-        /* Right panel */
+        /* Right panel — The Ticket */
         .billing-panel {
-          background: #ffffff;
-          border: 1px solid #e5e7eb;
-          border-radius: 20px;
+          background: #fffefb;
+          border: 1px solid rgba(26, 58, 52, 0.12);
+          border-radius: 12px;
           overflow: hidden;
           display: flex;
           flex-direction: column;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          box-shadow: 0 2px 14px rgba(26, 58, 52, 0.07);
+          min-height: 520px;
         }
 
-        .billing-header {
-          background: linear-gradient(135deg, #f3e8ff 0%, #ffffff 100%);
-          padding: 22px 24px 18px;
-          border-bottom: 1px solid #e5e7eb;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .billing-header::before {
-          content: '';
-          position: absolute;
-          top: -40px; right: -40px;
-          width: 120px; height: 120px;
-          background: radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%);
-          border-radius: 50%;
-        }
-
-        .billing-header-title {
-          font-family: 'Inter', system-ui, sans-serif;
-          font-size: 20px;
-          font-weight: 800;
-          color: #111827;
-          margin: 0 0 12px;
-        }
-
-        .inv-chips {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-
-        .inv-chip {
-          background: #f3f4f6;
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          padding: 4px 12px;
-          font-size: 11px;
-          color: #6b7280;
-          font-family: 'JetBrains Mono', ui-monospace, monospace;
+        .ticket-header {
           display: flex;
           align-items: center;
+          justify-content: space-between;
+          padding: 16px 18px 10px;
+          border-bottom: 1px solid rgba(26, 58, 52, 0.08);
+          background: linear-gradient(180deg, #fffefb 0%, #fdfcf0 100%);
+        }
+        .ticket-header-title {
+          font-size: 18px;
+          font-weight: 700;
+          color: var(--pos-forest);
+          margin: 0;
+        }
+        .ticket-clear-btn {
+          border: none;
+          background: transparent;
+          color: #64748b;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          padding: 4px 8px;
+          border-radius: 6px;
+        }
+        .ticket-clear-btn:hover {
+          color: var(--pos-forest);
+          background: rgba(26, 58, 52, 0.06);
+        }
+
+        .ticket-customer-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 10px 18px;
+          gap: 12px;
+          border-bottom: 1px solid rgba(26, 58, 52, 0.06);
+          background: #fff;
+        }
+        .ticket-customer-label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 13px;
+          color: #475569;
+        }
+        .ticket-customer-label .anticon {
+          color: var(--pos-forest);
+        }
+        .ticket-change-btn {
+          border: 1px solid rgba(26, 58, 52, 0.25);
+          background: #fff;
+          color: var(--pos-forest);
+          font-size: 12px;
+          font-weight: 600;
+          padding: 4px 12px;
+          border-radius: 8px;
+          cursor: pointer;
+        }
+        .ticket-change-btn:hover {
+          border-color: var(--pos-forest);
+          background: rgba(26, 58, 52, 0.04);
+        }
+
+        .ticket-meta-chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          padding: 10px 18px;
+          background: var(--pos-cream-deep);
+          border-bottom: 1px solid rgba(26, 58, 52, 0.06);
+        }
+        .ticket-chip {
+          background: #fff;
+          border: 1px solid rgba(26, 58, 52, 0.12);
+          border-radius: 8px;
+          padding: 4px 10px;
+          font-size: 11px;
+          color: var(--pos-forest-muted);
+          font-family: ui-monospace, monospace;
+          display: inline-flex;
+          align-items: center;
           gap: 6px;
+        }
+        .ticket-chip--muted {
+          font-size: 10px;
+          opacity: 0.9;
+        }
+
+        .ticket-empty {
+          padding: 28px 16px;
+          text-align: center;
+          color: #94a3b8;
+          font-size: 13px;
+          line-height: 1.5;
+        }
+        .ticket-empty-icon {
+          font-size: 28px;
+          display: block;
+          margin-bottom: 10px;
+          opacity: 0.85;
+        }
+
+        .ticket-quick-actions {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+          padding: 12px 16px;
+          border-top: 1px solid rgba(26, 58, 52, 0.06);
+          background: #fff;
+        }
+        .ticket-quick-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 10px 8px;
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--pos-forest);
+          background: var(--pos-cream);
+          border: 1px solid rgba(26, 58, 52, 0.15);
+          border-radius: 8px;
+          cursor: pointer;
+          transition: background 0.2s, border-color 0.2s;
+        }
+        .ticket-quick-btn:hover {
+          background: #fff;
+          border-color: var(--pos-forest);
+        }
+        .ticket-quick-btn .anticon {
+          font-size: 14px;
         }
 
         /* Tab nav */
@@ -555,15 +790,15 @@ function POSBilling() {
         }
 
         .pos-tab-btn.active {
-          color: #8b5cf6;
-          border-bottom-color: #8b5cf6;
-          background: rgba(139,92,246,0.05);
+          color: #1a3a34;
+          border-bottom-color: #1a3a34;
+          background: rgba(26, 58, 52, 0.06);
         }
 
         .pos-tab-btn:hover:not(.active) { color: #6b7280; background: rgba(0,0,0,0.02); }
 
         .tab-badge {
-          background: #8b5cf6;
+          background: var(--pos-forest);
           color: white;
           border-radius: 10px;
           font-size: 10px;
@@ -624,10 +859,10 @@ function POSBilling() {
         }
 
         .total-block {
-          background: linear-gradient(135deg, #f3e8ff, #ffffff);
-          border: 1px solid rgba(139,92,246,0.2);
-          border-radius: 14px;
-          padding: 16px 20px;
+          background: linear-gradient(135deg, #f5f0e4, #ffffff);
+          border: 1px solid rgba(26, 58, 52, 0.18);
+          border-radius: 12px;
+          padding: 14px 18px;
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -640,7 +875,7 @@ function POSBilling() {
           position: absolute;
           top: 0; left: 0; right: 0;
           height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(139,92,246,0.3), transparent);
+          background: linear-gradient(90deg, transparent, rgba(26, 58, 52, 0.2), transparent);
         }
 
         .total-label {
@@ -654,9 +889,9 @@ function POSBilling() {
 
         .total-amount {
           font-family: 'JetBrains Mono', ui-monospace, monospace;
-          font-size: 26px;
-          font-weight: 500;
-          color: #8b5cf6;
+          font-size: 24px;
+          font-weight: 700;
+          color: var(--pos-forest);
           letter-spacing: -0.02em;
         }
 
@@ -701,57 +936,65 @@ function POSBilling() {
         /* Action buttons */
         .action-row {
           display: flex;
+          flex-direction: column;
           gap: 10px;
           margin-top: 14px;
         }
 
         .btn-print {
-          flex: 0 0 auto;
-          height: 44px;
-          border-radius: 12px;
+          width: 100%;
+          height: 40px;
+          border-radius: 10px;
           background: #ffffff;
-          border: 1px solid #e5e7eb;
-          color: #6b7280;
+          border: 1px solid rgba(26, 58, 52, 0.18);
+          color: var(--pos-forest-muted);
           font-family: 'Inter', system-ui, sans-serif;
           font-weight: 600;
           cursor: pointer;
           padding: 0 18px;
           display: flex;
           align-items: center;
+          justify-content: center;
           gap: 8px;
           transition: all 0.2s;
           font-size: 13px;
         }
 
-        .btn-print:hover:not(:disabled) { border-color: #d1d5db; color: #374151; background: #f9fafb; }
+        .btn-print:hover:not(:disabled) { border-color: var(--pos-forest); color: var(--pos-forest); background: rgba(26, 58, 52, 0.04); }
         .btn-print:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        .btn-invoice {
-          flex: 1;
-          height: 44px;
-          border-radius: 12px;
-          background: linear-gradient(135deg, #8b5cf6, #a855f7);
+        .btn-charge {
+          width: 100%;
+          min-height: 52px;
+          border-radius: 10px;
+          background: var(--pos-forest);
           border: none;
-          color: white;
+          color: #fff;
           font-family: 'Inter', system-ui, sans-serif;
           font-weight: 700;
-          font-size: 13px;
-          letter-spacing: 0.04em;
+          font-size: 15px;
+          letter-spacing: 0.02em;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
+          gap: 10px;
           transition: all 0.2s;
-          box-shadow: 0 4px 16px rgba(139,92,246,0.3);
+          box-shadow: 0 6px 20px rgba(26, 58, 52, 0.28);
         }
 
-        .btn-invoice:hover:not(:disabled) {
-          box-shadow: 0 6px 24px rgba(139,92,246,0.45);
+        .btn-charge:hover:not(:disabled) {
+          filter: brightness(1.06);
           transform: translateY(-1px);
         }
 
-        .btn-invoice:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-charge:disabled {
+          opacity: 0.45;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+        }
+        .btn-charge .ant-spin-dot-item { background: #fff !important; }
 
         .notes-area textarea {
           background: #ffffff !important;
@@ -793,10 +1036,10 @@ function POSBilling() {
         .pay-btn .pay-icon { font-size: 22px; transition: all 0.25s; }
 
         .pay-btn.active {
-          border-color: rgba(59,130,246,0.4);
-          background: rgba(59,130,246,0.05);
-          color: #3b82f6;
-          box-shadow: 0 0 16px rgba(59,130,246,0.12);
+          border-color: rgba(26, 58, 52, 0.45);
+          background: rgba(26, 58, 52, 0.06);
+          color: var(--pos-forest);
+          box-shadow: 0 0 16px rgba(26, 58, 52, 0.12);
         }
 
         .pay-btn:hover:not(.active) { border-color: #d1d5db; color: #6b7280; background: #f9fafb; }
@@ -850,7 +1093,7 @@ function POSBilling() {
 
         /* Loading */
         .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 64px 32px; gap: 16px; }
-        .loading-state .ant-spin-dot-item { background: #3b82f6 !important; }
+        .loading-state .ant-spin-dot-item { background: var(--pos-forest) !important; }
 
         /* Empty */
         .dark-empty .ant-empty-image { opacity: 0.3; }
@@ -858,28 +1101,10 @@ function POSBilling() {
 
         /* InputNumber in cart */
         .ant-input-number-input { font-family: 'JetBrains Mono', ui-monospace, monospace !important; }
-      `}</style>
-
-      <div className="no-print">
-        <PageHeader
-          ghost
-          title={<span style={{ fontFamily: 'Inter, system-ui, sans-serif', color: '#111827' }}>Create Invoice</span>}
-          subTitle={<span style={{ color: '#6b7280' }}>Point of Sale · Pharmacy Billing</span>}
-          buttons={[
-            <Button
-              key="refresh"
-              icon={<ReloadOutlined />}
-              onClick={fetchInitialData}
-              style={{ background: '#ffffff', borderColor: '#e5e7eb', color: '#374151', borderRadius: 10 }}
-            >
-              Refresh
-            </Button>
-          ]}
-        />
-      </div>
+      `}      </style>
 
       <Main className="pos-root">
-        <Row gutter={20} style={{ alignItems: 'stretch' }}>
+        <Row gutter={20} style={{ alignItems: 'flex-start' }}>
 
           {/* ── LEFT: Catalog ── */}
           <Col xs={24} lg={14}>
@@ -887,38 +1112,55 @@ function POSBilling() {
               <div className="catalog-header">
                 <div className="catalog-title">
                   <span className="catalog-title-dot" />
-                  Medicines Catalog
+                  Catalog
                 </div>
+              </div>
+              <div className="catalog-toolbar">
                 <Search
-                  className="search-dark"
-                  placeholder="Search name, batch, supplier…"
+                  className="search-tea"
+                  placeholder="Search by name, SKU or batch…"
                   allowClear
-                  prefix={<SearchOutlined style={{ color: '#9ca3af' }} />}
+                  prefix={<SearchOutlined style={{ color: '#64748b' }} />}
                   onSearch={handleSearch}
                   onChange={e => handleSearch(e.target.value)}
-                  style={{ width: 260 }}
                 />
+                <div className="catalog-toolbar-actions">
+                  <Button className="btn-tea-outline" icon={<PauseCircleOutlined />} onClick={holdCart}>
+                    Hold
+                  </Button>
+                  <Button className="btn-tea-outline" icon={<PlayCircleOutlined />} onClick={resumeCart}>
+                    Resume
+                  </Button>
+                </div>
+              </div>
+              <div className="category-chips">
+                {categoryOptions.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    className={`category-chip${activeCategory === c ? ' active' : ''}`}
+                    onClick={() => setActiveCategory(c)}
+                  >
+                    {c}
+                  </button>
+                ))}
               </div>
 
               {loading ? (
                 <div className="loading-state">
                   <Spin size="large" />
-                  <span style={{ color: '#9ca3af', fontSize: 13, fontFamily: 'JetBrains Mono, monospace' }}>Loading catalog…</span>
+                  <span className="loading-text">Loading catalog…</span>
                 </div>
               ) : filteredProducts.length === 0 ? (
-                <div style={{ padding: 40 }}>
-                  <Empty className="dark-empty" description="No products found" />
+                <div className="pos-catalog-empty">
+                  <Empty description="No products found" />
+                </div>
+              ) : displayedProducts.length === 0 ? (
+                <div className="pos-catalog-empty">
+                  <Empty description="No products in this category" />
                 </div>
               ) : (
-                <Table
-                  className="dark-table"
-                  columns={productColumns}
-                  dataSource={filteredProducts}
-                  rowKey={record => getEntityId(record)}
-                  size="small"
-                  pagination={{ pageSize: 10, showSizeChanger: false, showTotal: total => `${total} products` }}
-                  scroll={{ y: 500 }}
-                />
+                <div className="pos-product-grid">{displayedProducts.map(renderProductCard)}</div>
               )}
             </div>
           </Col>
@@ -927,31 +1169,36 @@ function POSBilling() {
           <Col xs={24} lg={10}>
             <div className="billing-panel">
 
-              {/* Header */}
-              <div className="billing-header">
-                <div>
-                  <div className="billing-header-title">Billing Dashboard</div>
-                  <div
-                    style={{
-                      marginTop: 8,
-                      fontSize: 13,
-                      color: '#4b5563',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                    }}
-                  >
-                    <UserOutlined style={{ color: '#8b5cf6' }} />
-                    <span>
-                      <strong style={{ color: '#6b7280', fontWeight: 600 }}>Customer:</strong>{' '}
-                      {cashierName}
-                    </span>
-                  </div>
+              <div className="ticket-header">
+                <div className="ticket-header-title">The Ticket</div>
+                <button type="button" className="ticket-clear-btn" onClick={clearTicket}>
+                  Clear
+                </button>
+              </div>
+
+              <div className="ticket-customer-row">
+                <div className="ticket-customer-label">
+                  <UserOutlined />
+                  <span>
+                    <strong>Customer:</strong> {customerName}
+                  </span>
                 </div>
-                <div className="inv-chips">
-                  <div className="inv-chip"><FileTextOutlined />{invoiceNumber}</div>
-                  <div className="inv-chip"><TagOutlined />{poNumber}</div>
-                </div>
+                <button
+                  type="button"
+                  className="ticket-change-btn"
+                  onClick={() => {
+                    setCustomerDraft(customerName);
+                    setCustomerModalOpen(true);
+                  }}
+                >
+                  Change
+                </button>
+              </div>
+
+              <div className="ticket-meta-chips">
+                <span className="ticket-chip"><FileTextOutlined />{invoiceNumber}</span>
+                <span className="ticket-chip"><TagOutlined />{poNumber}</span>
+                <span className="ticket-chip ticket-chip--muted">Cashier: {login?.name || 'Staff'}</span>
               </div>
 
               {/* Tab Nav */}
@@ -984,7 +1231,14 @@ function POSBilling() {
                       pagination={false}
                       rowKey="key"
                       size="small"
-                      locale={{ emptyText: <span style={{ color: '#e5e7eb', fontSize: 12 }}>Cart is empty — add products from the catalog</span> }}
+                      locale={{
+                        emptyText: (
+                          <div className="ticket-empty">
+                            <span className="ticket-empty-icon" aria-hidden>🍃</span>
+                            <p>Empty ticket. Tap a product to begin.</p>
+                          </div>
+                        ),
+                      }}
                     />
                   </div>
                 )}
@@ -1040,6 +1294,32 @@ function POSBilling() {
                     </div>
                   </div>
                 )}
+              </div>
+
+              <div className="ticket-quick-actions">
+                <button type="button" className="ticket-quick-btn" onClick={() => document.querySelector('.disc-input input')?.focus()}>
+                  <FallOutlined />
+                  Discount
+                </button>
+                <button type="button" className="ticket-quick-btn" onClick={() => setActiveTab('payment')}>
+                  <EditOutlined />
+                  Notes
+                </button>
+                <button type="button" className="ticket-quick-btn" onClick={() => message.info('Split payment — coming soon')}>
+                  <ColumnWidthOutlined />
+                  Split Pay
+                </button>
+                <button
+                  type="button"
+                  className="ticket-quick-btn"
+                  onClick={() => {
+                    setPaymentMode('cash');
+                    setActiveTab('payment');
+                  }}
+                >
+                  <DollarOutlined />
+                  Payment
+                </button>
               </div>
 
               {/* Summary */}
@@ -1107,18 +1387,36 @@ function POSBilling() {
 </button>
 <button
   type="button"
-  className="btn-invoice"
+  className="btn-charge"
   onClick={createBilling}
   disabled={!rows.length || saving}
 >
-  {saving ? <Spin size="small" style={{ filter: 'brightness(0)' }} /> : <SaveOutlined />}
-  {saving ? 'Creating…' : 'Create Invoice'}
+  {saving ? <Spin size="small" /> : null}
+  {saving ? 'Processing…' : `Charge — ${formatPkr(totals.net)}`}
 </button>
                 </div>
               </div>
             </div>
           </Col>
         </Row>
+
+        <Modal
+          title="Customer"
+          open={customerModalOpen}
+          onOk={() => {
+            setCustomerName((customerDraft || '').trim() || 'Walk-in');
+            setCustomerModalOpen(false);
+          }}
+          onCancel={() => setCustomerModalOpen(false)}
+          okText="Save"
+          cancelText="Cancel"
+        >
+          <Input
+            value={customerDraft}
+            onChange={(e) => setCustomerDraft(e.target.value)}
+            placeholder="Walk-in or customer name"
+          />
+        </Modal>
 
         {/* Invoice Modal */}
         <Modal
@@ -1129,7 +1427,7 @@ function POSBilling() {
           width={760}
           footer={[
             <Button key="print" type="primary" onClick={printInvoice} icon={<PrinterOutlined />}
-              style={{ background: 'linear-gradient(135deg, #8b5cf6, #a855f7)', borderColor: 'transparent', borderRadius: 10 }}>
+              style={{ background: '#1a3a34', borderColor: 'transparent', borderRadius: 10 }}>
               Print Invoice
             </Button>,
             <Button key="close" onClick={() => setInvoice(null)}
@@ -1168,7 +1466,7 @@ function POSBilling() {
                   { title: 'ITEM', dataIndex: 'product_name', key: 'product_name', render: v => <span style={{ color: '#374151' }}>{v}</span> },
                   { title: 'QTY', dataIndex: 'quantity', key: 'quantity', align: 'center', width: 60, render: v => <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#6b7280' }}>{v}</span> },
                   { title: 'PRICE', dataIndex: 'unit_price', key: 'unit_price', align: 'right', width: 100, render: v => <span style={{ color: '#3b82f6', fontFamily: 'JetBrains Mono, monospace' }}>PKR {Number(v).toFixed(2)}</span> },
-                  { title: 'TOTAL', dataIndex: 'line_total', key: 'line_total', align: 'right', width: 100, render: v => <span style={{ color: '#8b5cf6', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700 }}>PKR {Number(v).toFixed(2)}</span> },
+                  { title: 'TOTAL', dataIndex: 'line_total', key: 'line_total', align: 'right', width: 100, render: v => <span style={{ color: '#1a3a34', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700 }}>PKR {Number(v).toFixed(2)}</span> },
                 ]}
               />
 
@@ -1183,7 +1481,7 @@ function POSBilling() {
                   <div style={{ height: 1, background: '#e5e7eb', margin: '10px 0' }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0' }}>
                     <span style={{ color: '#111827', fontWeight: 700, fontFamily: 'Inter, system-ui, sans-serif' }}>Total</span>
-                    <span style={{ color: '#8b5cf6', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, fontSize: 18 }}>PKR {Number(invoice.net_amount || 0).toFixed(2)}</span>
+                    <span style={{ color: '#1a3a34', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, fontSize: 18 }}>PKR {Number(invoice.net_amount || 0).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
