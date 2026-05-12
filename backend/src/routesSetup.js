@@ -46,4 +46,7 @@ module.exports = function setupRoutes(app) {
   app.use('/api/returns', returnRoutes);
   app.use('/api/suppliers', supplierRoutes);
   app.use('/api/purchaseOrders', purchaseOrderRoutes);
+
+  const printRoutes = require('./routes/printRoutes');
+  app.use('/api/print', printRoutes);
 };
