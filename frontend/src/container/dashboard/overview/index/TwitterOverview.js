@@ -116,7 +116,7 @@ function TwitterOverview() {
   };
 
   const lineChartPointStyle = {
-    borderColor: '#C6D0DC',
+    borderColor: '#D1D5DB',
     borderWidth: 2,
     fill: false,
     pointRadius: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6],

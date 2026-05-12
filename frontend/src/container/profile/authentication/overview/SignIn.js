@@ -4,7 +4,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import {
   AidLoginPage,
   AidLoginCard,
-  AidLoginCardTop,
   AidLoginCardBody,
 } from './style';
 import { loginUser } from '../../../../redux/authentication/authSlice';
@@ -24,15 +23,14 @@ const SignIn = () => {
 
   return (
     <AidLoginPage>
+      <div className="aid-page-logo">
+        <img src={logoSrc} alt="Aid+" />
+      </div>
+
       <AidLoginCard>
-        <AidLoginCardTop aria-hidden />
         <AidLoginCardBody>
-          <div className="aid-logo-wrap">
-            <img src={logoSrc} alt="" />
-          </div>
-          <div className="aid-brand-name">Aid+ Pharmacy Management System</div>
           <h2 className="aid-welcome-title">Welcome back</h2>
-          <p className="aid-welcome-sub">Please enter your details to sign in</p>
+          <p className="aid-welcome-sub">Sign in to your account to continue</p>
 
           <Form
             name="login"
@@ -44,7 +42,7 @@ const SignIn = () => {
             <Form.Item
               name="username"
               rules={[{ required: true, message: 'Please input your email!' }]}
-              label="Your Email Address"
+              label="Email"
             >
               <Input placeholder="name@company.com" autoComplete="email" />
             </Form.Item>

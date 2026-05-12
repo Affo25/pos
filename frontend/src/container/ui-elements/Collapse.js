@@ -29,7 +29,7 @@ function Collapses() {
   };
 
   const customPanelStyle = {
-    background: '#F8F9FB',
+    background: '#F9FAFB',
     borderRadius: 3,
     marginBottom: 20,
     border: 0,

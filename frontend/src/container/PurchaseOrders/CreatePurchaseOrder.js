@@ -27,6 +27,7 @@ import {
 } from '../../redux/purchaseorders/purchaseorderSlice';
 import { BasicFormWrapper } from '../../config/default/styled';
 import { ProcurementFormStyles } from '../shared/procurementScreenStyles';
+import ModernModalStyles from '../shared/modalStyles';
 import { fetchAllSuppliers } from '../../redux/suppliers/supplierSlice';
 import { fetchAllProducts } from '../../redux/products/productSlice';
 
@@ -170,11 +171,13 @@ function CreatePurchaseOrder({ visible, onCancel, purchaseorder, onSuccess }) {
   ];
 
   return (
+    <>
+    <ModernModalStyles />
     <Modal
-      type="primary"
       title={purchaseorder ? 'Edit Purchase Order' : 'Create Purchase Order'}
       visible={visible}
       onCancel={onCancel}
+      className="modern-modal"
       width={1200}
       footer={[
         <Button key="cancel" onClick={onCancel}>
@@ -308,6 +311,7 @@ function CreatePurchaseOrder({ visible, onCancel, purchaseorder, onSuccess }) {
         </BasicFormWrapper>
       </ProcurementFormStyles>
     </Modal>
+    </>
   );
 }
 

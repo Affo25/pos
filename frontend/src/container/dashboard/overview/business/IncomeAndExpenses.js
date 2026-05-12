@@ -63,15 +63,15 @@ function IncomeAndExpenses() {
   const incomeDataset = incomeState !== null && [
     {
       data: incomeState.total[1],
-      backgroundColor: '#5F63F250',
-      hoverBackgroundColor: '#5F63F2',
+      backgroundColor: '#2D314250',
+      hoverBackgroundColor: '#2D3142',
       label: 'Total Income',
       barPercentage: 0.6,
     },
     {
       data: incomeState.sale[1],
-      backgroundColor: '#FF69A550',
-      hoverBackgroundColor: '#FF69A5',
+      backgroundColor: '#6B728050',
+      hoverBackgroundColor: '#6B7280',
       label: 'Cost of goods sold',
       barPercentage: 0.6,
     },

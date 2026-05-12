@@ -21,7 +21,7 @@ function LatestSales({ sales }) {
       title: 'Invoice No',
       dataIndex: 'invoice_no',
       key: 'invoice_no',
-      render: (text) => <span style={{ color: '#5F63F2', fontWeight: 500 }}>{text}</span>,
+      render: (text) => <span style={{ color: '#2D3142', fontWeight: 500 }}>{text}</span>,
     },
     {
       title: 'Customer',

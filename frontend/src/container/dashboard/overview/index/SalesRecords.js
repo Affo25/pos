@@ -24,11 +24,11 @@ function SalesRecords({ sales }) {
               alignItems: 'center',
               marginRight: '15px'
             }}>
-              <FeatherIcon icon="shopping-cart" size={24} style={{ color: '#5F63F2' }} />
+              <FeatherIcon icon="shopping-cart" size={24} style={{ color: '#2D3142' }} />
             </div>
             <div>
               <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>{totalSales}</h1>
-              <p style={{ margin: 0, color: '#868EAE' }}>Total Sales</p>
+              <p style={{ margin: 0, color: '#9CA3AF' }}>Total Sales</p>
             </div>
           </div>
         </Col>
@@ -48,7 +48,7 @@ function SalesRecords({ sales }) {
             </div>
             <div>
               <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>${totalRevenue.toLocaleString()}</h1>
-              <p style={{ margin: 0, color: '#868EAE' }}>Total Revenue</p>
+              <p style={{ margin: 0, color: '#9CA3AF' }}>Total Revenue</p>
             </div>
           </div>
         </Col>
@@ -68,7 +68,7 @@ function SalesRecords({ sales }) {
             </div>
             <div>
               <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>${totalDiscount.toLocaleString()}</h1>
-              <p style={{ margin: 0, color: '#868EAE' }}>Total Discount</p>
+              <p style={{ margin: 0, color: '#9CA3AF' }}>Total Discount</p>
             </div>
           </div>
         </Col>
@@ -88,7 +88,7 @@ function SalesRecords({ sales }) {
             </div>
             <div>
               <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>${totalTax.toLocaleString()}</h1>
-              <p style={{ margin: 0, color: '#868EAE' }}>Total Tax</p>
+              <p style={{ margin: 0, color: '#9CA3AF' }}>Total Tax</p>
             </div>
           </div>
         </Col>

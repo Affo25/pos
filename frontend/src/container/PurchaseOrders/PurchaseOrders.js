@@ -3,7 +3,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Row, Col, Menu, message, Dropdown, Select, Tag } from 'antd';
+import { Row, Col, Input, message, Select, Tag } from 'antd';
 import {
   ShoppingOutlined,
   ClockCircleOutlined,
@@ -12,16 +12,15 @@ import {
   DeleteOutlined,
   FileExcelOutlined,
   FilePdfOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
-import { Link } from 'react-router-dom';
 import FeatherIcon from 'feather-icons-react';
 import { useHistory } from 'react-router-dom/cjs/react-router-dom.min';
 import CreatePurchaseOrder from './CreatePurchaseOrder';
-import { AutoComplete } from '../../components/autoComplete/autoComplete';
 import { Button } from '../../components/buttons/buttons';
 import { PageHeader } from '../../components/page-headers/page-headers';
 import ProjectLists from '../../config/default/List';
-import { ProjectHeader, ProjectSorting } from '../../config/default/style';
+import { ProjectHeader } from '../../config/default/style';
 import { Main } from '../../config/default/styled';
 import { deletePurchaseOrder, fetchAllPurchaseOrders } from '../../redux/purchaseorders/purchaseorderSlice';
 import { getComponentPermissions } from '../../config/utils/permission';
@@ -179,30 +178,10 @@ function PurchaseOrders() {
             </Tag>
           ),
           action: (
-            <Dropdown
-              overlay={
-                <Menu className="custom-dropdown-menu">
-                  <Menu.Item disabled={!canEdit} key="edit" className="custom-menu-item" onClick={() => handleEdit(purchaseorder)}>
-                    <div className="custom-action-btn edit-btn">
-                      <EditOutlined className="action-icon" />
-                      <span className="action-label">Edit</span>
-                    </div>
-                  </Menu.Item>
-                  <Menu.Item disabled={!canDelete} key="delete" className="custom-menu-item" onClick={() => handleDelete(_id || id)}>
-                    <div className="custom-action-btn delete-btn">
-                      <DeleteOutlined className="action-icon" />
-                      <span className="action-label">Delete</span>
-                    </div>
-                  </Menu.Item>
-                </Menu>
-              }
-              trigger={['click']}
-              overlayClassName="custom-dropdown-overlay"
-            >
-              <Link to="#" className="text-dark dropdown-trigger">
-                <FeatherIcon icon="more-horizontal" size={18} />
-              </Link>
-            </Dropdown>
+            <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+              <button type="button" disabled={!canEdit} onClick={() => handleEdit(purchaseorder)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid #E5E7EB', background: '#fff', cursor: 'pointer', color: '#2D3142' }} title="Edit"><EditOutlined style={{ fontSize: 14 }} /></button>
+              <button type="button" disabled={!canDelete} onClick={() => handleDelete(_id || id)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid #FEE2E2', background: '#FEF2F2', cursor: 'pointer', color: '#EF4444' }} title="Delete"><DeleteOutlined style={{ fontSize: 14 }} /></button>
+            </div>
           ),
         };
       });
@@ -336,7 +315,7 @@ function PurchaseOrders() {
       title: '',
       dataIndex: 'action',
       key: 'action',
-      width: 56,
+      width: 88,
       align: 'center',
       fixed: 'right',
     },
@@ -404,31 +383,21 @@ function PurchaseOrders() {
               </div>
             </div>
 
-            <div className="toolbar-card">
-              <ProjectSorting>
-                <div className="project-sort-bar">
-                  <div className="project-sort-search">
-                    <AutoComplete
-                      onSearch={handleSearch}
-                      dataSource={notData}
-                      placeholder="Search by order # or status"
-                      patterns
-                    />
-                  </div>
-                  <div className="sort-group">
-                    <span style={{ display: 'flex', alignItems: 'center' }}>Status</span>
-                    <Select defaultValue="all" onChange={(value) => setSortStatus(value)} style={{ minWidth: 140 }}>
-                      <Select.Option value="all">All</Select.Option>
-                      <Select.Option value="pending">Pending</Select.Option>
-                      <Select.Option value="received">Received</Select.Option>
-                      <Select.Option value="cancelled">Cancelled</Select.Option>
-                    </Select>
-                  </div>
-                </div>
-              </ProjectSorting>
-            </div>
-
             <div className="table-shell">
+              <div className="table-toolbar">
+                <div className="table-toolbar__search">
+                  <Input prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />} placeholder="Search by order # or status" allowClear onChange={(e) => handleSearch(e.target.value)} />
+                </div>
+                <div className="table-toolbar__filters">
+                  <span className="table-toolbar__label">Status</span>
+                  <Select defaultValue="all" onChange={(value) => setSortStatus(value)} style={{ minWidth: 140 }}>
+                    <Select.Option value="all">All</Select.Option>
+                    <Select.Option value="pending">Pending</Select.Option>
+                    <Select.Option value="received">Received</Select.Option>
+                    <Select.Option value="cancelled">Cancelled</Select.Option>
+                  </Select>
+                </div>
+              </div>
               <ProjectLists
                 columns={columns}
                 dataSource={dataSource}

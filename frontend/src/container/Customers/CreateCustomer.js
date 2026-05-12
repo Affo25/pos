@@ -8,6 +8,7 @@ import { Modal } from '../../components/modals/antd-modals';
 import { Button } from '../../components/buttons/buttons';
 import { createCustomer, updateCustomer } from '../../redux/customers/customerSlice';
 import { BasicFormWrapper } from '../../config/default/styled';
+import ModernModalStyles from '../shared/modalStyles';
 
 function CreateCustomer({ visible, onCancel, customer, onSuccess }) {
   const [form] = Form.useForm();
@@ -65,55 +66,58 @@ function CreateCustomer({ visible, onCancel, customer, onSuccess }) {
   };
 
   return (
-    <Modal
-      type="primary"
-      title={customer ? 'Edit Customer' : 'Create Customer'}
-      visible={visible}
-      onCancel={handleCancel}
-      footer={[
-        <Button key="1" type="primary" onClick={handleOk}>
-          {customer ? 'Update' : 'Save'}
-        </Button>,
-      ]}
-    >
-      <BasicFormWrapper>
-        <Form form={form} layout="vertical">
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="name"
-                label="Name"
-                rules={[{ required: true, message: 'Name is required' }]}
-              >
-                <Input placeholder="Enter name" />
-              </Form.Item>
-            </Col>
+    <>
+      <ModernModalStyles />
+      <Modal
+        className="modern-modal"
+        title={customer ? 'Edit Customer' : 'Create Customer'}
+        visible={visible}
+        onCancel={handleCancel}
+        footer={[
+          <Button key="1" type="primary" onClick={handleOk}>
+            {customer ? 'Update' : 'Save'}
+          </Button>,
+        ]}
+      >
+        <BasicFormWrapper>
+          <Form form={form} layout="vertical">
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="name"
+                  label="Name"
+                  rules={[{ required: true, message: 'Name is required' }]}
+                >
+                  <Input placeholder="Enter name" />
+                </Form.Item>
+              </Col>
 
-            <Col span={12}>
-              <Form.Item name="email" label="Email">
-                <Input placeholder="Enter email" />
-              </Form.Item>
-            </Col>
+              <Col span={12}>
+                <Form.Item name="email" label="Email">
+                  <Input placeholder="Enter email" />
+                </Form.Item>
+              </Col>
 
-            <Col span={12}>
-              <Form.Item
-                name="phone"
-                label="Phone"
-                rules={[{ required: true, message: 'Phone is required' }]}
-              >
-                <Input placeholder="Enter phone number" />
-              </Form.Item>
-            </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="phone"
+                  label="Phone"
+                  rules={[{ required: true, message: 'Phone is required' }]}
+                >
+                  <Input placeholder="Enter phone number" />
+                </Form.Item>
+              </Col>
 
-            <Col span={12}>
-              <Form.Item name="address" label="Address">
-                <Input placeholder="Enter address" />
-              </Form.Item>
-            </Col>
-          </Row>
-        </Form>
-      </BasicFormWrapper>
-    </Modal>
+              <Col span={12}>
+                <Form.Item name="address" label="Address">
+                  <Input placeholder="Enter address" />
+                </Form.Item>
+              </Col>
+            </Row>
+          </Form>
+        </BasicFormWrapper>
+      </Modal>
+    </>
   );
 }
 

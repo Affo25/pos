@@ -241,7 +241,7 @@ const RightAsideWrapper = Styled.div`
                 cursor: pointer;
 
                 &:hover{
-                    box-shadow: 0 15px 50px #9299B820;
+                    box-shadow: 0 15px 50px #9CA3AF20;
                 }
 
                 div{

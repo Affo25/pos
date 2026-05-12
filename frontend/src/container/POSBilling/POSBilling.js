@@ -410,7 +410,7 @@ function POSBilling() {
       width: 90,
       align: 'right',
       render: (_, row) => (
-        <span style={{ color: '#1a3a34', fontWeight: 700, fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 13 }}>
+        <span style={{ color: '#2D3142', fontWeight: 700, fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 13 }}>
           PKR {(Number(row.quantity || 0) * Number(row.unit_price || 0)).toFixed(0)}
         </span>
       ),
@@ -439,10 +439,10 @@ function POSBilling() {
         .print-only { display: none; }
 
         .pos-root {
-          --pos-cream: #fdfcf0;
-          --pos-cream-deep: #f5f0e4;
-          --pos-forest: #1a3a34;
-          --pos-forest-muted: rgba(26, 58, 52, 0.65);
+          --pos-cream: #F9FAFB;
+          --pos-cream-deep: #F3F4F6;
+          --pos-forest: #2D3142;
+          --pos-forest-muted: rgba(0, 0, 0, 0.55);
           background: var(--pos-cream);
           min-height: 100vh;
           padding: 0 12px 20px !important;
@@ -457,17 +457,17 @@ function POSBilling() {
         /* Left panel */
         .catalog-panel {
           background: #ffffff;
-          border: 1px solid rgba(26, 58, 52, 0.12);
+          border: 1px solid rgba(0, 0, 0, 0.12);
           border-radius: 12px;
           overflow: hidden;
           width: 100%;
-          box-shadow: 0 2px 12px rgba(26, 58, 52, 0.06);
+          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
         }
 
         .catalog-header {
           padding: 16px 20px 12px;
-          border-bottom: 1px solid rgba(26, 58, 52, 0.08);
-          background: linear-gradient(180deg, #fffefb 0%, #fdfcf0 100%);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+          background: linear-gradient(180deg, #ffffff 0%, #F9FAFB 100%);
         }
 
         .catalog-title {
@@ -495,7 +495,7 @@ function POSBilling() {
           padding: 12px 16px 10px;
           flex-wrap: wrap;
           background: #fff;
-          border-bottom: 1px solid rgba(26, 58, 52, 0.06);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
         }
         .catalog-toolbar .search-tea {
           flex: 1;
@@ -508,7 +508,7 @@ function POSBilling() {
         }
         .btn-tea-outline {
           border-radius: 8px !important;
-          border-color: rgba(26, 58, 52, 0.25) !important;
+          border-color: rgba(0, 0, 0, 0.25) !important;
           color: var(--pos-forest) !important;
           font-weight: 600 !important;
           background: #fff !important;
@@ -524,10 +524,10 @@ function POSBilling() {
           gap: 8px;
           padding: 10px 16px 12px;
           background: var(--pos-cream-deep);
-          border-bottom: 1px solid rgba(26, 58, 52, 0.06);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
         }
         .category-chip {
-          border: 1px solid rgba(26, 58, 52, 0.2);
+          border: 1px solid rgba(0, 0, 0, 0.2);
           background: #fff;
           color: var(--pos-forest-muted);
           border-radius: 999px;
@@ -568,7 +568,7 @@ function POSBilling() {
           align-items: stretch;
           text-align: left;
           background: #fff;
-          border: 1px solid rgba(26, 58, 52, 0.12);
+          border: 1px solid rgba(0, 0, 0, 0.12);
           border-radius: 8px;
           padding: 12px 14px;
           min-height: 104px;
@@ -577,8 +577,8 @@ function POSBilling() {
           font-family: inherit;
         }
         .pos-product-card:hover:not(:disabled) {
-          border-color: rgba(26, 58, 52, 0.35);
-          box-shadow: 0 4px 14px rgba(26, 58, 52, 0.1);
+          border-color: rgba(0, 0, 0, 0.35);
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
         }
         .pos-product-card.is-disabled {
           opacity: 0.5;
@@ -645,7 +645,7 @@ function POSBilling() {
         .search-tea input::placeholder { color: #94a3b8 !important; }
         .search-tea .ant-input-search-button {
           background: #ffffff !important;
-          border-color: rgba(26, 58, 52, 0.18) !important;
+          border-color: rgba(0, 0, 0, 0.18) !important;
           color: var(--pos-forest) !important;
           border-radius: 0 10px 10px 0 !important;
         }
@@ -701,13 +701,13 @@ function POSBilling() {
 
         /* Right panel — The Ticket */
         .billing-panel {
-          background: #fffefb;
-          border: 1px solid rgba(26, 58, 52, 0.12);
+          background: #ffffff;
+          border: 1px solid rgba(0, 0, 0, 0.12);
           border-radius: 12px;
           overflow: hidden;
           display: flex;
           flex-direction: column;
-          box-shadow: 0 2px 14px rgba(26, 58, 52, 0.07);
+          box-shadow: 0 2px 14px rgba(0, 0, 0, 0.07);
           min-height: 520px;
         }
 
@@ -716,8 +716,8 @@ function POSBilling() {
           align-items: center;
           justify-content: space-between;
           padding: 16px 18px 10px;
-          border-bottom: 1px solid rgba(26, 58, 52, 0.08);
-          background: linear-gradient(180deg, #fffefb 0%, #fdfcf0 100%);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+          background: linear-gradient(180deg, #ffffff 0%, #F9FAFB 100%);
         }
         .ticket-header-title {
           font-size: 18px;
@@ -737,7 +737,7 @@ function POSBilling() {
         }
         .ticket-clear-btn:hover {
           color: var(--pos-forest);
-          background: rgba(26, 58, 52, 0.06);
+          background: rgba(0, 0, 0, 0.06);
         }
 
         .ticket-customer-row {
@@ -746,7 +746,7 @@ function POSBilling() {
           justify-content: space-between;
           padding: 10px 18px;
           gap: 12px;
-          border-bottom: 1px solid rgba(26, 58, 52, 0.06);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
           background: #fff;
         }
         .ticket-customer-label {
@@ -760,7 +760,7 @@ function POSBilling() {
           color: var(--pos-forest);
         }
         .ticket-change-btn {
-          border: 1px solid rgba(26, 58, 52, 0.25);
+          border: 1px solid rgba(0, 0, 0, 0.25);
           background: #fff;
           color: var(--pos-forest);
           font-size: 12px;
@@ -771,7 +771,7 @@ function POSBilling() {
         }
         .ticket-change-btn:hover {
           border-color: var(--pos-forest);
-          background: rgba(26, 58, 52, 0.04);
+          background: rgba(0, 0, 0, 0.04);
         }
 
         .ticket-meta-chips {
@@ -780,11 +780,11 @@ function POSBilling() {
           gap: 8px;
           padding: 10px 18px;
           background: var(--pos-cream-deep);
-          border-bottom: 1px solid rgba(26, 58, 52, 0.06);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
         }
         .ticket-chip {
           background: #fff;
-          border: 1px solid rgba(26, 58, 52, 0.12);
+          border: 1px solid rgba(0, 0, 0, 0.12);
           border-radius: 8px;
           padding: 4px 10px;
           font-size: 11px;
@@ -818,7 +818,7 @@ function POSBilling() {
           grid-template-columns: 1fr 1fr;
           gap: 8px;
           padding: 12px 16px;
-          border-top: 1px solid rgba(26, 58, 52, 0.06);
+          border-top: 1px solid rgba(0, 0, 0, 0.06);
           background: #fff;
         }
         .ticket-quick-btn {
@@ -831,7 +831,7 @@ function POSBilling() {
           font-weight: 600;
           color: var(--pos-forest);
           background: var(--pos-cream);
-          border: 1px solid rgba(26, 58, 52, 0.15);
+          border: 1px solid rgba(0, 0, 0, 0.15);
           border-radius: 8px;
           cursor: pointer;
           transition: background 0.2s, border-color 0.2s;
@@ -873,9 +873,9 @@ function POSBilling() {
         }
 
         .pos-tab-btn.active {
-          color: #1a3a34;
-          border-bottom-color: #1a3a34;
-          background: rgba(26, 58, 52, 0.06);
+          color: #2D3142;
+          border-bottom-color: #2D3142;
+          background: rgba(0, 0, 0, 0.06);
         }
 
         .pos-tab-btn:hover:not(.active) { color: #6b7280; background: rgba(0,0,0,0.02); }
@@ -942,8 +942,8 @@ function POSBilling() {
         }
 
         .total-block {
-          background: linear-gradient(135deg, #f5f0e4, #ffffff);
-          border: 1px solid rgba(26, 58, 52, 0.18);
+          background: linear-gradient(135deg, #F3F4F6, #ffffff);
+          border: 1px solid rgba(0, 0, 0, 0.18);
           border-radius: 12px;
           padding: 14px 18px;
           display: flex;
@@ -958,7 +958,7 @@ function POSBilling() {
           position: absolute;
           top: 0; left: 0; right: 0;
           height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(26, 58, 52, 0.2), transparent);
+          background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.2), transparent);
         }
 
         .total-label {
@@ -1029,7 +1029,7 @@ function POSBilling() {
           height: 40px;
           border-radius: 10px;
           background: #ffffff;
-          border: 1px solid rgba(26, 58, 52, 0.18);
+          border: 1px solid rgba(0, 0, 0, 0.18);
           color: var(--pos-forest-muted);
           font-family: 'Inter', system-ui, sans-serif;
           font-weight: 600;
@@ -1043,7 +1043,7 @@ function POSBilling() {
           font-size: 13px;
         }
 
-        .btn-print:hover:not(:disabled) { border-color: var(--pos-forest); color: var(--pos-forest); background: rgba(26, 58, 52, 0.04); }
+        .btn-print:hover:not(:disabled) { border-color: var(--pos-forest); color: var(--pos-forest); background: rgba(0, 0, 0, 0.04); }
         .btn-print:disabled { opacity: 0.4; cursor: not-allowed; }
 
         .btn-charge {
@@ -1063,7 +1063,7 @@ function POSBilling() {
           justify-content: center;
           gap: 10px;
           transition: all 0.2s;
-          box-shadow: 0 6px 20px rgba(26, 58, 52, 0.28);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
         }
 
         .btn-charge:hover:not(:disabled) {
@@ -1119,10 +1119,10 @@ function POSBilling() {
         .pay-btn .pay-icon { font-size: 22px; transition: all 0.25s; }
 
         .pay-btn.active {
-          border-color: rgba(26, 58, 52, 0.45);
-          background: rgba(26, 58, 52, 0.06);
+          border-color: rgba(0, 0, 0, 0.45);
+          background: rgba(0, 0, 0, 0.06);
           color: var(--pos-forest);
-          box-shadow: 0 0 16px rgba(26, 58, 52, 0.12);
+          box-shadow: 0 0 16px rgba(0, 0, 0, 0.12);
         }
 
         .pay-btn:hover:not(.active) { border-color: #d1d5db; color: #6b7280; background: #f9fafb; }
@@ -1520,11 +1520,11 @@ function POSBilling() {
           width={760}
           footer={[
             <Button key="print" type="primary" loading={printing} onClick={() => printInvoiceData(invoice)} icon={<PrinterOutlined />}
-              style={{ background: '#1a3a34', borderColor: 'transparent', borderRadius: 10 }}>
+              style={{ background: '#2D3142', borderColor: 'transparent', borderRadius: 10 }}>
               {selectedPrinter ? `Print → ${selectedPrinter}` : 'Print Invoice'}
             </Button>,
             <Button key="preview" onClick={() => previewInvoicePDF(invoice)} icon={<FileTextOutlined />}
-              style={{ borderColor: '#1a3a34', color: '#1a3a34', borderRadius: 10 }}>
+              style={{ borderColor: '#2D3142', color: '#2D3142', borderRadius: 10 }}>
               Preview PDF
             </Button>,
             <Button key="printer" onClick={openPrinterDialog}
@@ -1567,7 +1567,7 @@ function POSBilling() {
                   { title: 'ITEM', dataIndex: 'product_name', key: 'product_name', render: v => <span style={{ color: '#374151' }}>{v}</span> },
                   { title: 'QTY', dataIndex: 'quantity', key: 'quantity', align: 'center', width: 60, render: v => <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#6b7280' }}>{v}</span> },
                   { title: 'PRICE', dataIndex: 'unit_price', key: 'unit_price', align: 'right', width: 100, render: v => <span style={{ color: '#3b82f6', fontFamily: 'JetBrains Mono, monospace' }}>PKR {Number(v).toFixed(2)}</span> },
-                  { title: 'TOTAL', dataIndex: 'line_total', key: 'line_total', align: 'right', width: 100, render: v => <span style={{ color: '#1a3a34', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700 }}>PKR {Number(v).toFixed(2)}</span> },
+                  { title: 'TOTAL', dataIndex: 'line_total', key: 'line_total', align: 'right', width: 100, render: v => <span style={{ color: '#2D3142', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700 }}>PKR {Number(v).toFixed(2)}</span> },
                 ]}
               />
 
@@ -1582,7 +1582,7 @@ function POSBilling() {
                   <div style={{ height: 1, background: '#e5e7eb', margin: '10px 0' }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0' }}>
                     <span style={{ color: '#111827', fontWeight: 700, fontFamily: 'Inter, system-ui, sans-serif' }}>Total</span>
-                    <span style={{ color: '#1a3a34', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, fontSize: 18 }}>PKR {Number(invoice.net_amount || 0).toFixed(2)}</span>
+                    <span style={{ color: '#2D3142', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, fontSize: 18 }}>PKR {Number(invoice.net_amount || 0).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -1607,7 +1607,7 @@ function POSBilling() {
             </Button>,
             <Button key="ok" type="primary" disabled={!selectedPrinter}
               onClick={() => { localStorage.setItem('pos_printer', selectedPrinter); setPrinterModalOpen(false); message.success(`Printer set: ${selectedPrinter}`); }}
-              style={{ background: '#1a3a34', borderColor: 'transparent', borderRadius: 10 }}>
+              style={{ background: '#2D3142', borderColor: 'transparent', borderRadius: 10 }}>
               Connect
             </Button>,
           ]}
@@ -1628,23 +1628,23 @@ function POSBilling() {
                     onClick={() => setSelectedPrinter(p.name)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
-                      border: isSelected ? '2px solid #1a3a34' : '1px solid #e5e7eb',
+                      border: isSelected ? '2px solid #2D3142' : '1px solid #e5e7eb',
                       borderRadius: 10, background: isSelected ? '#f0fdf4' : '#fff',
                       cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
                     }}
                   >
-                    <PrinterOutlined style={{ fontSize: 22, color: isEpson ? '#1a3a34' : '#94a3b8' }} />
+                    <PrinterOutlined style={{ fontSize: 22, color: isEpson ? '#2D3142' : '#94a3b8' }} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 600, color: '#1e293b', fontSize: 14 }}>
                         {p.name}
-                        {isEpson && <span style={{ marginLeft: 8, fontSize: 10, background: '#1a3a34', color: '#fff', padding: '2px 6px', borderRadius: 4 }}>RECOMMENDED</span>}
+                        {isEpson && <span style={{ marginLeft: 8, fontSize: 10, background: '#2D3142', color: '#fff', padding: '2px 6px', borderRadius: 4 }}>RECOMMENDED</span>}
                       </div>
                       <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
                         {p.driver || 'Unknown driver'} · {p.status}
                         {p.port ? ` · ${p.port}` : ''}
                       </div>
                     </div>
-                    {isSelected && <span style={{ color: '#1a3a34', fontWeight: 700, fontSize: 18 }}>✓</span>}
+                    {isSelected && <span style={{ color: '#2D3142', fontWeight: 700, fontSize: 18 }}>✓</span>}
                   </button>
                 );
               })}
@@ -1652,7 +1652,7 @@ function POSBilling() {
           )}
           {selectedPrinter && (
             <div style={{ marginTop: 12, padding: '8px 12px', background: '#f8fafc', borderRadius: 8, fontSize: 12, color: '#64748b' }}>
-              Selected: <strong style={{ color: '#1a3a34' }}>{selectedPrinter}</strong>
+              Selected: <strong style={{ color: '#2D3142' }}>{selectedPrinter}</strong>
             </div>
           )}
         </Modal>

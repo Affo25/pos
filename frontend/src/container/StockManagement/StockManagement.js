@@ -19,7 +19,7 @@ import { Button } from '../../components/buttons/buttons';
 import { Main } from '../../config/default/styled';
 import { exportListToExcel, exportListToPdf } from '../../utils/listExport';
 import ProjectLists from '../../config/default/List';
-import { ProjectSorting } from '../../config/default/style';
+import ModernModalStyles from '../shared/modalStyles';
 import {
   KpiGrid,
   KpiCard,
@@ -677,10 +677,6 @@ function StockManagement() {
             <FilePdfOutlined style={{ marginRight: 8 }} />
             PDF
           </Button>,
-          <Button key="add" type="primary" size="default" onClick={handleAdd}>
-            <PlusOutlined style={{ marginRight: 8 }} />
-            Add Medicine
-          </Button>,
           <Button key="refresh" outlined type="primary" size="default" onClick={fetchReport}>
             <ReloadOutlined style={{ marginRight: 8 }} />
             Refresh
@@ -768,43 +764,12 @@ function StockManagement() {
 
         <Row gutter={[20, 20]} style={{ width: '100%', maxWidth: '100%', marginInline: 0 }}>
           <Col xs={24} style={{ maxWidth: '100%', paddingInline: 0 }}>
-            <div className="toolbar-card">
-            <ProjectSorting>
-              <div className="project-sort-bar">
-                <div
-                  className="toolbar-section-label"
-                  style={{
-                    padding: '0 10px',
-                    flexShrink: 0,
-                    alignSelf: 'center',
-                  }}
-                >
-                  Medicine list
-                </div>
-                <div className="project-sort-search" style={{ flex: 1, minWidth: 200, maxWidth: 520 }}>
-                  <Input
-                    placeholder="Search by medicine name, batch number, category or supplier..."
-                    prefix={<SearchOutlined />}
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    allowClear
-                  />
-                </div>
-                <div className="project-sort-group" style={{ flexShrink: 0, padding: '0 10px' }}>
-                  <Badge count={activeFilterCount} size="small" offset={[0, 0]} showZero={false}>
-                    <AntdButton icon={<FilterOutlined />} onClick={() => setFilterModalVisible(true)}>
-                      Filters
-                    </AntdButton>
-                  </Badge>
-                </div>
-              </div>
-            </ProjectSorting>
-            </div>
 
             <Modal
               title="Filter medicines"
               open={filterModalVisible}
               onCancel={() => setFilterModalVisible(false)}
+              className="modern-modal"
               width={560}
               footer={
                 <Space>
@@ -926,6 +891,24 @@ function StockManagement() {
 
             <StockTableOuter className="stock-table-outer">
               <div className="table-shell">
+                <div className="table-toolbar">
+                  <div className="table-toolbar__search">
+                    <Input
+                      placeholder="Search by medicine name, batch number, category or supplier..."
+                      prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />}
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                      allowClear
+                    />
+                  </div>
+                  <div className="table-toolbar__filters">
+                    <Badge count={activeFilterCount} size="small" offset={[0, 0]} showZero={false}>
+                      <AntdButton icon={<FilterOutlined />} onClick={() => setFilterModalVisible(true)}>
+                        Filters
+                      </AntdButton>
+                    </Badge>
+                  </div>
+                </div>
                 <ProjectLists
                   size="middle"
                   columns={columns}
@@ -944,11 +927,12 @@ function StockManagement() {
           </Col>
         </Row>
 
-        {/* Add/Edit Medicine Modal */}
+        <ModernModalStyles />
         <Modal
           title={editingProduct ? 'Edit Medicine' : 'Add New Medicine'}
           open={modalVisible}
           onCancel={() => setModalVisible(false)}
+          className="modern-modal"
           width={800}
           footer={null}
         >

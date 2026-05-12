@@ -101,11 +101,11 @@ const ThemeLayout = (WrappedComponent) => {
         padding: '10px 16px',
         margin: 0,
         flexShrink: 0,
-        color: darkMode ? 'rgba(226, 232, 240, 0.88)' : 'rgba(0, 0, 0, 0.55)',
+        color: darkMode ? 'rgba(226, 232, 240, 0.88)' : '#9CA3AF',
         fontSize: '12px',
-        background: darkMode ? 'rgba(15, 23, 42, 0.75)' : 'rgba(255, 255, 255, 0.82)',
+        background: darkMode ? '#111827' : '#ffffff',
         width: '100%',
-        borderTop: darkMode ? '1px solid rgba(148, 163, 184, 0.12)' : '1px solid rgba(15, 23, 42, 0.06)',
+        borderTop: darkMode ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid #F3F4F6',
         boxShadow: 'none',
         textAlign: 'center',
         lineHeight: 1.35,
@@ -137,7 +137,7 @@ const ThemeLayout = (WrappedComponent) => {
         const { ChangeLayoutMode } = this.props;
         const thumbStyle = {
           borderRadius: 6,
-          backgroundColor: ChangeLayoutMode ? '#ffffff22' : 'rgba(99, 102, 241, 0.35)',
+          backgroundColor: ChangeLayoutMode ? '#ffffff22' : 'rgba(45, 49, 66, 0.2)',
           [left]: '2px',
         };
         return <div style={{ ...style, ...thumbStyle }} {...props} />;
@@ -161,7 +161,7 @@ const ThemeLayout = (WrappedComponent) => {
         const { ChangeLayoutMode } = this.props;
         const thumbStyle = {
           borderRadius: 6,
-          backgroundColor: ChangeLayoutMode ? '#ffffff22' : 'rgba(99, 102, 241, 0.35)',
+          backgroundColor: ChangeLayoutMode ? '#ffffff22' : 'rgba(45, 49, 66, 0.2)',
         };
         return <div style={{ ...style, ...thumbStyle }} {...props} />;
       };

@@ -432,8 +432,11 @@ const ProjectList = Styled.div`
         }
     }
     .ant-table-container table > thead > tr th{
-        font-weight: 400;
-        color: ${({ theme }) => theme['light-color']};
+        font-weight: 600;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #9CA3AF;
         border-top: 1px solid ${({ theme }) => theme['border-color-light']};
     }
     .ant-table-container table > thead > tr th:first-child{
@@ -882,7 +885,7 @@ const TasklistAction = Styled.div`
         color: ${({ theme }) => theme['gray-solid']};
     }
     .task-created{
-        color: #9299b8 !important;
+        color: #9CA3AF !important;
     }
     .task-move{
         svg,

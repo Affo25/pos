@@ -10,6 +10,7 @@ import { Button } from '../../components/buttons/buttons';
 import { createSupplier, updateSupplier } from '../../redux/suppliers/supplierSlice';
 import { BasicFormWrapper } from '../../config/default/styled';
 import { ProcurementFormStyles } from '../shared/procurementScreenStyles';
+import ModernModalStyles from '../shared/modalStyles';
 
 function CreateSupplier({ visible, onCancel, supplier, onSuccess }) {
   const [form] = Form.useForm();
@@ -64,66 +65,72 @@ function CreateSupplier({ visible, onCancel, supplier, onSuccess }) {
   };
 
   return (
-    <Modal
-      type="primary"
-      title={supplier ? 'Edit Supplier' : 'Create Supplier'}
-      visible={visible}
-      footer={[
-        <div key="1">
-          <Button type="primary" onClick={handleOk}>
-            {supplier ? 'Update' : 'Save'}
-          </Button>
-        </div>,
-      ]}
-      onCancel={() => {
-        resetForm();
-        onCancel();
-      }}
-    >
-      <ProcurementFormStyles>
-        <BasicFormWrapper>
-          <Form form={form} layout="vertical" size="large">
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="name"
-                label="Name"
-                rules={[{ required: true, message: 'Name is required' }]}
-              >
-                <Input placeholder="Enter Name" />
-              </Form.Item>
-            </Col>
+    <>
+      <ModernModalStyles />
+      <Modal
+        className="modern-modal"
+        title={supplier ? 'Edit Supplier' : 'Create Supplier'}
+        visible={visible}
+        footer={[
+          <div key="1" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <Button size="default" type="white" onClick={() => { resetForm(); onCancel(); }}>
+              Cancel
+            </Button>
+            <Button size="default" type="primary" onClick={handleOk}>
+              {supplier ? 'Update' : 'Save'}
+            </Button>
+          </div>,
+        ]}
+        onCancel={() => {
+          resetForm();
+          onCancel();
+        }}
+      >
+        <ProcurementFormStyles>
+          <BasicFormWrapper>
+            <Form form={form} layout="vertical" size="large">
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="name"
+                    label="Name"
+                    rules={[{ required: true, message: 'Name is required' }]}
+                  >
+                    <Input placeholder="Enter Name" />
+                  </Form.Item>
+                </Col>
 
-            <Col span={12}>
-              <Form.Item
-                name="email"
-                label="Email"
-                rules={[{ type: 'email', message: 'Invalid email' }]}
-              >
-                <Input placeholder="Enter Email" />
-              </Form.Item>
-            </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="email"
+                    label="Email"
+                    rules={[{ type: 'email', message: 'Invalid email' }]}
+                  >
+                    <Input placeholder="Enter Email" />
+                  </Form.Item>
+                </Col>
 
-            <Col span={12}>
-              <Form.Item
-                name="phone"
-                label="Phone"
-                rules={[{ required: true, message: 'Phone is required' }]}
-              >
-                <Input placeholder="Enter Phone Number" />
-              </Form.Item>
-            </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="phone"
+                    label="Phone"
+                    rules={[{ required: true, message: 'Phone is required' }]}
+                  >
+                    <Input placeholder="Enter Phone Number" />
+                  </Form.Item>
+                </Col>
 
-            <Col span={12}>
-              <Form.Item name="address" label="Address">
-                <Input placeholder="Enter Address" />
-              </Form.Item>
-            </Col>
-          </Row>
-        </Form>
-        </BasicFormWrapper>
-      </ProcurementFormStyles>
-    </Modal>
+                <Col span={12}>
+                  <Form.Item name="address" label="Address">
+                    <Input placeholder="Enter Address" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Form>
+          </BasicFormWrapper>
+        </ProcurementFormStyles>
+      </Modal>
+    </>
   );
 }
 

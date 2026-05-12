@@ -76,12 +76,12 @@ function WebsitePerformance() {
   const performanceDatasets = performanceState !== null && [
     {
       data: performanceState[performanceTab][1],
-      borderColor: '#5F63F2',
+      borderColor: '#2D3142',
       borderWidth: 4,
       fill: true,
       backgroundColor: () =>
         chartLinearGradient(document.getElementById('performance'), 300, {
-          start: '#5F63F230',
+          start: '#2D314230',
           end: '#ffffff05',
         }),
       label: 'Current period',
@@ -89,12 +89,12 @@ function WebsitePerformance() {
       pointRadius: '0',
       hoverRadius: '9',
       pointBorderColor: '#fff',
-      pointBackgroundColor: '#5F63F2',
+      pointBackgroundColor: '#2D3142',
       hoverBorderWidth: 5,
     },
     {
       data: performanceState[performanceTab][2],
-      borderColor: '#C6D0DC',
+      borderColor: '#D1D5DB',
       borderWidth: 2,
       fill: false,
       backgroundColor: '#00173750',

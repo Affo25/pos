@@ -1,20 +1,20 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Row, Col, Menu, Dropdown, Select, Tag, Badge, Tooltip } from 'antd';
-import { EditOutlined, DeleteOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { Row, Col, Select, Tag, Badge, Tooltip, Input } from 'antd';
+import { EditOutlined, DeleteOutlined, CheckCircleOutlined, CloseCircleOutlined, SearchOutlined } from '@ant-design/icons';
 import FeatherIcon from 'feather-icons-react';
 import { toast } from 'react-toastify';
-import { Link, useHistory, useRouteMatch } from 'react-router-dom';
+import { useHistory, useRouteMatch } from 'react-router-dom';
 import CreateUser from './CreateUser';
-import { AutoComplete } from '../../components/autoComplete/autoComplete';
 import { Button } from '../../components/buttons/buttons';
 import { PageHeader } from '../../components/page-headers/page-headers';
-import { ProjectHeader, ProjectSorting } from '../../config/default/style';
+import { ProjectHeader } from '../../config/default/style';
 import { Main } from '../../config/default/styled';
 import { deleteUser, fetchAllUsers } from '../../redux/users/userSlice';
 import ProjectLists from '../../config/default/List';
 import { getComponentPermissions } from '../../config/utils/permission';
+import { ScreenWrap } from '../shared/procurementScreenStyles';
 
 function Users() {
   const dispatch = useDispatch();
@@ -38,7 +38,7 @@ function Users() {
   const [filterPlan, setFilterPlan] = useState('all');
   const [filterSubscriptionStatus, setFilterSubscriptionStatus] = useState('all');
 
-  const { notData, visible, selectedUser } = state;
+  const { visible, selectedUser } = state;
 
   const handleEdit = (user) => {
     const { _id: id } = user;
@@ -209,48 +209,11 @@ const getPlanBadge = (plan) => {
           permissions,
           allowed_pages: allowedPages,
           action: (
-            <Dropdown
-              overlay={
-                <Menu className="custom-dropdown-menu">
-                  <Menu.Item
-                    key="edit"
-                    className="custom-menu-item"
-                    onClick={() => handleEdit(user)}
-                  >
-                    <div className="custom-action-btn edit-btn">
-                      <EditOutlined className="action-icon" />
-                      <span className="action-label">Edit</span>
-                    </div>
-                  </Menu.Item>
-                  <Menu.Item
-                    key="details"
-                    className="custom-menu-item"
-                    onClick={() => history.push(`${path}/${_id || id}`)}
-                  >
-                    <div className="custom-action-btn details-btn">
-                    <EditOutlined className="action-icon" />
-                      <span className="action-label">Details</span>
-                    </div>
-                  </Menu.Item>
-                  <Menu.Item
-                    key="delete"
-                    className="custom-menu-item"
-                    onClick={() => handleDelete(_id || id)}
-                  >
-                    <div className="custom-action-btn delete-btn">
-                      <DeleteOutlined className="action-icon" />
-                      <span className="action-label">Delete</span>
-                    </div>
-                  </Menu.Item>
-                </Menu>
-              }
-              trigger={['click']}
-              overlayClassName="custom-dropdown-overlay"
-            >
-              <Link to="#" className="text-dark dropdown-trigger">
-                <FeatherIcon icon="more-horizontal" size={18} />
-              </Link>
-            </Dropdown>
+            <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+              <button type="button" onClick={() => handleEdit(user)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid #E5E7EB', background: '#fff', cursor: 'pointer', color: '#2D3142' }} title="Edit"><EditOutlined style={{ fontSize: 14 }} /></button>
+              <button type="button" onClick={() => history.push(`${path}/${_id || id}`)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid #E5E7EB', background: '#fff', cursor: 'pointer', color: '#2D3142' }} title="Details"><EditOutlined style={{ fontSize: 14 }} /></button>
+              <button type="button" onClick={() => handleDelete(_id || id)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid #FEE2E2', background: '#FEF2F2', cursor: 'pointer', color: '#EF4444' }} title="Delete"><DeleteOutlined style={{ fontSize: 14 }} /></button>
+            </div>
           ),
         };
       });
@@ -367,7 +330,7 @@ const getPlanBadge = (plan) => {
   ];
 
   return (
-    <>
+    <ScreenWrap>
       <ProjectHeader>
         <PageHeader
           ghost
@@ -383,35 +346,31 @@ const getPlanBadge = (plan) => {
       <Main>
         <Row gutter={25}>
           <Col xs={24}>
-            <ProjectSorting>
-              <div className="project-sort-bar" style={{ flexWrap: 'wrap', gap: '10px' }}>
-                <div className="project-sort-search">
-                  <AutoComplete 
-                    onSearch={handleSearch} 
-                    dataSource={notData} 
-                    placeholder="Search by name, email or license key" 
-                    patterns 
+            <div className="table-shell">
+              <div className="table-toolbar">
+                <div className="table-toolbar__search">
+                  <Input
+                    prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />}
+                    placeholder="Search by name, email or license key"
+                    allowClear
+                    onChange={(e) => handleSearch(e.target.value)}
                   />
                 </div>
-                <div className="sort-group">
-                  <span style={{ display: 'flex', alignItems: 'center' }}>Status:</span>
-                  <Select defaultValue="all" onChange={setSortStatus} style={{ width: 120 }}>
+                <div className="table-toolbar__filters">
+                  <span className="table-toolbar__label">Status</span>
+                  <Select defaultValue="all" onChange={setSortStatus} style={{ minWidth: 120 }}>
                     <Select.Option value="all">All</Select.Option>
                     <Select.Option value="active">Active</Select.Option>
                     <Select.Option value="inactive">Inactive</Select.Option>
                   </Select>
-                </div>
-                <div className="sort-group">
-                  <span style={{ display: 'flex', alignItems: 'center' }}>Plan:</span>
-                  <Select defaultValue="all" onChange={setFilterPlan} style={{ width: 120 }}>
+                  <span className="table-toolbar__label">Plan</span>
+                  <Select defaultValue="all" onChange={setFilterPlan} style={{ minWidth: 120 }}>
                     <Select.Option value="all">All</Select.Option>
                     <Select.Option value="free">Free</Select.Option>
                     <Select.Option value="premium">Premium</Select.Option>
                   </Select>
-                </div>
-                <div className="sort-group">
-                  <span style={{ display: 'flex', alignItems: 'center' }}>Subscription:</span>
-                  <Select defaultValue="all" onChange={setFilterSubscriptionStatus} style={{ width: 120 }}>
+                  <span className="table-toolbar__label">Subscription</span>
+                  <Select defaultValue="all" onChange={setFilterSubscriptionStatus} style={{ minWidth: 120 }}>
                     <Select.Option value="all">All</Select.Option>
                     <Select.Option value="active">Active</Select.Option>
                     <Select.Option value="expired">Expired</Select.Option>
@@ -419,26 +378,26 @@ const getPlanBadge = (plan) => {
                   </Select>
                 </div>
               </div>
-            </ProjectSorting>
-            <ProjectLists
-              columns={columns}
-              dataSource={dataSource}
-              loading={loading}
-              scroll={{ x: 1500 }}
-              pagination={{
-                ...pagination,
-                total: users?.length || 0,
-                showSizeChanger: true,
-                showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} users`,
-                onChange: (page, pageSize) => setPagination({ current: page, pageSize }),
-                onShowSizeChange: (current, size) => setPagination({ current: 1, pageSize: size }),
-              }}
-            />
+              <ProjectLists
+                columns={columns}
+                dataSource={dataSource}
+                loading={loading}
+                scroll={{ x: 1500 }}
+                pagination={{
+                  ...pagination,
+                  total: users?.length || 0,
+                  showSizeChanger: true,
+                  showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} users`,
+                  onChange: (page, pageSize) => setPagination({ current: page, pageSize }),
+                  onShowSizeChange: (current, size) => setPagination({ current: 1, pageSize: size }),
+                }}
+              />
+            </div>
           </Col>
         </Row>
         <CreateUser visible={visible} onCancel={onCancel} user={selectedUser} />
       </Main>
-    </>
+    </ScreenWrap>
   );
 }
 

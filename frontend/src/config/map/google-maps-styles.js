@@ -124,7 +124,7 @@ const mapdata = {
           saturation: 36,
         },
         {
-          color: '#333333',
+          color: '#4F5D75',
         },
         {
           lightness: 40,
@@ -188,7 +188,7 @@ const mapdata = {
           saturation: 36,
         },
         {
-          color: '#333333',
+          color: '#4F5D75',
         },
         {
           lightness: 40,

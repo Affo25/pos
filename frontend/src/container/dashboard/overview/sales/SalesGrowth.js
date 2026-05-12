@@ -89,8 +89,8 @@ const SalesGrowth = () => {
                 datasets={[
                   {
                     data: [20, 60, 50, 45, 50, 60, 70, 60, 65, 75, 70, 80],
-                    backgroundColor: '#5F63F250',
-                    hoverBackgroundColor: '#5F63F2',
+                    backgroundColor: '#2D314250',
+                    hoverBackgroundColor: '#2D3142',
                     maxBarThickness: 10,
                     barThickness: 12,
                     label: 'Orders',

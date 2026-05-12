@@ -14,16 +14,15 @@ import {
   EyeOutlined, UndoOutlined, FileTextOutlined, PrinterOutlined,
   CheckCircleOutlined, CloseCircleOutlined,
   HistoryOutlined, ReloadOutlined,
-  FileExcelOutlined, FilePdfOutlined,
+  FileExcelOutlined, FilePdfOutlined, SearchOutlined,
 } from '@ant-design/icons';
 import FeatherIcon from 'feather-icons-react';
 import { useHistory } from 'react-router-dom/cjs/react-router-dom.min';
 import CreateSale from './CreateSale';
-import { AutoComplete } from '../../components/autoComplete/autoComplete';
 import { Button } from '../../components/buttons/buttons';
 import { PageHeader } from '../../components/page-headers/page-headers';
 import ProjectLists from '../../config/default/List';
-import { ProjectHeader, ProjectSorting } from '../../config/default/style';
+import { ProjectHeader } from '../../config/default/style';
 import { Main } from '../../config/default/styled';
 import { deleteSale, fetchAllSales, updateSale, fetchSalesSuccess } from '../../redux/sales/saleSlice';
 import * as saleService from '../../redux/sales/saleService';
@@ -498,7 +497,7 @@ function Sales() {
               />
               <AntButton
                 type="text"
-                icon={<PrinterOutlined style={{ color: '#1a3a34' }} />}
+                icon={<PrinterOutlined style={{ color: '#2D3142' }} />}
                 onClick={() => printInvoice(sale)}
                 title="Print Invoice"
               />
@@ -755,9 +754,9 @@ function Sales() {
               <FilePdfOutlined style={{ marginRight: 8 }} />
               PDF
             </Button>,
-            <Button disabled={!canAdd} onClick={showModal} key="1" type="primary" size="default">
-              <FeatherIcon icon="plus" size={16} /> New Sale
-            </Button>,
+            // <Button disabled={!canAdd} onClick={showModal} key="1" type="primary" size="default">
+            //   <FeatherIcon icon="plus" size={16} /> New Sale
+            // </Button>,
           ]}
         />
       </ProjectHeader>
@@ -766,27 +765,29 @@ function Sales() {
 
         <Row gutter={25}>
           <Col xs={24}>
-            <div className="toolbar-card">
-            <ProjectSorting>
-              <div className="project-sort-bar">
-                <div className="project-sort-search">
-                  <AutoComplete onSearch={handleSearch} dataSource={notData} placeholder="Search by customer or invoice" patterns />
+            <div className="table-shell">
+              <div className="table-toolbar">
+                <div className="table-toolbar__search">
+                  <Input
+                    prefix={<SearchOutlined style={{ color: '#BFC0C0' }} />}
+                    placeholder="Search by customer or invoice"
+                    allowClear
+                    onChange={(e) => handleSearch(e.target.value)}
+                  />
                 </div>
-                <div className="sort-group">
-                  <span style={{ display: 'flex', alignItems: 'center' }}>Filter:</span>
-                  <Select defaultValue="category" onChange={(value) => setSortStatus(value)} style={{ width: 120 }}>
+                <div className="table-toolbar__filters">
+                  <span className="table-toolbar__label">Status</span>
+                  <Select defaultValue="category" onChange={(value) => setSortStatus(value)} style={{ minWidth: 130 }}>
                     <Select.Option value="category">All Status</Select.Option>
                     <Select.Option value="completed">Completed</Select.Option>
                     <Select.Option value="returned">Returned</Select.Option>
-                    <Select.Option value="partially_returned">Partially Returned</Select.Option>
+                    <Select.Option value="partially_returned">Partial Return</Select.Option>
                   </Select>
-                </div>
-                <div className="sort-group" style={{ flexWrap: 'wrap', gap: 8 }}>
-                  <span style={{ display: 'flex', alignItems: 'center' }}>Sale date:</span>
+                  <span className="table-toolbar__label" style={{ marginLeft: 8 }}>Date</span>
                   <Radio.Group value={dateMode} onChange={onDateModeChange} size="small">
                     <Radio.Button value="today">Today</Radio.Button>
-                    <Radio.Button value="range">Date range</Radio.Button>
-                    <Radio.Button value="all">All dates</Radio.Button>
+                    <Radio.Button value="range">Range</Radio.Button>
+                    <Radio.Button value="all">All</Radio.Button>
                   </Radio.Group>
                   {dateMode === 'range' && (
                     <RangePicker
@@ -798,26 +799,22 @@ function Sales() {
                         }
                       }}
                       format="DD/MM/YYYY"
+                      style={{ minWidth: 220 }}
                     />
                   )}
                 </div>
               </div>
-            </ProjectSorting>
-            </div>
-
-            <Tabs
-              activeKey={activeTab}
-              onChange={setActiveTab}
-              className="list-screen-tabs"
-              style={{ marginTop: 8 }}
-            >
-              <TabPane tab="Active Sales" key="active" />
-              <TabPane tab="Sales History" key="history" />
-              <TabPane tab="Returns" key="returns" />
-              <TabPane tab="All Sales" key="all" />
-            </Tabs>
-
-            <div className="table-shell" style={{ marginTop: 12 }}>
+              <Tabs
+                activeKey={activeTab}
+                onChange={setActiveTab}
+                className="list-screen-tabs"
+                style={{ padding: '0 16px' }}
+              >
+                <TabPane tab="Active Sales" key="active" />
+                <TabPane tab="Sales History" key="history" />
+                <TabPane tab="Returns" key="returns" />
+                <TabPane tab="All Sales" key="all" />
+              </Tabs>
               <SalesTableActions>
                 <ProjectLists
                   size="middle"
@@ -853,11 +850,11 @@ function Sales() {
           width={800}
           footer={[
             <AntButton key="print" type="primary" loading={printing} onClick={() => printInvoice()} icon={<PrinterOutlined />}
-              style={{ background: '#1a3a34', borderColor: 'transparent', borderRadius: 10 }}>
+              style={{ background: '#2D3142', borderColor: 'transparent', borderRadius: 10 }}>
               {selectedPrinter ? `Print → ${selectedPrinter}` : 'Print Invoice'}
             </AntButton>,
             <AntButton key="preview" onClick={() => previewInvoicePDF()} icon={<FileTextOutlined />}
-              style={{ borderColor: '#1a3a34', color: '#1a3a34', borderRadius: 10 }}>
+              style={{ borderColor: '#2D3142', color: '#2D3142', borderRadius: 10 }}>
               Preview PDF
             </AntButton>,
             <AntButton key="printer" onClick={openPrinterDialog}
@@ -1165,7 +1162,7 @@ function Sales() {
             </AntButton>,
             <AntButton key="ok" type="primary" disabled={!selectedPrinter}
               onClick={() => { localStorage.setItem('pos_printer', selectedPrinter); setPrinterModalOpen(false); message.success(`Printer set: ${selectedPrinter}`); }}
-              style={{ background: '#1a3a34', borderColor: 'transparent', borderRadius: 10 }}>
+              style={{ background: '#2D3142', borderColor: 'transparent', borderRadius: 10 }}>
               Connect
             </AntButton>,
           ]}
@@ -1186,22 +1183,22 @@ function Sales() {
                     onClick={() => setSelectedPrinter(p.name)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
-                      border: isSelected ? '2px solid #1a3a34' : '1px solid #e5e7eb',
+                      border: isSelected ? '2px solid #2D3142' : '1px solid #e5e7eb',
                       borderRadius: 10, background: isSelected ? '#f0fdf4' : '#fff',
                       cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
                     }}
                   >
-                    <PrinterOutlined style={{ fontSize: 22, color: isEpson ? '#1a3a34' : '#94a3b8' }} />
+                    <PrinterOutlined style={{ fontSize: 22, color: isEpson ? '#2D3142' : '#94a3b8' }} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 600, color: '#1e293b', fontSize: 14 }}>
                         {p.name}
-                        {isEpson && <span style={{ marginLeft: 8, fontSize: 10, background: '#1a3a34', color: '#fff', padding: '2px 6px', borderRadius: 4 }}>RECOMMENDED</span>}
+                        {isEpson && <span style={{ marginLeft: 8, fontSize: 10, background: '#2D3142', color: '#fff', padding: '2px 6px', borderRadius: 4 }}>RECOMMENDED</span>}
                       </div>
                       <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
                         {p.driver || 'Unknown driver'} · {p.status}{p.port ? ` · ${p.port}` : ''}
                       </div>
                     </div>
-                    {isSelected && <span style={{ color: '#1a3a34', fontWeight: 700, fontSize: 18 }}>✓</span>}
+                    {isSelected && <span style={{ color: '#2D3142', fontWeight: 700, fontSize: 18 }}>✓</span>}
                   </button>
                 );
               })}
@@ -1209,7 +1206,7 @@ function Sales() {
           )}
           {selectedPrinter && (
             <div style={{ marginTop: 12, padding: '8px 12px', background: '#f8fafc', borderRadius: 8, fontSize: 12, color: '#64748b' }}>
-              Selected: <strong style={{ color: '#1a3a34' }}>{selectedPrinter}</strong>
+              Selected: <strong style={{ color: '#2D3142' }}>{selectedPrinter}</strong>
             </div>
           )}
         </Modal>

@@ -111,13 +111,13 @@ function FacebookOverview() {
                             datasets={[
                               {
                                 data: forcastOverviewState.ImData,
-                                borderColor: '#FF69A5',
+                                borderColor: '#6B7280',
                                 borderWidth: 3,
                                 fill: true,
                                 backgroundColor: () =>
                                   chartLinearGradient(document.getElementById('impression'), 165, {
-                                    start: '#FF69A510',
-                                    end: '#FF69A501',
+                                    start: '#6B728010',
+                                    end: '#6B728001',
                                   }),
                                 pointHoverRadius: 0,
                                 pointHoverBorderColor: 'transparent',
@@ -152,14 +152,14 @@ function FacebookOverview() {
                             datasets={[
                               {
                                 data: forcastOverviewState.LiData,
-                                borderColor: '#5F63F2',
+                                borderColor: '#2D3142',
                                 borderWidth: 3,
                                 fill: true,
 
                                 backgroundColor: () =>
                                   chartLinearGradient(document.getElementById('likes'), 165, {
-                                    start: '#5F63F210',
-                                    end: '#5F63F201',
+                                    start: '#2D314210',
+                                    end: '#2D314201',
                                   }),
                                 pointHoverRadius: 0,
                                 pointHoverBorderColor: 'transparent',

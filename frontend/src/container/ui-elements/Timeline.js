@@ -45,7 +45,7 @@ function Timelines() {
             <Cards title="Basic" caption="The simplest use of Timelines">
               <TimeLinePointerIconWrap>
                 <Timeline>
-                  <Timeline.Item className="primary" dot={<SwRocket size={20} color="#5F63F2" />}>
+                  <Timeline.Item className="primary" dot={<SwRocket size={20} color="#2D3142" />}>
                     <h3>02:30 PM</h3>
                     <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry.</p>
                     <span className="tags">HTML,CSS,VueJS</span>
@@ -60,7 +60,7 @@ function Timelines() {
                     <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry.</p>
                     <span className="tags">HTML,CSS,VueJS</span>
                   </Timeline.Item>
-                  <Timeline.Item className="pink" dot={<SwNotification size={17} color="#FF69A5" />}>
+                  <Timeline.Item className="pink" dot={<SwNotification size={17} color="#6B7280" />}>
                     <h3>02:30 PM</h3>
                     <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry.</p>
                     <span className="tags">HTML,CSS,VueJS</span>
@@ -75,12 +75,12 @@ function Timelines() {
                     <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry.</p>
                     <span className="tags">HTML,CSS,VueJS</span>
                   </Timeline.Item>
-                  <Timeline.Item className="primary" dot={<SwPicture size={21} color="#5f63f2" />}>
+                  <Timeline.Item className="primary" dot={<SwPicture size={21} color="#2D3142" />}>
                     <h3>02:30 PM</h3>
                     <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry.</p>
                     <span className="tags">HTML,CSS,VueJS</span>
                   </Timeline.Item>
-                  <Timeline.Item className="pink" dot={<SwClock size={21} color="#ff69a5" />}>
+                  <Timeline.Item className="pink" dot={<SwClock size={21} color="#6B7280" />}>
                     <h3>02:30 PM</h3>
                     <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry.</p>
                     <span className="tags">HTML,CSS,VueJS</span>
@@ -133,7 +133,7 @@ function Timelines() {
             <TimelineNormalWrap>
               <Cards title="Timeline 1" caption="The simplest use of Timelines">
                 <Timeline>
-                  <Timeline.Item className="active" dot={<SwEllipse size={10} color="#ADB4D2" />}>
+                  <Timeline.Item className="active" dot={<SwEllipse size={10} color="#D1D5DB" />}>
                     <div className="timeline-content-inner align-center-v justify-content-between">
                       <div className="timeline-content-text">
                         <p>Contrary to popular belief, Lorem Ipsum is not simply random text.</p>
@@ -141,7 +141,7 @@ function Timelines() {
                       <span className="timeline-content-time">6:00 am</span>
                     </div>
                   </Timeline.Item>
-                  <Timeline.Item dot={<SwEllipse size={10} color="#5F63F2" />}>
+                  <Timeline.Item dot={<SwEllipse size={10} color="#2D3142" />}>
                     <div className="timeline-content-inner align-center-v justify-content-between">
                       <div className="timeline-content-text">
                         <p>Contrary to popular belief, Lorem Ipsum is not simply random text.</p>
@@ -180,7 +180,7 @@ function Timelines() {
             <TimelineBoxWrap>
               <Cards title="Timeline 2" caption="The simplest use of Timelines">
                 <Timeline mode="alternate">
-                  <Timeline.Item dot={<SwEllipse size={10} color="#ADB4D2" />}>
+                  <Timeline.Item dot={<SwEllipse size={10} color="#D1D5DB" />}>
                     <h2>10:00 AM</h2>
                     <div className="content-box">
                       <p>
@@ -189,7 +189,7 @@ function Timelines() {
                       </p>
                     </div>
                   </Timeline.Item>
-                  <Timeline.Item dot={<SwEllipse size={10} color="#5F63F2" />}>
+                  <Timeline.Item dot={<SwEllipse size={10} color="#2D3142" />}>
                     <h2>10:00 AM</h2>
                     <div className="content-box">
                       <p>

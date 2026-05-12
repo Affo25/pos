@@ -238,7 +238,7 @@ function Dashboard() {
     return Array.from({ length: 7 }, (_, i) => Math.max(0, n * (0.45 + ((i * 19) % 50) / 100)));
   }, [extra?.pendingOrders]);
 
-  const kpiSparkColors = ['#a8e6cf', '#f9cfa8', '#c8e6c9', '#b8d4e8'];
+  const kpiSparkColors = ['#2D3142', '#22C55E', '#F59E0B', '#3B82F6'];
 
   const handleExportExcel = () => {
     if (!dashboard && !recentActivities?.length && !topProducts?.length) {
@@ -364,7 +364,7 @@ function Dashboard() {
       ...row,
     })) ?? [];
 
-  const trendColors = ['#5F63F2', '#20C997', '#FAAD14', '#FF4D4F', '#8B5CF6', '#EC4899', '#0EA5E9', '#84CC16'];
+  const trendColors = ['#2D3142', '#20C997', '#FAAD14', '#FF4D4F', '#8B5CF6', '#EC4899', '#0EA5E9', '#84CC16'];
 
   const topProductColumns = [
     {
@@ -602,8 +602,8 @@ function Dashboard() {
                         <ComposedChart data={areaDataWithPrevious} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
                           <defs>
                             <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#5F63F2" stopOpacity={0.35} />
-                              <stop offset="95%" stopColor="#5F63F2" stopOpacity={0} />
+                              <stop offset="5%" stopColor="#2D3142" stopOpacity={0.35} />
+                              <stop offset="95%" stopColor="#2D3142" stopOpacity={0} />
                             </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
@@ -618,7 +618,7 @@ function Dashboard() {
                             type="monotone"
                             dataKey="sales"
                             name="Current period"
-                            stroke="#5F63F2"
+                            stroke="#2D3142"
                             strokeWidth={2.5}
                             fillOpacity={1}
                             fill="url(#colorSales)"

@@ -234,7 +234,7 @@ const MailBox = Styled.div`
   background: #fff;
   z-index: 999;
   border-radius: 10px;
-  box-shadow: 0 10px 50px #9299B830;
+  box-shadow: 0 10px 50px #9CA3AF30;
   @media only screen and (max-width: 575px){
     ${({ theme }) => (!theme.rtl ? 'right' : 'left')}: 0;
   }
@@ -513,7 +513,7 @@ const EmailNav = Styled.nav`
       text-align: left;
       margin: 0;
       padding: 0 15px;
-      color: #9299b8;
+      color: #9CA3AF;
       text-align: ${({ theme }) => (theme.rtl ? 'right' : 'left')};
     }
     ul{
@@ -1019,7 +1019,7 @@ const MessageReply = Styled.div`
     }
     .reply-inner{
       width: 100%
-      border-bottom: 1px solid #F1F2F6 !important;
+      border-bottom: 1px solid #F3F4F6 !important;
       @media only screen and (max-width: 575px){
         flex-flow: column;
         align-items: flex-start !important;

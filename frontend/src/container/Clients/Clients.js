@@ -1,20 +1,19 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Row, Col, Menu, message, Dropdown, Select } from 'antd';
-import { Link } from 'react-router-dom';
-import { EditOutlined, DeleteOutlined, SettingOutlined, LinkOutlined } from '@ant-design/icons';
+import { Row, Col, message, Select, Input } from 'antd';
+import { EditOutlined, DeleteOutlined, SettingOutlined, SearchOutlined } from '@ant-design/icons';
 import FeatherIcon from 'feather-icons-react';
 import { toast } from 'react-toastify';
 import { useHistory } from 'react-router-dom/cjs/react-router-dom.min';
 import CreateClient from './CreateClient';
-import { AutoComplete } from '../../components/autoComplete/autoComplete';
 import { Button } from '../../components/buttons/buttons';
 import { PageHeader } from '../../components/page-headers/page-headers';
 import ProjectLists from '../../config/default/List';
-import { ProjectHeader, ProjectSorting } from '../../config/default/style';
+import { ProjectHeader } from '../../config/default/style';
 import { Main } from '../../config/default/styled';
 import { deleteClient, fetchAllClients } from '../../redux/clients/clientSlice';
+import { ScreenWrap } from '../shared/procurementScreenStyles';
 
 function Clients() {
   const history = useHistory();
@@ -36,7 +35,7 @@ function Clients() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortStatus, setSortStatus] = useState('category');
 
-  const { notData, visible, selectedClient } = state;
+  const { visible, selectedClient } = state;
 
   const handleEdit = (client) => {
     const { _id: id, ...rest } = client;
@@ -144,40 +143,11 @@ function Clients() {
               <span className="color-danger">Inactive</span>
             ),
           action: (
-            <Dropdown
-              overlay={
-                <Menu className="custom-dropdown-menu">
-                  <Menu.Item key="edit" className="custom-menu-item" onClick={() => handleEdit(client)}>
-                    <div className="custom-action-btn edit-btn">
-                      <EditOutlined className="action-icon" />
-                      <span className="action-label">Edit</span>
-                    </div>
-                  </Menu.Item>
-                  <Menu.Item key="delete" className="custom-menu-item" onClick={() => handleDelete(_id || id)}>
-                    <div className="custom-action-btn delete-btn">
-                      <DeleteOutlined className="action-icon" />
-                      <span className="action-label">Delete</span>
-                    </div>
-                  </Menu.Item>
-                  <Menu.Item
-                    key="manage"
-                    className="custom-menu-item"
-                    onClick={() => handleManage(client, _id || id)}
-                  >
-                    <div className="custom-action-btn setting-btn">
-                      <SettingOutlined className="action-icon" />
-                      <span className="action-label">Manage</span>
-                    </div>
-                  </Menu.Item>
-                </Menu>
-              }
-              trigger={['click']}
-              overlayClassName="custom-dropdown-overlay"
-            >
-              <Link to="#" className="text-dark dropdown-trigger">
-                <FeatherIcon icon="more-horizontal" size={18} />
-              </Link>
-            </Dropdown>
+            <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+              <button type="button" onClick={() => handleEdit(client)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid #E5E7EB', background: '#fff', cursor: 'pointer', color: '#2D3142' }} title="Edit"><EditOutlined style={{ fontSize: 14 }} /></button>
+              <button type="button" onClick={() => handleDelete(_id || id)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid #FEE2E2', background: '#FEF2F2', cursor: 'pointer', color: '#EF4444' }} title="Delete"><DeleteOutlined style={{ fontSize: 14 }} /></button>
+              <button type="button" onClick={() => handleManage(client, _id || id)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid #E5E7EB', background: '#fff', cursor: 'pointer', color: '#2D3142' }} title="Manage"><SettingOutlined style={{ fontSize: 14 }} /></button>
+            </div>
           ),
         };
       });
@@ -236,7 +206,7 @@ function Clients() {
   ];
 
   return (
-    <>
+    <ScreenWrap>
       <ProjectHeader>
         <PageHeader
           ghost
@@ -252,22 +222,25 @@ function Clients() {
       <Main>
         <Row gutter={25}>
           <Col xs={24}>
-            <ProjectSorting>
-              <div className="project-sort-bar">
-                <div className="project-sort-search">
-                  <AutoComplete onSearch={handleSearch} dataSource={notData} placeholder="Search clients" patterns />
+            <div className="table-shell">
+              <div className="table-toolbar">
+                <div className="table-toolbar__search">
+                  <Input
+                    prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />}
+                    placeholder="Search clients"
+                    allowClear
+                    onChange={(e) => handleSearch(e.target.value)}
+                  />
                 </div>
-                <div className="sort-group">
-                  <span style={{ display: 'flex', alignItems: 'center' }}>Sort By:</span>
-                  <Select defaultValue="category" onChange={(value) => setSortStatus(value)}>
+                <div className="table-toolbar__filters">
+                  <span className="table-toolbar__label">Sort By</span>
+                  <Select defaultValue="category" onChange={(value) => setSortStatus(value)} style={{ minWidth: 130 }}>
                     <Select.Option value="category">All</Select.Option>
-                    <Select.Option value="Active">active</Select.Option>
-                    <Select.Option value="InActive">inactive</Select.Option>
+                    <Select.Option value="Active">Active</Select.Option>
+                    <Select.Option value="InActive">Inactive</Select.Option>
                   </Select>
                 </div>
               </div>
-            </ProjectSorting>
-            <div>
               <ProjectLists
                 columns={columns}
                 dataSource={dataSource}
@@ -286,7 +259,7 @@ function Clients() {
           client={selectedClient}
         />
       </Main>
-    </>
+    </ScreenWrap>
   );
 }
 

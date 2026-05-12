@@ -19,7 +19,7 @@ function NotificationBox() {
   function renderThumb({ style, ...props }) {
     const thumbStyle = {
       borderRadius: 6,
-      backgroundColor: '#F1F2F6',
+      backgroundColor: '#F3F4F6',
     };
     return <div style={{ ...style, ...thumbStyle }} {...props} />;
   }

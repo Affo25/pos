@@ -111,7 +111,7 @@ const InvoicePreviewWidget = ({ settings, logoUrl }) => {
               fontStyle: 'normal', 
               lineHeight: 1.6, 
               fontSize: 13, 
-              color: '#5a5f7d' 
+              color: '#4B5563' 
             }}>
               <strong style={{ fontSize: 14, color: '#1a1f36' }}>
                 {settings.companyName || 'Admin Company'}
@@ -135,8 +135,8 @@ const InvoicePreviewWidget = ({ settings, logoUrl }) => {
       }}>
         <div>
           <h3 style={{ fontSize: 26, fontWeight: 600, marginBottom: 8, color: '#1a1f36' }}>Invoice</h3>
-          <p style={{ marginBottom: 4, color: '#5a5f7d' }}>No : #INV-2024-001</p>
-          <p style={{ color: '#5a5f7d' }}>
+          <p style={{ marginBottom: 4, color: '#4B5563' }}>No : #INV-2024-001</p>
+          <p style={{ color: '#4B5563' }}>
             Date : {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
@@ -178,9 +178,9 @@ const InvoicePreviewWidget = ({ settings, logoUrl }) => {
       {/* Invoice To */}
       <div style={{ marginBottom: 24 }}>
         <h5 style={{ fontWeight: 600, marginBottom: 8, color: '#1a1f36' }}>Invoice To:</h5>
-        <p style={{ color: '#5a5f7d', marginBottom: 4 }}>Stanley Jones</p>
-        <p style={{ color: '#5a5f7d', marginBottom: 4 }}>795 Folsom Ave, Suite 600</p>
-        <p style={{ color: '#5a5f7d' }}>San Francisco, CA 94107, USA</p>
+        <p style={{ color: '#4B5563', marginBottom: 4 }}>Stanley Jones</p>
+        <p style={{ color: '#4B5563', marginBottom: 4 }}>795 Folsom Ave, Suite 600</p>
+        <p style={{ color: '#4B5563' }}>San Francisco, CA 94107, USA</p>
       </div>
 
       {/* Products Table */}
@@ -205,15 +205,15 @@ const InvoicePreviewWidget = ({ settings, logoUrl }) => {
           }}>
             <ul style={{ listStyle: 'none', marginBottom: 16, padding: 0 }}>
               <li style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 14 }}>
-                <span style={{ color: '#5a5f7d' }}>Subtotal :</span>
+                <span style={{ color: '#4B5563' }}>Subtotal :</span>
                 <span style={{ fontWeight: 500, color: '#1a1f36' }}>${subtotal.toFixed(2)}</span>
               </li>
               <li style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 14 }}>
-                <span style={{ color: '#5a5f7d' }}>Discount :</span>
+                <span style={{ color: '#4B5563' }}>Discount :</span>
                 <span style={{ fontWeight: 500, color: '#e53e3e' }}>-${discount.toFixed(2)}</span>
               </li>
               <li style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 14 }}>
-                <span style={{ color: '#5a5f7d' }}>Shipping Charge :</span>
+                <span style={{ color: '#4B5563' }}>Shipping Charge :</span>
                 <span style={{ fontWeight: 500, color: '#1a1f36' }}>${shipping.toFixed(2)}</span>
               </li>
             </ul>

@@ -32,7 +32,7 @@ const CreatePost = Styled.div`
             align-items: center;
             justify-content: space-between;
             margin-top: 10px;
-            border-top: 1px solid #F1F2F6;
+            border-top: 1px solid #F3F4F6;
             padding-top: 15px;
             .ant-upload{
                 margin-${({ theme }) => (!theme.rtl ? 'right' : 'left')}: 8px;
@@ -90,7 +90,7 @@ const AllPosts = Styled.div`
             }
         }
         .post-text{
-            border-bottom: 1px solid #F1F2F6;
+            border-bottom: 1px solid #F3F4F6;
             padding: 0 25px 20px 25px;
             margin-bottom: 20px;
             p{
@@ -104,7 +104,7 @@ const AllPosts = Styled.div`
         .post-actions{
             padding: 0 25px 20px 25px;
             margin-bottom: 20px;
-            border-bottom: 1px solid #F1F2F6;
+            border-bottom: 1px solid #F3F4F6;
             span{
                 display: inline-flex;
                 align-items: center;
@@ -126,7 +126,7 @@ const AllPosts = Styled.div`
             display: flex;
             align-items: center;
             padding: 0 25px 20px 25px;
-            border-bottom: 1px solid #F1F2F6;
+            border-bottom: 1px solid #F3F4F6;
             @media only screen and (max-width: 991px){
                 flex-flow: column;
                 align-items: flex-start;
@@ -158,7 +158,7 @@ const AllPosts = Styled.div`
                     height: 50px;
                     border: 0 none;
                     border-radius: 25px;
-                    background-color: #F4F5F7;
+                    background-color: #F7F8FA;
                     resize: none;
                 }
             }
@@ -170,7 +170,7 @@ const AllPosts = Styled.div`
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                box-shadow: 0 10px 15px #5F63F220;
+                box-shadow: 0 10px 15px #2D314220;
                 @media only screen and (max-width: 991px){
                     width: 35px;
                     height: 35px;
@@ -214,7 +214,7 @@ const AllPosts = Styled.div`
                     }
                     svg,
                     i{
-                        color: #ADB4D2;
+                        color: #D1D5DB;
                         width: 18px;
                         @media only screen and (max-width: 991px){
                             width: 14px;

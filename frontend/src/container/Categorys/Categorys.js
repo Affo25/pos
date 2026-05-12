@@ -1,51 +1,20 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import Styled from 'styled-components';
-import { Row, Col, Menu, message, Dropdown, Select, Tag } from 'antd';
-import { Link } from 'react-router-dom';
-import { EditOutlined, DeleteOutlined, SettingOutlined, LinkOutlined } from '@ant-design/icons';
+import { Row, Col, Input, Select, Tag } from 'antd';
+import { EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import FeatherIcon from 'feather-icons-react';
-import { useHistory } from 'react-router-dom/cjs/react-router-dom.min';
 import CreateCategory from './CreateCategory';
-import { AutoComplete } from '../../components/autoComplete/autoComplete';
 import { Button } from '../../components/buttons/buttons';
 import { PageHeader } from '../../components/page-headers/page-headers';
 import ProjectLists from '../../config/default/List';
-import { ProjectHeader, ProjectSorting } from '../../config/default/style';
+import { ProjectHeader } from '../../config/default/style';
 import { Main } from '../../config/default/styled';
 import { deleteCategory, fetchAllCategorys } from '../../redux/categorys/categorySlice';
 import { getComponentPermissions } from '../../config/utils/permission';
 import { ScreenWrap } from '../shared/procurementScreenStyles';
 
-/** Matches stock table: keeps grid within viewport; stacked cells */
-const CategoryTableOuter = Styled.div`
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-
-  .category-cell-title {
-    font-weight: 600;
-    color: #0f172a;
-    font-size: 14px;
-    line-height: 1.35;
-    word-break: break-word;
-  }
-  .category-cell-line {
-    font-size: 12px;
-    color: #64748b;
-    line-height: 1.45;
-    margin-top: 2px;
-  }
-  .category-cell-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-`;
-
 function Categorys() {
-  const history = useHistory();
   const dispatch = useDispatch();
   const { categorys, loading } = useSelector((state) => state.categorys);
   const { login: user } = useSelector(state => state.auth);
@@ -216,39 +185,19 @@ function Categorys() {
       ),
     },
     {
-      title: '',
+      title: 'Action',
       key: 'action',
-      width: 56,
+      width: 90,
       align: 'center',
       fixed: 'right',
       render: (_, record) => {
         const cat = record.sourceCategory;
         const cid = record.id;
         return (
-          <Dropdown
-            overlay={
-              <Menu className="custom-dropdown-menu">
-                <Menu.Item disabled={!canEdit} key="edit" className="custom-menu-item" onClick={() => handleEdit(cat)}>
-                  <div className="custom-action-btn edit-btn">
-                    <EditOutlined className="action-icon" />
-                    <span className="action-label">Edit</span>
-                  </div>
-                </Menu.Item>
-                <Menu.Item disabled={!canDelete} key="delete" className="custom-menu-item" onClick={() => handleDelete(cid)}>
-                  <div className="custom-action-btn delete-btn">
-                    <DeleteOutlined className="action-icon" />
-                    <span className="action-label">Delete</span>
-                  </div>
-                </Menu.Item>
-              </Menu>
-            }
-            trigger={['click']}
-            overlayClassName="custom-dropdown-overlay"
-          >
-            <Link to="#" className="text-dark dropdown-trigger">
-              <FeatherIcon icon="more-horizontal" size={18} />
-            </Link>
-          </Dropdown>
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+            <button type="button" disabled={!canEdit} onClick={() => handleEdit(cat)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid #E5E7EB', background: '#fff', cursor: 'pointer', color: '#2D3142' }} title="Edit"><EditOutlined style={{ fontSize: 14 }} /></button>
+            <button type="button" disabled={!canDelete} onClick={() => handleDelete(cid)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid #FEE2E2', background: '#FEF2F2', cursor: 'pointer', color: '#EF4444' }} title="Delete"><DeleteOutlined style={{ fontSize: 14 }} /></button>
+          </div>
         );
       },
     },
@@ -274,43 +223,41 @@ function Categorys() {
       </ProjectHeader>
       <Main>
        
-        <Row gutter={[20, 20]} style={{ width: '100%', maxWidth: '100%', marginInline: 0 }}>
-          <Col xs={24} style={{ maxWidth: '100%', paddingInline: 0 }}>
-            <div className="toolbar-card">
-              <ProjectSorting>
-                <div className="project-sort-bar">
-                  <div className="project-sort-search" style={{ flex: 1, minWidth: 160, maxWidth: 480 }}>
-                    <AutoComplete onSearch={handleSearch} dataSource={notData} placeholder="Search categories" patterns />
-                  </div>
-                  <div className="sort-group">
-                    <span style={{ display: 'flex', alignItems: 'center' }}>Status</span>
-                    <Select defaultValue="category" onChange={(value) => setSortStatus(value)} style={{ minWidth: 140 }}>
-                      <Select.Option value="category">All</Select.Option>
-                      <Select.Option value="active">Active</Select.Option>
-                      <Select.Option value="inactive">Inactive</Select.Option>
-                    </Select>
-                  </div>
+        <Row gutter={25}>
+          <Col xs={24}>
+            <div className="table-shell">
+              <div className="table-toolbar">
+                <div className="table-toolbar__search">
+                  <Input
+                    prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />}
+                    placeholder="Search categories"
+                    allowClear
+                    onChange={(e) => handleSearch(e.target.value)}
+                  />
                 </div>
-              </ProjectSorting>
-            </div>
-
-            <CategoryTableOuter className="category-table-outer">
-              <div className="table-shell">
-                <ProjectLists
-                  columns={columns}
-                  dataSource={dataSource}
-                  loading={loading}
-                  total={filteredCategories.length}
-                  current={pagination.current}
-                  pageSize={pagination.pageSize}
-                  onChange={handlePageChange}
-                  onShowSizeChange={handleSizeChange}
-                  size="middle"
-                  scroll={{ x: 520 }}
-                  rowKey="key"
-                />
+                <div className="table-toolbar__filters">
+                  <span className="table-toolbar__label">Status</span>
+                  <Select defaultValue="category" onChange={(value) => setSortStatus(value)} style={{ minWidth: 140 }}>
+                    <Select.Option value="category">All</Select.Option>
+                    <Select.Option value="active">Active</Select.Option>
+                    <Select.Option value="inactive">Inactive</Select.Option>
+                  </Select>
+                </div>
               </div>
-            </CategoryTableOuter>
+              <ProjectLists
+                columns={columns}
+                dataSource={dataSource}
+                loading={loading}
+                total={filteredCategories.length}
+                current={pagination.current}
+                pageSize={pagination.pageSize}
+                onChange={handlePageChange}
+                onShowSizeChange={handleSizeChange}
+                size="middle"
+                scroll={{ x: 520 }}
+                rowKey="key"
+              />
+            </div>
           </Col>
         </Row>
         <CreateCategory

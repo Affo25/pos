@@ -6,7 +6,7 @@ const DropdownStyle = Styled.div`
       margin-bottom: 10px;
       height: 36px;
       font-weight: 400;
-      border-color: #E3E6EF;
+      border-color: #E5E7EB;
       padding: 0px 19px;
       border-radius: 5px;
   }
@@ -43,7 +43,7 @@ const CarouselStyleWraper = Styled.div`
     text-align: center;
     height: 150px;
     line-height: 160px;
-    background: #5A5F7D;
+    background: #4B5563;
     overflow: hidden;
   }
   .ant-carousel .slick-dots li{
@@ -69,7 +69,7 @@ const CarouselStyleWraper = Styled.div`
 const AvatarWraperStyle = Styled.div`
   .ant-avatar {
     margin: 10px;
-    background: #E3E6EF;
+    background: #E5E7EB;
   }
   .ant-btn-default{
     padding: 0 10px;
@@ -128,7 +128,7 @@ const BadgeWraperStyle = Styled.div`
   }
   .ant-badge-status-text{
     ${({ theme }) => (!theme.rtl ? 'margin-left' : 'margin-right')}: 10px !important;
-    color: #9299B8;
+    color: #9CA3AF;
   }
 `;
 
@@ -161,7 +161,7 @@ const BadgeOverflowStyle = Styled.div`
 
 const BreadcrumbWrapperStyle = Styled.div`
   .ant-breadcrumb{
-    color: #5A5F7D;
+    color: #4B5563;
     .ant-breadcrumb-link{
       .anticon{
         ${({ theme }) => (theme.rtl ? 'margin-left' : 'margin-right')}: 2px !important;
@@ -174,10 +174,10 @@ const BreadcrumbWrapperStyle = Styled.div`
   .ant-breadcrumb >span:first-child .ant-breadcrumb-link,
   .ant-breadcrumb >span:first-child .ant-breadcrumb-link svg,
   .ant-breadcrumb >span:first-child .ant-breadcrumb-link a{
-    color: #5F63F2;
+    color: #2D3142;
   }
   .ant-breadcrumb >span:last-child .ant-breadcrumb-link{
-    color: #9299B8;
+    color: #9CA3AF;
   }
   .demo{
     .ant-breadcrumb{
@@ -196,7 +196,7 @@ const BreadcrumbWrapperStyle = Styled.div`
   }
   .demo-nav a{
     padding: 0 12px;
-    color: #5F63F2;
+    color: #2D3142;
   }
   .ant-alert{
     &.ant-alert-info{
@@ -248,11 +248,11 @@ const BadgeDynamicStyle = Styled.div`
 
 const CardStyleWrapper = Styled.div`
 .ant-card{
-  background: #F8F9FB;
+  background: #F9FAFB;
 }
 .ant-card-head{
-  border-color: #E3E6EF;
-  background: #F8F9FB;
+  border-color: #E5E7EB;
+  background: #F9FAFB;
 }
 .ant-card-head .ant-card-head-title{
   padding: 12px 0;
@@ -268,7 +268,7 @@ const CardStyleWrapper = Styled.div`
   background: #fff;
 }
 .ant-card-head-wrapper .ant-card-extra a{
-  color: #5F63F2;
+  color: #2D3142;
 }
 .ant-card-body{
   padding: 22px 25px 15px 25px !important
@@ -281,7 +281,7 @@ const CardStyleWrapper = Styled.div`
   border-radius: 5px;
   overflow: hidden;
   background: #fff;
-  border: 1px solid #E3E6EF !important;
+  border: 1px solid #E5E7EB !important;
 }
 .ant-card-small > .ant-card-head{
   font-size: 16px;

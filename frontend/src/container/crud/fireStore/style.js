@@ -15,7 +15,7 @@ const RecordViewWrapper = Styled.div`
     }
     .search-box{
         position: relative;
-        box-shadow: 0 5px 5px rgba(#9299B8,.3);
+        box-shadow: 0 5px 5px rgba(#9CA3AF,.3);
         .search-icon{
             position: absolute;
             ${({ theme }) => (theme.rtl ? 'right' : 'left')}: 18px;
@@ -25,7 +25,7 @@ const RecordViewWrapper = Styled.div`
             img{
                 margin-top: 6px;
                 min-width: 16px;
-                color: #9299B8;
+                color: #9CA3AF;
             }
         }
         input{
@@ -35,7 +35,7 @@ const RecordViewWrapper = Styled.div`
             padding: ${({ theme }) => (theme.rtl ? '0 45px 0 20px' : '0 20px 0 45px')};
             border-radius: 6px;
             &::placeholder{
-                color: #ADB4D2;
+                color: #D1D5DB;
             }
             &:focus{
                 outline: none;
@@ -67,7 +67,7 @@ const RecordFormWrapper = Styled.div`
                 width: 100%;
                 height: 100%;
                 border-radius: 50%;
-                background-color: #272B4120;
+                background-color: #2D314220;
                 content: '';
                 z-index: -1;
             }
@@ -105,7 +105,7 @@ const RecordFormWrapper = Styled.div`
                 justify-content: center;
                 border-radius: 50%;
                 width: 32px;
-                background: #5F63F2;
+                background: #2D3142;
             }
         }
         .upload-btn{

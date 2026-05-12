@@ -34,7 +34,7 @@ function HalfProgressBar({ percent }) {
         <text
           id="Progress"
           transform="translate(619 931)"
-          fill="#868eae"
+          fill="#9CA3AF"
           fontSize="15"
           fontFamily="Inter-Regular, Inter"
         >

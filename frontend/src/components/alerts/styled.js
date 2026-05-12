@@ -44,7 +44,7 @@ const Style = Styled(Alert)`
     font-size: 12px;
     line-height: 1.5;
     font-weight: 500;
-    color: #9299B8;
+    color: #9CA3AF;
   }
 
   ${({ outlined, theme, type }) => outlined && outline(theme, type)}

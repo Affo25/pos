@@ -109,7 +109,7 @@ function InputForm() {
               <Col md={18} xs={24}>
                 <Form.Item name="input-color">
                   <div className="sDash_color-picker">
-                    <Input type="color" value="#5F63F2" />
+                    <Input type="color" value="#2D3142" />
                   </div>
                 </Form.Item>
               </Col>

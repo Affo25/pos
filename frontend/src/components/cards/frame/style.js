@@ -64,7 +64,7 @@ const CardFrame = Styled(Card)`
   ${({ isbutton, theme }) => isbutton && BtnWraper(theme)}
   margin-bottom: 25px !important;
   .ant-card-head{
-    border-color: #F1F2F6;
+    border-color: #F3F4F6;
   }
   .ant-card-head .ant-card-head-title {
     padding: 18px 0;
@@ -103,7 +103,7 @@ const CardFrame = Styled(Card)`
   }
   .custom-label {
     font-size: 13px;
-    color: #868eae;
+    color: #9CA3AF;
     display: inline-flex;
     align-items: center;
   }

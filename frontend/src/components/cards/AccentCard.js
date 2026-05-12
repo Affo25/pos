@@ -11,7 +11,7 @@ const AccentCard = styled(Card).attrs((p) => ({
 }))`
   border-radius: 10px !important;
   border: 1px solid rgba(15, 23, 42, 0.07) !important;
-  border-left: 3px solid ${(p) => p.$accent || '#5F63F2'} !important;
+  border-left: 3px solid ${(p) => p.$accent || '#2D3142'} !important;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05) !important;
   background: #fff !important;
   transition: box-shadow 0.2s ease;

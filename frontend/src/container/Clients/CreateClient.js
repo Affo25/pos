@@ -10,6 +10,7 @@ import { createClient, fetchAllClients, updateClient } from '../../redux/clients
 import { BasicFormWrapper } from '../../config/default/styled';
 import { STATUS_OPTIONS } from '../../config/data/data';
 import { createUser } from '../../redux/users/userSlice';
+import ModernModalStyles from '../shared/modalStyles';
 
 function CreateClient({ visible, onCancel, client }) {
   const [form] = Form.useForm();
@@ -99,11 +100,13 @@ function CreateClient({ visible, onCancel, client }) {
   };
 
   return (
-    <Modal
-      type="primary"
-      title={isEditMode ? 'Edit Client' : 'Create Client'}
-      visible={visible}
-      footer={[
+    <>
+      <ModernModalStyles />
+      <Modal
+        className="modern-modal"
+        title={isEditMode ? 'Edit Client' : 'Create Client'}
+        visible={visible}
+        footer={[
         <div key="footer" className="client-modal-footer">
           {isEditMode ? (
             <Button size="default" type="primary" onClick={handleSave}>
@@ -200,6 +203,7 @@ function CreateClient({ visible, onCancel, client }) {
         </BasicFormWrapper>
       </div>
     </Modal>
+    </>
   );
 }
 

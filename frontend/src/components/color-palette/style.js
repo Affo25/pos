@@ -3,7 +3,7 @@ import Styled from 'styled-components';
 const borderd = type => {
   return `
         background: #ffffff;
-        color: #5A5F7D;
+        color: #4B5563;
         border: 1px solid ${type};
     `;
 };
@@ -14,7 +14,7 @@ const content = () => {
 };
 const bg = () => {
   return `
-        color: #5A5F7D;
+        color: #4B5563;
       `;
 };
 const grad = (type, direction) => {

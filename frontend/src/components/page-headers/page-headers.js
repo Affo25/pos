@@ -8,7 +8,7 @@ const PageHeader = props => {
     <>
       <div
         style={{
-          backgroundColor: bgColor || '#F4F5F7',
+          backgroundColor: bgColor || '#F7F8FA',
         }}
       >
         <PageHeaderStyle

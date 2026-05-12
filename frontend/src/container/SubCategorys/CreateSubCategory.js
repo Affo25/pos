@@ -10,6 +10,7 @@ import { Button } from '../../components/buttons/buttons';
 import { createSubCategory, updateSubCategory } from '../../redux/subcategorys/subcategorySlice';
 import { BasicFormWrapper } from '../../config/default/styled';
 import { fetchAllCategorys } from '../../redux/categorys/categorySlice';
+import ModernModalStyles from '../shared/modalStyles';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -65,74 +66,77 @@ function CreateSubCategory({ visible, onCancel, subcategory, onSuccess }) {
   };
 
   return (
-    <Modal
-      type="primary"
-      title={subcategory ? 'Edit SubCategory' : 'Create SubCategory'}
-      visible={visible}
-      footer={[
-        <div key="1" className="subcategory-modal-footer">
-          <Button size="default" type="primary" onClick={handleOk}>
-            {subcategory ? 'Update' : 'Save'}
-          </Button>
-        </div>,
-      ]}
-      onCancel={handleCancel}
-    >
-      <div className="subcategory-modal">
-        <BasicFormWrapper>
-          <Form form={form} name="createSubCategory" layout="vertical">
-            <Row gutter={16}>
+    <>
+      <ModernModalStyles />
+      <Modal
+        className="modern-modal"
+        title={subcategory ? 'Edit SubCategory' : 'Create SubCategory'}
+        visible={visible}
+        footer={[
+          <div key="1" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <Button size="default" type="white" onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button size="default" type="primary" onClick={handleOk}>
+              {subcategory ? 'Update' : 'Save'}
+            </Button>
+          </div>,
+        ]}
+        onCancel={handleCancel}
+      >
+        <div className="subcategory-modal">
+          <BasicFormWrapper>
+            <Form form={form} name="createSubCategory" layout="vertical">
+              <Row gutter={16}>
 
-              <Col span={12}>
-                <Form.Item
-                  name="category_id"
-                  label="Category"
-                  rules={[{ required: true, message: 'Category is required' }]}
-                >
-                  <Select placeholder="Select Category">
-                    {categorys.map(cat => (
-                      <Option key={cat._id} value={cat._id}>
-                        {cat.name}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="category_id"
+                    label="Category"
+                    rules={[{ required: true, message: 'Category is required' }]}
+                  >
+                    <Select placeholder="Select Category">
+                      {categorys.map(cat => (
+                        <Option key={cat._id} value={cat._id}>
+                          {cat.name}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
 
-              {/* Name */}
-              <Col span={12}>
-                <Form.Item
-                  name="name"
-                  label="Sub Category Name"
-                  rules={[{ required: true }]}
-                >
-                  <Input placeholder="Enter Sub Category Name" />
-                </Form.Item>
-              </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="name"
+                    label="Sub Category Name"
+                    rules={[{ required: true }]}
+                  >
+                    <Input placeholder="Enter Sub Category Name" />
+                  </Form.Item>
+                </Col>
 
-              {/* Description */}
-              <Col span={24}>
-                <Form.Item name="description" label="Description">
-                  <TextArea rows={3} placeholder="Optional description" />
-                </Form.Item>
-              </Col>
+                <Col span={24}>
+                  <Form.Item name="description" label="Description">
+                    <TextArea rows={3} placeholder="Optional description" />
+                  </Form.Item>
+                </Col>
 
-              {/* Status */}
-              <Col span={12}>
-                <Form.Item name="status" label="Status" initialValue="active">
-                  <Select>
-                    <Option value="active">Active</Option>
-                    <Option value="inactive">Inactive</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
+                <Col span={12}>
+                  <Form.Item name="status" label="Status" initialValue="active">
+                    <Select>
+                      <Option value="active">Active</Option>
+                      <Option value="inactive">Inactive</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
 
-            </Row>
-          </Form>
+              </Row>
+            </Form>
 
-        </BasicFormWrapper>
-      </div>
-    </Modal>
+          </BasicFormWrapper>
+        </div>
+      </Modal>
+    </>
   );
 }
 

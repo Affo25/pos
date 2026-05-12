@@ -19,6 +19,7 @@ import propTypes from 'prop-types';
 import { useDispatch, useSelector } from 'react-redux';
 import moment from 'moment';
 import styled from 'styled-components';
+import ModernModalStyles from '../shared/modalStyles';
 
 import { Modal } from '../../components/modals/antd-modals';
 import { Button } from '../../components/buttons/buttons';
@@ -36,6 +37,8 @@ const { Option } = Select;
 const { TextArea } = Input;
 const { TabPane } = Tabs;
 
+
+
 const ProductModalForm = styled.div`
   padding: 0;
 
@@ -43,6 +46,12 @@ const ProductModalForm = styled.div`
     font-size: 14px;
     font-weight: 600;
     padding: 8px 16px;
+    border-radius: 8px 8px 0 0;
+    border-color: #E5E7EB;
+  }
+
+  .ant-tabs-card > .ant-tabs-nav .ant-tabs-tab-active {
+    border-bottom-color: #fff;
   }
 
   .ant-tabs-content-holder {
@@ -55,6 +64,41 @@ const ProductModalForm = styled.div`
 
   .ant-form-item {
     margin-bottom: 14px !important;
+  }
+
+  .ant-form-item-label > label {
+    font-weight: 600;
+    color: #374151;
+    font-size: 13px;
+  }
+
+  .ant-input,
+  .ant-input-number,
+  .ant-picker,
+  .ant-input-affix-wrapper {
+    border-radius: 8px !important;
+    border-color: #D1D5DB !important;
+    &:hover {
+      border-color: #9CA3AF !important;
+    }
+    &:focus,
+    &-focused {
+      border-color: #EF8354 !important;
+      box-shadow: 0 0 0 2px rgba(239, 131, 84, 0.12) !important;
+    }
+  }
+
+  .ant-select-selector {
+    border-radius: 8px !important;
+    border-color: #D1D5DB !important;
+    &:hover {
+      border-color: #9CA3AF !important;
+    }
+  }
+
+  .ant-select-focused .ant-select-selector {
+    border-color: #EF8354 !important;
+    box-shadow: 0 0 0 2px rgba(239, 131, 84, 0.12) !important;
   }
 
   .ant-row + .ant-row {
@@ -335,39 +379,26 @@ function CreateProduct({ visible, onCancel, product }) {
   };
 
   return (
+    <>
+    <ModernModalStyles />
     <Modal
-      type="primary"
       title={product ? 'Edit Medicine' : 'Create Medicine'}
       visible={visible}
       onCancel={onCancel}
       width={1400}
+      className="modern-modal"
       bodyStyle={{
         maxHeight: '72vh',
         overflowY: 'auto',
-        padding: '8px 20px 12px',
       }}
       footer={[
-        <Space key="actions" direction="horizontal" style={{ width: '100%', justifyContent: 'space-between' }}>
-          {/* <Space>
-            <AntButton 
-              onClick={generateDummyData} 
-              loading={generating}
-              style={{ backgroundColor: '#52c41a', color: 'white' }}
-            >
-              Generate Dummy Data
-            </AntButton>
-            <AntButton onClick={clearAllFields}>
-              Clear All
-            </AntButton>
-          </Space> */}
-          <Space>
-            <Button key="cancel" type="danger" onClick={onCancel}>
-              Cancel
-            </Button>
-            <Button key="save" type="primary" onClick={handleOk}>
-              {product ? 'Update' : 'Save'}
-            </Button>
-          </Space>
+        <Space key="actions" direction="horizontal" style={{ width: '100%', justifyContent: 'flex-end' }}>
+          <Button key="cancel" type="white" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button key="save" type="primary" onClick={handleOk}>
+            {product ? 'Update' : 'Save'}
+          </Button>
         </Space>
       ]}
     >
@@ -614,6 +645,7 @@ function CreateProduct({ visible, onCancel, product }) {
         </ProductModalForm>
       </BasicFormWrapper>
     </Modal>
+    </>
   );
 }
 

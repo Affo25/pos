@@ -70,7 +70,7 @@ function Avatars() {
                     className="btn-outlined"
                     type="light"
                     outlined
-                    style={{ margin: '0 10px', verticalAlign: 'middle', color: '#ADB4D2' }}
+                    style={{ margin: '0 10px', verticalAlign: 'middle', color: '#D1D5DB' }}
                     onClick={changeUser}
                   >
                     Change

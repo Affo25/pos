@@ -11,6 +11,7 @@ import { Modal } from '../../components/modals/antd-modals';
 import { createUser, updateUser } from '../../redux/users/userSlice';
 import { allowedPages } from '../../config/data/data';
 import { BasicFormWrapper } from '../../config/default/styled';
+import ModernModalStyles from '../shared/modalStyles';
 
 function CreateUser({ visible, onCancel, user }) {
   const { Option } = Select;
@@ -343,12 +344,15 @@ function CreateUser({ visible, onCancel, user }) {
   );
 
   return (
-    <Modal
-      visible={visible}
-      width={1000}
-      footer={null}
-      closable={false}
-      onCancel={() => {
+    <>
+      <ModernModalStyles />
+      <Modal
+        className="modern-modal"
+        visible={visible}
+        width={1000}
+        footer={null}
+        closable={false}
+        onCancel={() => {
         resetForm();
         onCancel();
       }}
@@ -663,6 +667,7 @@ function CreateUser({ visible, onCancel, user }) {
         </Button>
       </div>
     </Modal>
+    </>
   );
 }
 

@@ -123,7 +123,7 @@ const Focard = Styled.div`
         }
         .subtitle{
             font-size: 14px;
-            color: #868EAE;
+            color: #9CA3AF;
             margin-bottom: 10px;
         }
         .focard-status{
@@ -140,7 +140,7 @@ const Focard = Styled.div`
                 }
             }
             span + span{
-                color: #868EAE;
+                color: #9CA3AF;
                 font-size: 13px;
             }
         }
@@ -929,8 +929,8 @@ const RegionMap = Styled.div`
             width: 27px;
             height: 27px;
             background: none;
-            color: #5a5f7d;
-            border: 1px solid #f1f2f6;
+            color: #4B5563;
+            border: 1px solid #F3F4F6;
             padding: 0;
             font-size: 15px;
             display: flex;
@@ -1231,8 +1231,8 @@ const LocationMapWrapper = Styled.div`
                 width: 27px;
                 height: 27px;
                 background: none;
-                color: #5a5f7d;
-                border: 1px solid #f1f2f6;
+                color: #4B5563;
+                border: 1px solid #F3F4F6;
                 padding: 0;
                 font-size: 15px;
                 display: flex;
@@ -1411,7 +1411,7 @@ const RevenueChartWrapper = Styled.div`
                     background: #20C997;
                 }
                 &.dot-Mobile{
-                    background: #5F63F2;
+                    background: #2D3142;
                 }
                 &.dot-Tablets{
                     background: #FA8B0C;
@@ -1533,10 +1533,10 @@ const ChartContainer = Styled.div`
         opacity: 1;
         position: absolute;
         background: #fff;
-        box-shadow: 0 8px 10px #9299B815;
+        box-shadow: 0 8px 10px #9CA3AF15;
         padding: 10px 12px !important;
         border-radius: 3px;
-        border: 1px solid #F1F2F6;
+        border: 1px solid #F3F4F6;
         min-width: 80px;
         -webkit-transition: all 0.5s ease;
         transition: all 0.5s ease;

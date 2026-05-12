@@ -191,7 +191,7 @@ const RecentFIleTableWrap = styled.div`
           top: -2px;
           text-transform: uppercase;
           font-size: 12px;
-          color: #9299b8;
+          color: #9CA3AF;
         }
       }
     }
@@ -254,7 +254,7 @@ const RecentFIleTableWrap = styled.div`
             }
           }
           &:hover {
-            box-shadow: 0 15px 50px #9299b820;
+            box-shadow: 0 15px 50px #9CA3AF20;
           }
           .ant-dropdown-trigger {
             float: right;

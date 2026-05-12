@@ -93,7 +93,7 @@ function Ecommerce() {
                       {
                         data: [20, 60, 50, 45, 50, 60, 70],
                         backgroundColor: '#EFEFFE',
-                        hoverBackgroundColor: '#5F63F2',
+                        hoverBackgroundColor: '#2D3142',
                         label: 'Orders',
                         barPercentage: 1,
                       },
@@ -126,7 +126,7 @@ function Ecommerce() {
                       {
                         data: [20, 60, 50, 45, 50, 60, 70],
                         backgroundColor: '#FFF0F6',
-                        hoverBackgroundColor: '#FF69A5',
+                        hoverBackgroundColor: '#6B7280',
                         label: 'Revenue',
                         barPercentage: 1,
                       },

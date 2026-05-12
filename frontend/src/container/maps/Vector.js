@@ -76,11 +76,11 @@ function VectorMaps() {
                                   outline: 'none',
                                 },
                                 hover: {
-                                  fill: '#5F63F2',
+                                  fill: '#2D3142',
                                   outline: 'none',
                                 },
                                 pressed: {
-                                  fill: '#5F63F2',
+                                  fill: '#2D3142',
                                   outline: 'none',
                                 },
                               }}

@@ -3,24 +3,21 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Row, Col, Menu, message, Dropdown, Select, Space, Popconfirm } from 'antd';
-import { Link } from 'react-router-dom';
-import { EditOutlined, DeleteOutlined, SettingOutlined, LinkOutlined } from '@ant-design/icons';
+import { Row, Col, Input, message, Select } from 'antd';
+import { EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import FeatherIcon from 'feather-icons-react';
-import { useHistory } from 'react-router-dom/cjs/react-router-dom.min';
 import CreateSubCategory from './CreateSubCategory';
-import { AutoComplete } from '../../components/autoComplete/autoComplete';
 import { Button } from '../../components/buttons/buttons';
 import { PageHeader } from '../../components/page-headers/page-headers';
 import ProjectLists from '../../config/default/List';
-import { ProjectHeader, ProjectSorting } from '../../config/default/style';
+import { ProjectHeader } from '../../config/default/style';
 import { Main } from '../../config/default/styled';
 import { deleteSubCategory, fetchAllSubCategorys } from '../../redux/subcategorys/subcategorySlice';
 import { getComponentPermissions } from '../../config/utils/permission';
 import { fetchAllCategorys } from '../../redux/categorys/categorySlice';
+import { ScreenWrap } from '../shared/procurementScreenStyles';
 
 function SubCategorys() {
-  const history = useHistory();
   const dispatch = useDispatch();
   const { subcategorys, loading } = useSelector((state) => state.subcategorys);
   const { categorys } = useSelector((state) => state.categorys);
@@ -147,71 +144,12 @@ function SubCategorys() {
           ) : (
             <span className="color-danger" style={{ fontWeight: 500, fontSize: '12px' }}>Inactive</span>
           ),
-         action: (
-  <Space size="small" style={{ gap: '6px' }}>
-    <Button
-      disabled={!canEdit}
-      type="primary"
-      size="small"
-      style={{
-        backgroundColor: '#1890ff',
-        borderColor: '#1890ff',
-        borderRadius: '4px',
-        height: '28px',
-        padding: '0 8px',
-        fontSize: '12px',
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '4px',
-        boxShadow: '0 1px 2px rgba(24, 144, 255, 0.2)',
-      }}
-      onClick={() => handleEdit(subcategory)}
-    >
-      <EditOutlined style={{ fontSize: '12px' }} />
-      Edit
-    </Button>
-    
-    <Popconfirm
-      title="Delete SubCategory"
-      description={`Delete "${name}"?`}
-      onConfirm={() => handleDelete(_id || id, name)}
-      okText="Delete"
-      cancelText="Cancel"
-      okButtonProps={{ danger: true, size: 'small' }}
-    >
-      <Button
-        disabled={!canDelete}
-        type="primary"
-        danger
-        size="small"
-        style={{
-          backgroundColor: '#ff4d4f',
-          borderColor: '#ff4d4f',
-          borderRadius: '4px',
-          height: '28px',
-          padding: '0 8px',
-          fontSize: '12px',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '4px',
-          color: 'white',
-          boxShadow: '0 1px 2px rgba(255, 77, 79, 0.2)',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#ff7875';
-          e.currentTarget.style.borderColor = '#ff7875';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '#ff4d4f';
-          e.currentTarget.style.borderColor = '#ff4d4f';
-        }}
-      >
-        <DeleteOutlined style={{ fontSize: '12px' }} />
-        Delete
-      </Button>
-    </Popconfirm>
-  </Space>
-),
+          action: (
+            <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+              <button type="button" disabled={!canEdit} onClick={() => handleEdit(subcategory)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid #E5E7EB', background: '#fff', cursor: 'pointer', color: '#2D3142' }} title="Edit"><EditOutlined style={{ fontSize: 14 }} /></button>
+              <button type="button" disabled={!canDelete} onClick={() => handleDelete(_id || id, name)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid #FEE2E2', background: '#FEF2F2', cursor: 'pointer', color: '#EF4444' }} title="Delete"><DeleteOutlined style={{ fontSize: 14 }} /></button>
+            </div>
+          ),
         };
       });
       setDataSource(formatted);
@@ -271,22 +209,26 @@ function SubCategorys() {
       align: 'center',
     },
     {
-      title: 'Actions',
+      title: 'Action',
       dataIndex: 'action',
       key: 'action',
-      width: 140,
+      width: 90,
       align: 'center',
       fixed: 'right',
     },
   ];
 
   return (
-    <>
+    <ScreenWrap>
       <ProjectHeader>
         <PageHeader
           ghost
-          title="SubCategories"
-          subTitle={<>{loading ? 'Loading...' : `${dataSource.length} SubCategories`}</>}
+          title={<span className="page-title">SubCategories</span>}
+          subTitle={
+            <span className="page-sub">
+              {loading ? 'Loading…' : `${dataSource.length} SubCategories`}
+            </span>
+          }
           buttons={[
             <Button disabled={!canAdd} onClick={showModal} key="1" type="primary" size="default">
               <FeatherIcon icon="plus" size={16} /> Create SubCategory
@@ -297,22 +239,25 @@ function SubCategorys() {
       <Main>
         <Row gutter={25}>
           <Col xs={24}>
-            <ProjectSorting>
-              <div className="project-sort-bar">
-                <div className="project-sort-search">
-                  <AutoComplete onSearch={handleSearch} dataSource={notData} placeholder="Search subcategories" patterns />
+            <div className="table-shell">
+              <div className="table-toolbar">
+                <div className="table-toolbar__search">
+                  <Input
+                    prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />}
+                    placeholder="Search subcategories"
+                    allowClear
+                    onChange={(e) => handleSearch(e.target.value)}
+                  />
                 </div>
-                <div className="sort-group">
-                  <span style={{ display: 'flex', alignItems: 'center' }}>Sort By:</span>
-                  <Select defaultValue="category" onChange={(value) => setSortStatus(value)}>
+                <div className="table-toolbar__filters">
+                  <span className="table-toolbar__label">Status</span>
+                  <Select defaultValue="category" onChange={(value) => setSortStatus(value)} style={{ minWidth: 140 }}>
                     <Select.Option value="category">All</Select.Option>
                     <Select.Option value="active">Active</Select.Option>
                     <Select.Option value="inactive">Inactive</Select.Option>
                   </Select>
                 </div>
               </div>
-            </ProjectSorting>
-            <div>
               <ProjectLists
                 columns={columns}
                 dataSource={dataSource}
@@ -335,7 +280,7 @@ function SubCategorys() {
           }}
         />
       </Main>
-    </>
+    </ScreenWrap>
   );
 }
 

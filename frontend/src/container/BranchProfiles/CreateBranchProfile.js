@@ -15,6 +15,7 @@ import {
 import { STATUS, countries } from '../../config/data/data';
 
 import { BasicFormWrapper } from '../../config/default/styled';
+import ModernModalStyles from '../shared/modalStyles';
 
 function CreateBranchProfile({ visible, onCancel, branchprofile }) {
   const [form] = Form.useForm();
@@ -91,10 +92,12 @@ function CreateBranchProfile({ visible, onCancel, branchprofile }) {
   };
 
   return (
+    <>
+    <ModernModalStyles />
     <Modal
-      type="primary"
       title={branchprofile ? 'Edit BranchProfile' : 'Create BranchProfile'}
       visible={visible}
+      className="modern-modal"
       footer={[
         <div key="1" className="branchprofile-modal-footer">
           <Button size="default" type="primary" onClick={handleOk}>
@@ -184,6 +187,7 @@ function CreateBranchProfile({ visible, onCancel, branchprofile }) {
         </BasicFormWrapper>
       </div>
     </Modal>
+    </>
   );
 }
 

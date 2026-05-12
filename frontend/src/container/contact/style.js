@@ -49,7 +49,7 @@ const ContactCardWrapper = Styled.div`
     }
     .user-info{
       margin-top: 20px;
-      border-top: 1px solid #F1F2F6;
+      border-top: 1px solid #F3F4F6;
       padding-top: 25px;
       ul{
         li{

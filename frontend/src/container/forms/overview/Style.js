@@ -33,12 +33,12 @@ const HorizontalFormStyleWrap = Styled.div`
                 padding: 6.4px 19px;
                 &.ant-btn-light{
                     height: 44px;
-                    background-color: #F1F2F6;
-                    border-color: #F1F2F6;
+                    background-color: #F3F4F6;
+                    border-color: #F3F4F6;
                 }
             }
             .ant-btn-light{
-                background-color: #F8F9FB;
+                background-color: #F9FAFB;
             }
         }
     }
@@ -53,7 +53,7 @@ const HorizontalFormStyleWrap = Styled.div`
     }
     ant-picker-input{
         &::placeholder{
-            color: #9299B8 !important;
+            color: #9CA3AF !important;
         }
     }
 `;
@@ -79,15 +79,15 @@ const VerticalFormStyleWrap = Styled.div`
             padding: 6.4px 19px;
             &.ant-btn-light{
                 height: 44px;
-                background-color: #F1F2F6;
-                border-color: #F1F2F6;
+                background-color: #F3F4F6;
+                border-color: #F3F4F6;
             }
         }
         .ant-form-item{
             margin-bottom: 25px !important;
         }
         .ant-btn-light{
-            background-color: #F8F9FB;
+            background-color: #F9FAFB;
         }
     }
 `;
@@ -111,7 +111,7 @@ const DropDownListComponents = Styled.div`
         .ant-dropdown-trigger{
             font-size: 14px;
             font-weight: 400;
-            color: #9299B8;
+            color: #9CA3AF;
             width: 100%;
             justify-content: flex-start;
             &:not(:last-child){
@@ -128,7 +128,7 @@ const FormComponentsWrap = Styled.div`
         }
     }
     .sDash_editor{
-        border: 1px solid #E3E6EF;
+        border: 1px solid #E5E7EB;
         border-radius: 4px;
         .EditorToolbar__root___3_Aqz{
             padding: 12px 20px 0;

@@ -9,6 +9,7 @@ import { Modal } from '../../components/modals/antd-modals';
 import { Button } from '../../components/buttons/buttons';
 import { createCategory, updateCategory } from '../../redux/categorys/categorySlice';
 import { BasicFormWrapper } from '../../config/default/styled';
+import ModernModalStyles from '../shared/modalStyles';
 
 const { TextArea } = Input;
 
@@ -67,62 +68,65 @@ function CreateCategory({ visible, onCancel, category, onSuccess, currentUser })
   };
 
   return (
-    <Modal
-      type="primary"
-      title={category ? 'Edit Category' : 'Create Category'}
-      visible={visible}
-      footer={[
-        <div key="1" className="category-modal-footer">
-          <Button size="default" type="primary" onClick={handleOk}>
-            {category ? 'Update' : 'Create Category'}
-          </Button>
-          <Button size="default" type="default" onClick={handleCancel} style={{ marginLeft: '8px' }}>
-            Cancel
-          </Button>
-        </div>,
-      ]}
-      onCancel={handleCancel}
-      width={600}
-    >
-      <div className="category-modal">
-        <BasicFormWrapper>
-          <Form
-            form={form}
-            name="createCategory"
-            layout="vertical"
-          >
-            <Row gutter={16}>
-              <Col span={24}>
-                <Form.Item
-                  name="name"
-                  label="Category Name"
-                  rules={[
-                    { required: true, message: 'Please enter category name' },
-                    { max: 100, message: 'Name cannot exceed 100 characters' }
-                  ]}
-                >
-                  <Input placeholder="Enter category name" />
-                </Form.Item>
-              </Col>
+    <>
+      <ModernModalStyles />
+      <Modal
+        className="modern-modal"
+        title={category ? 'Edit Category' : 'Create Category'}
+        visible={visible}
+        footer={[
+          <div key="1" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <Button size="default" type="white" onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button size="default" type="primary" onClick={handleOk}>
+              {category ? 'Update' : 'Save'}
+            </Button>
+          </div>,
+        ]}
+        onCancel={handleCancel}
+        width={600}
+      >
+        <div className="category-modal">
+          <BasicFormWrapper>
+            <Form
+              form={form}
+              name="createCategory"
+              layout="vertical"
+            >
+              <Row gutter={16}>
+                <Col span={24}>
+                  <Form.Item
+                    name="name"
+                    label="Category Name"
+                    rules={[
+                      { required: true, message: 'Please enter category name' },
+                      { max: 100, message: 'Name cannot exceed 100 characters' }
+                    ]}
+                  >
+                    <Input placeholder="Enter category name" />
+                  </Form.Item>
+                </Col>
 
-              <Col span={24}>
-                <Form.Item
-                  name="description"
-                  label="Description"
-                >
-                  <TextArea
-                    placeholder="Enter category description (optional)"
-                    rows={3}
-                    showCount
-                    maxLength={500}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
-          </Form>
-        </BasicFormWrapper>
-      </div>
-    </Modal>
+                <Col span={24}>
+                  <Form.Item
+                    name="description"
+                    label="Description"
+                  >
+                    <TextArea
+                      placeholder="Enter category description (optional)"
+                      rows={3}
+                      showCount
+                      maxLength={500}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Form>
+          </BasicFormWrapper>
+        </div>
+      </Modal>
+    </>
   );
 }
 

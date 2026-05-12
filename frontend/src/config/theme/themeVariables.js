@@ -1,83 +1,83 @@
-const primaryColor = '#5F63F2';
-const primaryHover = '#4347D9';
-const secondaryColor = '#FF69A5';
-const secondaryHover = '#E34A87';
-const linkColor = '#1890ff';
-const linkHover = '#0D79DF';
-const headingColor = 'rgba(0, 0, 0, 0.85)';
-const successColor = '#20C997';
-const successHover = '#0CAB7C';
-const warningColor = '#FA8B0C';
-const warningHover = '#D47407';
-const errorColor = '#f5222d';
-const errorHover = '#E30D0F';
-const infoColor = '#2C99FF';
-const infoHover = '#0D79DF';
-const darkColor = '#272B41';
-const darkHover = '#131623';
-const grayColor = '#5A5F7D';
-const grayHover = '#363A51';
-const lightColor = '#9299B8';
-const lightHover = '#e2e6ea';
+const primaryColor = '#EF8354';
+const primaryHover = '#d9724a';
+const secondaryColor = '#4F5D75';
+const secondaryHover = '#2D3142';
+const linkColor = '#EF8354';
+const linkHover = '#d9724a';
+const headingColor = '#2D3142';
+const successColor = '#22C55E';
+const successHover = '#16A34A';
+const warningColor = '#F59E0B';
+const warningHover = '#D97706';
+const errorColor = '#EF4444';
+const errorHover = '#DC2626';
+const infoColor = '#3B82F6';
+const infoHover = '#2563EB';
+const darkColor = '#2D3142';
+const darkHover = '#1a1d2b';
+const grayColor = '#4F5D75';
+const grayHover = '#2D3142';
+const lightColor = '#BFC0C0';
+const lightHover = '#E5E7EB';
 const whiteColor = '#ffffff';
-const dashColor = '#E3E6EF';
-const whiteHover = '#5A5F7D';
-const extraLightColor = '#ADB4D2';
-const dangerColor = '#FF4D4F';
-const dangerHover = '#E30D0F';
-const borderColorLight = '#F1F2F6';
-const borderColorNormal = '#E3E6EF';
-const borderColorDeep = '#C6D0DC';
-const bgGrayColorDeep = '#EFF0F3';
-const bgGrayColorLight = '#F8F9FB';
-const bgGrayColorNormal = '#F4F5F7';
-const lightGrayColor = '#868EAE';
-const sliderRailColor = 'rgba(95,99,242,0.2)';
-const graySolid = '#9299b8';
-const pinkColor = '#F63178';
+const dashColor = '#E5E7EB';
+const whiteHover = '#4F5D75';
+const extraLightColor = '#BFC0C0';
+const dangerColor = '#EF4444';
+const dangerHover = '#DC2626';
+const borderColorLight = '#F3F4F6';
+const borderColorNormal = '#E5E7EB';
+const borderColorDeep = '#BFC0C0';
+const bgGrayColorDeep = '#F3F4F6';
+const bgGrayColorLight = '#F9FAFB';
+const bgGrayColorNormal = '#F7F8FA';
+const lightGrayColor = '#BFC0C0';
+const sliderRailColor = 'rgba(45, 49, 66, 0.12)';
+const graySolid = '#BFC0C0';
+const pinkColor = '#EC4899';
 const btnlg = '48px';
 const btnsm = '36px';
 const btnxs = '29px';
 
 const theme = {
-  'primary-color': primaryColor, // primary color for all components
-  'primary-hover': primaryHover, // primary color for all components
-  'secondary-color': secondaryColor, // secondary color for all components
-  'secondary-hover': secondaryHover, // secondary color for all components
-  'link-color': linkColor, // link color
-  'link-hover': linkHover, // link color
-  'success-color': successColor, // success state color
-  'success-hover': successHover, // success state color
-  'warning-color': warningColor, // warning state color
-  'warning-hover': warningHover, // warning state color
-  'error-color': errorColor, // error state color
-  'error-hover': errorHover, // error state color
-  'info-color': infoColor, // info state color
-  'info-hover': infoHover, // info state color
-  'dark-color': darkColor, // info state color
-  'dark-hover': darkHover, // info state color
-  'gray-color': grayColor, // info state color
-  'gray-hover': grayHover, // info state color
-  'light-color': lightColor, // info state color
-  'light-hover': lightHover, // info state color
-  'white-color': whiteColor, // info state color
-  'white-hover': whiteHover, // info state color
+  'primary-color': primaryColor,
+  'primary-hover': primaryHover,
+  'secondary-color': secondaryColor,
+  'secondary-hover': secondaryHover,
+  'link-color': linkColor,
+  'link-hover': linkHover,
+  'success-color': successColor,
+  'success-hover': successHover,
+  'warning-color': warningColor,
+  'warning-hover': warningHover,
+  'error-color': errorColor,
+  'error-hover': errorHover,
+  'info-color': infoColor,
+  'info-hover': infoHover,
+  'dark-color': darkColor,
+  'dark-hover': darkHover,
+  'gray-color': grayColor,
+  'gray-hover': grayHover,
+  'light-color': lightColor,
+  'light-hover': lightHover,
+  'white-color': whiteColor,
+  'white-hover': whiteHover,
   white: whiteColor,
   black: '#000',
   pink: pinkColor,
-  'dash-color': dashColor, // info state color
-  'extra-light-color': extraLightColor, // info state color
+  'dash-color': dashColor,
+  'extra-light-color': extraLightColor,
   'danger-color': dangerColor,
   'danger-hover': dangerHover,
   'font-family': "'Inter', sans-serif",
-  'font-size-base': '14px', // major text font size
-  'heading-color': headingColor, // heading text color
-  'text-color': darkColor, // major text color
-  'text-color-secondary': grayColor, // secondary text color
-  'disabled-color': 'rgba(0, 0, 0, 0.25)', // disable state color
-  'border-radius-base': '4px', // major border radius
-  'border-color-base': '#d9d9d9', // major border color
-  'box-shadow-base': '0 2px 8px rgba(0, 0, 0, 0.15)', // major shadow for layers
+  'font-size-base': '14px',
+  'heading-color': headingColor,
+  'text-color': darkColor,
+  'text-color-secondary': grayColor,
+  'disabled-color': 'rgba(0, 0, 0, 0.25)',
+  'border-radius-base': '6px',
+  'border-color-base': '#E5E7EB',
+  'box-shadow-base': '0 1px 3px rgba(0, 0, 0, 0.08)',
   'border-color-light': borderColorLight,
   'border-color-normal': borderColorNormal,
   'border-color-deep': borderColorDeep,
@@ -98,35 +98,33 @@ const theme = {
   'card-head-padding': '16px',
   'card-padding-base': '12px',
   'card-radius': '10px',
-  'card-shadow': '0 5px 20px rgba(146,153,184,0.03)',
+  'card-shadow': '0 1px 3px rgba(0, 0, 0, 0.04)',
 
   // Layout
-  'layout-body-background': '#F4F5F7',
+  'layout-body-background': '#F7F8FA',
   'layout-header-background': '#ffffff',
-  'layout-footer-background': '#fafafa',
+  'layout-footer-background': '#ffffff',
   'layout-header-height': '64px',
   'layout-header-padding': '0 15px',
   'layout-footer-padding': '24px 15px',
   'layout-sider-background': '#ffffff',
   'layout-trigger-height': '48px',
-  'layout-trigger-background': '#002140',
+  'layout-trigger-background': '#2D3142',
   'layout-trigger-color': '#fff',
   'layout-zero-trigger-width': '36px',
   'layout-zero-trigger-height': '42px',
-  // Layout light theme
   'layout-sider-background-light': '#fff',
   'layout-trigger-background-light': '#fff',
   'layout-trigger-color-light': 'rgba(0, 0, 0, 0.65)',
 
   // PageHeader
-  // ---
   'page-header-padding': '24px',
   'page-header-padding-vertical': '16px',
   'page-header-padding-breadcrumb': '12px',
   'page-header-back-color': '#000',
   'page-header-ghost-bg': 'inherit',
 
-  // Popover body background color
+  // Popover
   'popover-color': darkColor,
 
   // alert
@@ -182,15 +180,15 @@ const theme = {
   'list-item-padding': '10px 24px',
 
   // Tags
-  'tag-default-bg': '#EFF0F3',
+  'tag-default-bg': '#F3F4F6',
   'tag-default-color': darkColor,
   'tag-font-size': '11px',
 };
 
 const darkTheme = {
   ...theme,
-  'primary-color': 'red',
-  backgroundColor: '#000',
+  'primary-color': '#E5E7EB',
+  backgroundColor: '#111827',
 };
 
 export { theme, darkTheme };

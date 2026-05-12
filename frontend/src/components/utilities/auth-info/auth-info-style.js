@@ -272,12 +272,12 @@ const AtbdTopDropdwon = Styled.div`
         justify-content: center;
     }
     .atbd-top-dropdwon__content .notification-icon.bg-primary {
-        background: #5F63F215;
-        color: #5F63F2;
+        background: #2D314215;
+        color: #2D3142;
     }
     .atbd-top-dropdwon__content .notification-icon.bg-secondary {
-        background: #FF69A515;
-        color: #FF69A5;
+        background: #6B728015;
+        color: #6B7280;
     }
     .atbd-top-dropdwon__content .notification-icon svg {
         width: 18px;
@@ -297,19 +297,19 @@ const AtbdTopDropdwon = Styled.div`
     .notification-text h1 {
         font-size: 14px;
         font-weight: 400;
-        color: #5A5F7D;
+        color: #4B5563;
         margin-bottom: 4px;
     }
 
     .notification-text h1 span {
-        color: #5F63F2;
+        color: #2D3142;
         font-weight: 500;
         ${({ theme }) => (theme.rtl ? 'padding-right' : 'padding-left')}: 0;
     }
 
     .notification-text p {
         font-size: 12px;
-        color: #ADB4D2;
+        color: #D1D5DB;
         margin-bottom: 0;
         text-align: ${({ theme }) => (!theme.rtl ? 'left' : 'right')}
     }

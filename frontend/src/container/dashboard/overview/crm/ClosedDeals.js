@@ -40,8 +40,8 @@ function ClosedDeals() {
     },
     {
       data: closeDealState.amount,
-      backgroundColor: '#5F63F280',
-      hoverBackgroundColor: '#5F63F2',
+      backgroundColor: '#2D314280',
+      hoverBackgroundColor: '#2D3142',
       label: 'Amount',
       average: '$28k',
       maxBarThickness: 10,

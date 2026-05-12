@@ -1,14 +1,10 @@
 import Styled from 'styled-components';
 
-/* Page width wrapper — canvas bg comes from layout .app-shell-content */
-/** Warm cream canvas + forest accents — aligns with POS “tea shop” retail shell */
 export const DashboardPage = Styled.div`
   max-width: 1600px;
   margin: 0 auto;
-  padding: 12px 4px 20px;
+  padding: 0 0 20px;
   width: 100%;
-  background: linear-gradient(180deg, #fdfcf0 0%, #f7f5eb 55%, #f3f1ea 100%);
-  border-radius: 12px;
 `;
 
 export const KpiGrid = Styled.div`
@@ -25,20 +21,18 @@ export const KpiGrid = Styled.div`
 `;
 
 export const KpiCard = Styled.div`
-  background: #fffefb;
+  background: #ffffff;
   border-radius: 12px;
-  padding: 18px 18px 14px;
-  box-shadow: 0 2px 10px rgba(26, 58, 52, 0.06);
-  border: 1px solid rgba(26, 58, 52, 0.1);
+  padding: 20px 20px 16px;
+  border: 1px solid #E5E7EB;
   display: flex;
   align-items: stretch;
   justify-content: space-between;
   gap: 12px;
   min-height: 118px;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: box-shadow 0.2s ease;
   &:hover {
-    box-shadow: 0 8px 24px rgba(26, 58, 52, 0.1);
-    border-color: rgba(26, 58, 52, 0.18);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
   }
 `;
 
@@ -51,16 +45,16 @@ export const KpiMain = Styled.div`
 `;
 
 export const KpiValue = Styled.div`
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
-  color: #1a3a34;
+  color: #2D3142;
   line-height: 1.2;
   letter-spacing: -0.02em;
 `;
 
 export const KpiLabel = Styled.div`
   font-size: 12px;
-  color: #9ca3af;
+  color: #9CA3AF;
   margin-top: 6px;
   font-weight: 500;
 `;
@@ -78,7 +72,7 @@ export const KpiTrend = Styled.div`
 export const KpiTrendMuted = Styled.div`
   margin-top: 10px;
   font-size: 11px;
-  color: #9ca3af;
+  color: #9CA3AF;
 `;
 
 export const KpiSparkWrap = Styled.div`
@@ -89,10 +83,9 @@ export const KpiSparkWrap = Styled.div`
 `;
 
 export const RevenueCard = Styled.div`
-  background: #fffefb;
+  background: #ffffff;
   border-radius: 12px;
-  border: 1px solid rgba(26, 58, 52, 0.1);
-  box-shadow: 0 2px 10px rgba(26, 58, 52, 0.05);
+  border: 1px solid #E5E7EB;
   overflow: hidden;
 `;
 
@@ -102,21 +95,21 @@ export const RevenueHead = Styled.div`
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 18px 0;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  padding: 18px 20px 0;
+  border-bottom: 1px solid #F3F4F6;
 `;
 
 export const RevenueTitle = Styled.h3`
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  color: #2D3142;
 `;
 
 export const RevenueMetrics = Styled.div`
   display: flex;
   gap: 24px;
-  padding: 14px 18px 8px;
+  padding: 14px 20px 8px;
   flex-wrap: wrap;
 `;
 
@@ -124,7 +117,7 @@ export const MetricBlock = Styled.div``;
 
 export const MetricLabel = Styled.div`
   font-size: 11px;
-  color: #9ca3af;
+  color: #9CA3AF;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 4px;
@@ -133,7 +126,7 @@ export const MetricLabel = Styled.div`
 export const MetricValue = Styled.div`
   font-size: 22px;
   font-weight: 700;
-  color: ${(p) => p.$muted ? '#9ca3af' : '#5f63f2'};
+  color: ${(p) => p.$muted ? '#9CA3AF' : '#2D3142'};
 `;
 
 export const ChartPane = Styled.div`
@@ -142,10 +135,9 @@ export const ChartPane = Styled.div`
 `;
 
 export const SideTableCard = Styled.div`
-  background: #fff;
+  background: #ffffff;
   border-radius: 12px;
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  border: 1px solid #E5E7EB;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -153,11 +145,11 @@ export const SideTableCard = Styled.div`
 `;
 
 export const SideTableHead = Styled.div`
-  padding: 16px 18px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  padding: 18px 20px;
+  border-bottom: 1px solid #F3F4F6;
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  color: #2D3142;
 `;
 
 export const SideTableBody = Styled.div`
@@ -166,17 +158,16 @@ export const SideTableBody = Styled.div`
 `;
 
 export const TableCard = Styled.div`
-  background: #fff;
+  background: #ffffff;
   border-radius: 12px;
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  border: 1px solid #E5E7EB;
   padding: 0 0 8px;
   margin-top: 16px;
 `;
 
 export const TableCardHead = Styled.div`
-  padding: 16px 18px 8px;
+  padding: 18px 20px 10px;
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  color: #2D3142;
 `;

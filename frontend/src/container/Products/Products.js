@@ -2,18 +2,16 @@
 /* eslint-disable camelcase */
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Row, Col, Menu, Dropdown, Select, Tag, Upload, Card, Typography, Progress, message, Avatar, Image,Modal } from 'antd';
-import { Link } from 'react-router-dom';
-import { EditOutlined, DeleteOutlined, InboxOutlined, UploadOutlined, FileExcelOutlined, UserOutlined } from '@ant-design/icons';
+import { Row, Col, Select, Tag, Upload, Card, Typography, Progress, message, Avatar, Input, Image, Modal } from 'antd';
+import { EditOutlined, DeleteOutlined, InboxOutlined, UploadOutlined, FileExcelOutlined, UserOutlined, SearchOutlined } from '@ant-design/icons';
 import FeatherIcon from 'feather-icons-react';
 import moment from 'moment';
 import Cookies from 'js-cookie';
 import CreateProduct from './CreateProduct';
-import { AutoComplete } from '../../components/autoComplete/autoComplete';
 import { Button } from '../../components/buttons/buttons';
 import { PageHeader } from '../../components/page-headers/page-headers';
 import ProjectLists from '../../config/default/List';
-import { ProjectHeader, ProjectSorting } from '../../config/default/style';
+import { ProjectHeader } from '../../config/default/style';
 import { Main } from '../../config/default/styled';
 import { API_BASE } from '../../config/apiBase';
 import { deleteProduct, fetchAllProducts } from '../../redux/products/productSlice';
@@ -160,12 +158,12 @@ function Products() {
         return {
           key: _id || id,
           id: _id || id,
-          name: <span style={{ fontWeight: 600, color: '#0f172a' }}>{name}</span>,
+          name: <span style={{ fontWeight: 600, color: '#2D3142' }}>{name}</span>,
           medecine_size,
           batch_number,
           expiry_date: expiry_date ? moment(expiry_date).format('DD-MM-YYYY') : '-',
           category: (
-            <Tag color="blue" style={{ fontSize: 13, padding: '2px 10px', margin: 0 }}>
+            <Tag style={{ fontSize: 12, padding: '2px 10px', margin: 0, background: '#22C55E', color: '#fff', border: 'none', borderRadius: 4, fontWeight: 600 }}>
               {categoryLabel.toUpperCase()}
             </Tag>
           ),
@@ -175,8 +173,8 @@ function Products() {
               {unit_price != null ? Number(unit_price).toFixed(2) : '—'}
             </span>
           ),
-          manufacturer_license_no: <Tag color="blue">{manufacturer_license_no?.toUpperCase()}</Tag>,
-          manufacturer_registration_no: <Tag color="red">{manufacturer_registration_no?.toUpperCase()}</Tag>,
+          manufacturer_license_no: <Tag style={{ background: '#F59E0B', color: '#fff', border: 'none', borderRadius: 4, fontWeight: 600 }}>{manufacturer_license_no?.toUpperCase()}</Tag>,
+          manufacturer_registration_no: <Tag style={{ background: '#22C55E', color: '#fff', border: 'none', borderRadius: 4, fontWeight: 600 }}>{manufacturer_registration_no?.toUpperCase()}</Tag>,
           manufacturer,
           status:
             status === 'active' ? (
@@ -185,30 +183,24 @@ function Products() {
               <span className="color-danger">Inactive</span>
             ),
           action: (
-            <Dropdown
-              overlay={
-                <Menu className="custom-dropdown-menu">
-                  <Menu.Item key="edit" className="custom-menu-item" onClick={() => handleEdit(product)}>
-                    <div className="custom-action-btn edit-btn">
-                      <EditOutlined className="action-icon" />
-                      <span className="action-label">Edit</span>
-                    </div>
-                  </Menu.Item>
-                  <Menu.Item key="delete" className="custom-menu-item" onClick={() => handleDelete(_id || id)}>
-                    <div className="custom-action-btn delete-btn">
-                      <DeleteOutlined className="action-icon" />
-                      <span className="action-label">Delete</span>
-                    </div>
-                  </Menu.Item>
-                </Menu>
-              }
-              trigger={['click']}
-              overlayClassName="custom-dropdown-overlay"
-            >
-              <Link to="#" className="text-dark dropdown-trigger">
-                <FeatherIcon icon="more-horizontal" size={18} />
-              </Link>
-            </Dropdown>
+            <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={() => handleEdit(product)}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid #E5E7EB', background: '#fff', cursor: 'pointer', color: '#2D3142', transition: 'all 0.15s' }}
+                title="Edit"
+              >
+                <EditOutlined style={{ fontSize: 14 }} />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDelete(_id || id)}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid #FEE2E2', background: '#FEF2F2', cursor: 'pointer', color: '#EF4444', transition: 'all 0.15s' }}
+                title="Delete"
+              >
+                <DeleteOutlined style={{ fontSize: 14 }} />
+              </button>
+            </div>
           ),
           // ✅ Add image column data with avatar and preview
           image: (
@@ -239,7 +231,7 @@ function Products() {
                 <Avatar 
                   size={48} 
                   shape="square"
-                  style={{ backgroundColor: '#1890ff', borderRadius: '8px' }}
+                  style={{ backgroundColor: '#2D3142', borderRadius: '8px' }}
                   icon={<UserOutlined />}
                 >
                   {getInitials(name)}
@@ -273,41 +265,29 @@ function Products() {
   };
 
   const columns = [
-    { 
-      title: 'Image', 
-      dataIndex: 'image', 
-      key: 'image',
-      width: 88,
-      align: 'center',
-    },
-    {
-      title: '#',
-      key: 'index',
-      width: 56,
-      align: 'center',
-      render: (text, record, index) => (pagination.current - 1) * pagination.pageSize + index + 1,
-    },
-    { title: 'Medicine name', dataIndex: 'name', key: 'name', ellipsis: true, width: 200 },
-    { title: 'Size', dataIndex: 'medecine_size', key: 'medicine_size', width: 100, ellipsis: true },
+    { title: 'Image', dataIndex: 'image', key: 'image', width: 70, align: 'center' },
+    { title: '#', key: 'index', width: 50, align: 'center', render: (_, __, index) => (pagination.current - 1) * pagination.pageSize + index + 1 },
+    { title: 'Medicine Name', dataIndex: 'name', key: 'name', ellipsis: true, width: 180 },
+    { title: 'Size', dataIndex: 'medecine_size', key: 'medicine_size', width: 90, ellipsis: true },
     { title: 'Batch #', dataIndex: 'batch_number', key: 'batch_number', width: 120, ellipsis: true },
-    { title: 'Expiry', dataIndex: 'expiry_date', key: 'expiry_date', width: 120 },
-    { title: 'Category', dataIndex: 'category', key: 'category', width: 130 },
-    { title: 'Qty', dataIndex: 'available_quantity', key: 'available_quantity', width: 80, align: 'right' },
+    { title: 'Expiry', dataIndex: 'expiry_date', key: 'expiry_date', width: 110 },
+    { title: 'Category', dataIndex: 'category', key: 'category', width: 120 },
+    { title: 'Qty', dataIndex: 'available_quantity', key: 'available_quantity', width: 70, align: 'center' },
     { title: 'Price', dataIndex: 'unit_price', key: 'unit_price', width: 100, align: 'right' },
-    { 
-      title: 'Reg & license', 
+    {
+      title: 'Reg & License',
       key: 'reg_license',
-      width: 160,
-      render: (text, record) => (
-        <div style={{ fontSize: 14, lineHeight: 1.5 }}>
+      width: 150,
+      render: (_, record) => (
+        <div style={{ fontSize: 13, lineHeight: 1.5 }}>
           <div>{record.manufacturer_registration_no || '—'}</div>
           <div>{record.manufacturer_license_no || '—'}</div>
         </div>
       ),
     },
-    { title: 'Manufacturer', dataIndex: 'manufacturer', key: 'manufacturer', ellipsis: true },
-    { title: 'Status', dataIndex: 'status', key: 'status', width: 100, align: 'center' },
-    { title: '', dataIndex: 'action', key: 'action', width: 56, align: 'center', fixed: 'right' },
+    { title: 'Manufacturer', dataIndex: 'manufacturer', key: 'manufacturer', ellipsis: true, width: 150 },
+    { title: 'Status', dataIndex: 'status', key: 'status', width: 90, align: 'center' },
+    { title: 'Action', dataIndex: 'action', key: 'action', width: 90, align: 'center', fixed: 'right' },
   ];
 
   const handleExcelUpload = async (file) => {
@@ -374,7 +354,7 @@ function Products() {
                 bodyStyle={{ padding: 18 }}
                 title={
                   <span>
-                    <FileExcelOutlined style={{ marginRight: 8, color: '#1677ff' }} />
+                    <FileExcelOutlined style={{ marginRight: 8, color: '#2D3142' }} />
                     Import Products from Excel
                   </span>
                 }
@@ -384,10 +364,10 @@ function Products() {
                   beforeUpload={handleExcelUpload}
                   showUploadList={false}
                   disabled={uploadingExcel}
-                  style={{ background: '#fafcff', borderRadius: 10 }}
+                  style={{ background: '#F9FAFB', borderRadius: 10 }}
                 >
                   <p className="ant-upload-drag-icon">
-                    <InboxOutlined style={{ color: '#1677ff' }} />
+                    <InboxOutlined style={{ color: '#2D3142' }} />
                   </p>
                   <p className="ant-upload-text">Click or drag Excel file to upload</p>
                   <p className="ant-upload-hint">
@@ -408,8 +388,8 @@ function Products() {
                 )}
 
                 {uploadResult && (
-                  <div style={{ marginTop: 14, background: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 8, padding: 10 }}>
-                    <Text strong style={{ color: '#389e0d' }}>
+                  <div style={{ marginTop: 14, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 10 }}>
+                    <Text strong style={{ color: '#16a34a' }}>
                       Import Completed
                     </Text>
                     <div style={{ marginTop: 4 }}>
@@ -420,30 +400,25 @@ function Products() {
               </Card>
             )}
 
-            <div className="toolbar-card">
-              <ProjectSorting>
-                <div className="project-sort-bar">
-                  <div className="project-sort-search">
-                    <AutoComplete
-                      onSearch={handleSearch}
-                      dataSource={notData}
-                      placeholder="Search by medicine name"
-                      patterns
-                    />
-                  </div>
-                  <div className="sort-group">
-                    <span style={{ display: 'flex', alignItems: 'center' }}>Status</span>
-                    <Select defaultValue="all" onChange={(value) => setSortStatus(value)} style={{ minWidth: 140 }}>
-                      <Select.Option value="all">All</Select.Option>
-                      <Select.Option value="active">Active</Select.Option>
-                      <Select.Option value="inactive">Inactive</Select.Option>
-                    </Select>
-                  </div>
+            <div className="table-shell">
+              <div className="table-toolbar">
+                <div className="table-toolbar__search">
+                  <Input
+                    prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />}
+                    placeholder="Search by medicine name"
+                    allowClear
+                    onChange={(e) => handleSearch(e.target.value)}
+                  />
                 </div>
-              </ProjectSorting>
-            </div>
-
-            <div className="table-shell" style={{ marginTop: 12 }}>
+                <div className="table-toolbar__filters">
+                  <span className="table-toolbar__label">Status</span>
+                  <Select defaultValue="all" onChange={(value) => setSortStatus(value)} style={{ minWidth: 150 }}>
+                    <Select.Option value="all">All</Select.Option>
+                    <Select.Option value="active">Active</Select.Option>
+                    <Select.Option value="inactive">Inactive</Select.Option>
+                  </Select>
+                </div>
+              </div>
               <ProjectLists
                 columns={columns}
                 dataSource={dataSource}

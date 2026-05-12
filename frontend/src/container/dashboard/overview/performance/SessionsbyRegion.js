@@ -93,7 +93,7 @@ function SessionsbyRegion() {
   function renderThumb({ style, ...props }) {
     const thumbStyle = {
       borderRadius: 6,
-      backgroundColor: '#F1F2F6',
+      backgroundColor: '#F3F4F6',
       height: '220px',
     };
     return <div style={{ ...style, ...thumbStyle }} {...props} />;
@@ -198,11 +198,11 @@ function SessionsbyRegion() {
                               outline: 'none',
                             },
                             hover: {
-                              fill: '#5F63F2',
+                              fill: '#2D3142',
                               outline: 'none',
                             },
                             pressed: {
-                              fill: '#5F63F2',
+                              fill: '#2D3142',
                               outline: 'none',
                             },
                           }}

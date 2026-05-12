@@ -422,7 +422,7 @@ const TopToolBox = Styled.div`
                 width: 1px;
                 height: 50%;
                 padding: 1px 0;
-                background-color: #F1F2F6;
+                background-color: #F3F4F6;
                 transition: background-color 0.3s;
                 content: '';
                 z-index: 1;
@@ -1395,7 +1395,7 @@ const InvoiceHeader = Styled.div`
 
 const InvoiceLetterBox = Styled.div`
     .invoice-letter-inner{
-        background: #F8F9FB;
+        background: #F9FAFB;
         padding: 30px 50px 25px;
         border-radius: 20px;
         display: -webkit-box;

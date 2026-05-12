@@ -18,7 +18,7 @@ const Card = Styled.div`
             color: ${({ theme }) => theme['dark-color']};
             justify-content: space-between;
             svg{
-                color: #5A5F7D !important;
+                color: #4B5563 !important;
                 cursor: move;
             }
             .status-bullet{
@@ -30,7 +30,7 @@ const Card = Styled.div`
                 border-radius: 50%;
                ${({ theme }) => (!theme.rtl ? 'margin-left' : 'margin-right')} : 8px;
                &.personal{
-                background: #5F63F2;
+                background: #2D3142;
                }
                &.work{
                 background: #20C997;
@@ -76,15 +76,15 @@ const Card = Styled.div`
             }
             .ant-dropdown-trigger{
                 svg{
-                    color: #868EAE;
+                    color: #9CA3AF;
                 }
             }
         }        
     } 
     &.personal .ant-card .ant-card-body{
-        background: #5F63F240;
+        background: #2D314240;
         &:hover{
-            background: #5F63F290;
+            background: #2D314290;
         }
     }
     &.work .ant-card .ant-card-body{

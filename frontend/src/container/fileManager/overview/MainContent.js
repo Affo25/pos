@@ -14,7 +14,7 @@ function MainContent({ folder }) {
   };
   return (
     <div className="sDash-file-card">
-      <Cards headless bodyStyle={{ background: '#F4F5F7', borderRadius: '10px' }}>
+      <Cards headless bodyStyle={{ background: '#F7F8FA', borderRadius: '10px' }}>
         <Dropdown
           className="folder-dropdown"
           content={

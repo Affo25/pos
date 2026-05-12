@@ -11,7 +11,7 @@ const Aside = Styled.aside`
         font-weight: 500;
         width: 100%;
         border-radius: 8px;
-        box-shadow: 0 3px 5px #FF69A505;
+        box-shadow: 0 3px 5px #6B728005;
         margin-bottom: 25px;
     }
     .ant-picker{
@@ -611,7 +611,7 @@ const UpdatePopup = Styled.div`
                         color: #fff;
                         transition: .3s;
                         &:hover{
-                            background-color: #F4F5F715;
+                            background-color: #F7F8FA15;
                         }
                         svg{
                             margin: 0;

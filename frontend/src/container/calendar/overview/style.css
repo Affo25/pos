@@ -10,22 +10,22 @@ html[dir='rtl'] .bullet {
   margin-right: 0;
 }
 .primary {
-  background: #5f63f2;
+  background: #2D3142;
   color: #fff;
 }
 .secondary {
-  background: #ff69a5;
+  background: #6B7280;
   color: #fff;
 }
 .success {
-  background: #20c997;
+  background: #22C55E;
   color: #fff;
 }
 .info {
-  background: #2c99ff;
+  background: #3B82F6;
   color: #fff;
 }
 .warning {
-  background: #fa8b0c;
+  background: #F59E0B;
   color: #fff;
 }

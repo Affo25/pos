@@ -46,7 +46,7 @@ const transparents = (theme, type) => {
 
 const raise = (theme, type) => {
   return `
-        box-shadow: 0 10px 15px ${type !== 'white' ? theme[`${type}-color`] : '#9299B8'}20;
+        box-shadow: 0 10px 15px ${type !== 'white' ? theme[`${type}-color`] : '#9CA3AF'}20;
     `;
 };
 
@@ -101,7 +101,7 @@ const ButtonStyled = Styled(Button)`
     background: ${({ type, theme }) => type !== 'default' && theme[`${type}-color`]};
     border-width: 0px;
     border-style: ${({ type }) => (type !== 'dashed' ? 'solid' : 'dashed')};
-    color: ${({ type }) => (type !== 'default' ? '#ffffff' : '#5A5F7D')};
+    color: ${({ type }) => (type !== 'default' ? '#ffffff' : '#4B5563')};
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -112,7 +112,7 @@ const ButtonStyled = Styled(Button)`
     box-shadow: 0 0;
     &:hover, &:focus {
         background: ${({ type, theme }) => type !== 'default' && theme[`${type}-hover`]};
-        color: ${({ type }) => (type !== 'default' ? '#ffffff' : '#5A5F7D')};
+        color: ${({ type }) => (type !== 'default' ? '#ffffff' : '#4B5563')};
     }
     i,
     svg,
@@ -146,7 +146,7 @@ const ButtonStyledGroup = Styled(ButtonGroup)`
         font-weight: 500;
     }
     .ant-btn-light:hover{
-        background: #F4F5F7;
+        background: #F7F8FA;
     }
 `;
 

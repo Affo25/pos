@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom/cjs/react-router-dom.min';
-import { FacebookOutlined, TwitterOutlined } from '@ant-design/icons';
 import { Form, Input, Button } from 'antd';
-import { AuthWrapper } from './style';
+import {
+  AidLoginPage,
+  AidLoginCard,
+  AidLoginCardBody,
+} from './style';
 import { Checkbox } from '../../../../components/checkbox/checkbox';
-import Heading from '../../../../components/heading/heading';
 
 function SignUp() {
   const [state, setState] = useState({
@@ -19,74 +21,69 @@ function SignUp() {
     setState({ ...state, checked });
   };
 
+  const logoSrc = `${process.env.PUBLIC_URL}/aid-plus-logo.png`;
+
   return (
-    <AuthWrapper>
-      <p className="auth-notice">
-        Already have an account? <NavLink to="/">Sign In</NavLink>
-      </p>
-      <div className="auth-contents">
-        <Form name="register" onFinish={handleSubmit} layout="vertical">
-          <Heading as="h3">
-            Sign Up to <span className="color-secondary">Admin</span>
-          </Heading>
-          <Form.Item label="Name" name="name" rules={[{ required: true, message: 'Please input your Full name!' }]}>
-            <Input placeholder="Full name" />
-          </Form.Item>
-          <Form.Item
-            name="username"
-            label="Username"
-            rules={[{ required: true, message: 'Please input your username!' }]}
-          >
-            <Input placeholder="Username" />
-          </Form.Item>
-          <Form.Item
-            name="email"
-            label="Email Address"
-            rules={[{ required: true, message: 'Please input your email!', type: 'email' }]}
-          >
-            <Input placeholder="name@example.com" />
-          </Form.Item>
-          <Form.Item
-            label="Password"
-            name="password"
-            rules={[{ required: true, message: 'Please input your password!' }]}
-          >
-            <Input.Password placeholder="Password" />
-          </Form.Item>
-          <div className="auth-form-action">
-            <Checkbox onChange={onChange} checked={state.checked}>
-              Creating an account means you’re okay with our Terms of Service and Privacy Policy
-            </Checkbox>
-          </div>
-          <Form.Item>
-            <Button className="btn-create" htmlType="submit" type="primary" size="large">
-              Create Account
-            </Button>
-          </Form.Item>
-          <p className="form-divider">
-            <span>Or</span>
-          </p>
-          <ul className="social-login signin-social">
-            <li>
-              <a className="google-signup" href="/">
-                <img src={require('../../../../static/img/google.png')} alt="" />
-                <span>Sign up with Google</span>
-              </a>
-            </li>
-            <li>
-              <a className="facebook-sign" href="/">
-                <FacebookOutlined />
-              </a>
-            </li>
-            <li>
-              <a className="twitter-sign" href="/">
-                <TwitterOutlined />
-              </a>
-            </li>
-          </ul>
-        </Form>
+    <AidLoginPage>
+      <div className="aid-page-logo">
+        <img src={logoSrc} alt="Aid+" />
       </div>
-    </AuthWrapper>
+
+      <AidLoginCard>
+        <AidLoginCardBody>
+          <h2 className="aid-welcome-title">Create an account</h2>
+          <p className="aid-welcome-sub">Fill in your details to get started</p>
+
+          <Form name="register" onFinish={handleSubmit} layout="vertical" requiredMark={false}>
+            <Form.Item
+              label="Full Name"
+              name="name"
+              rules={[{ required: true, message: 'Please input your full name!' }]}
+            >
+              <Input placeholder="John Doe" />
+            </Form.Item>
+            <Form.Item
+              name="email"
+              label="Email"
+              rules={[{ required: true, message: 'Please input your email!', type: 'email' }]}
+            >
+              <Input placeholder="name@company.com" autoComplete="email" />
+            </Form.Item>
+            <Form.Item
+              label="Password"
+              name="password"
+              rules={[{ required: true, message: 'Please input your password!' }]}
+            >
+              <Input.Password placeholder="Create a password" />
+            </Form.Item>
+            <div style={{ marginBottom: 18 }}>
+              <Checkbox onChange={onChange} checked={state.checked}>
+                <span style={{ fontSize: 13, color: '#6B7280' }}>
+                  I agree to the Terms of Service and Privacy Policy
+                </span>
+              </Checkbox>
+            </div>
+            <Form.Item style={{ marginBottom: 12 }}>
+              <Button
+                className="aid-signin-submit"
+                htmlType="submit"
+                type="primary"
+                size="large"
+                block
+              >
+                Create Account
+              </Button>
+            </Form.Item>
+            <p style={{ textAlign: 'center', margin: 0, fontSize: 14, color: '#9CA3AF' }}>
+              Already have an account?{' '}
+              <NavLink to="/" style={{ color: '#2D3142', fontWeight: 600 }}>
+                Sign In
+              </NavLink>
+            </p>
+          </Form>
+        </AidLoginCardBody>
+      </AidLoginCard>
+    </AidLoginPage>
   );
 }
 
