@@ -31,6 +31,9 @@ const { Search } = Input;
 
 const API_PRODUCTS = `${API_BASE}/products`;
 const API_BILLING = `${API_BASE}/sales/billing`;
+const API_PRINTERS = `${API_BASE}/print/printers`;
+const API_PRINT_INVOICE = `${API_BASE}/print/invoice`;
+const API_PRINT_PREVIEW = `${API_BASE}/print/preview`;
 
 const TABS = [
   { key: 'items', label: 'Cart', icon: <ShoppingCartOutlined /> },
@@ -64,6 +67,11 @@ function POSBilling() {
   const [customerName, setCustomerName] = useState('Walk-in');
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [customerDraft, setCustomerDraft] = useState('Walk-in');
+  const [printerModalOpen, setPrinterModalOpen] = useState(false);
+  const [printers, setPrinters] = useState([]);
+  const [selectedPrinter, setSelectedPrinter] = useState(localStorage.getItem('pos_printer') || '');
+  const [printersLoading, setPrintersLoading] = useState(false);
+  const [printing, setPrinting] = useState(false);
 
   const token = Cookies.get('token');
 
@@ -224,6 +232,80 @@ function POSBilling() {
     return { subtotal, discountAmount, tax, net };
   }, [rows, discount, discountType]);
 
+  const fetchPrinters = async () => {
+    setPrintersLoading(true);
+    try {
+      const res = await fetch(API_PRINTERS, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (res.ok && data.printers) {
+        setPrinters(data.printers);
+        const epson = data.printers.find((p) => /epson.*l8050/i.test(p.name) || /l8050/i.test(p.name));
+        if (epson && !selectedPrinter) {
+          setSelectedPrinter(epson.name);
+          localStorage.setItem('pos_printer', epson.name);
+        }
+      } else {
+        message.error(data.error || 'Could not load printers');
+      }
+    } catch (err) {
+      message.error('Failed to connect to print service');
+    } finally {
+      setPrintersLoading(false);
+    }
+  };
+
+  const openPrinterDialog = () => {
+    fetchPrinters();
+    setPrinterModalOpen(true);
+  };
+
+  const printInvoiceData = async (inv) => {
+    if (!inv) { message.warning('No invoice to print'); return; }
+
+    const printer = selectedPrinter || localStorage.getItem('pos_printer');
+    if (!printer) {
+      message.info('Please select a printer first');
+      openPrinterDialog();
+      return;
+    }
+
+    setPrinting(true);
+    try {
+      const res = await fetch(API_PRINT_INVOICE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ invoice: inv, printer }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        message.success(`Sent to ${printer}`);
+      } else {
+        message.error(data.error || 'Print failed');
+      }
+    } catch (err) {
+      message.error('Print service unavailable');
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+  const previewInvoicePDF = async (inv) => {
+    if (!inv) return;
+    try {
+      const res = await fetch(API_PRINT_PREVIEW, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ invoice: inv }),
+      });
+      if (!res.ok) { message.error('Preview failed'); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (err) {
+      message.error('Could not generate preview');
+    }
+  };
+
   const createBilling = async () => {
     if (!rows.length) { toast.error('Please add at least one item'); return; }
     const invalidRow = rows.find(r => !r.product_id || Number(r.quantity || 0) <= 0);
@@ -250,17 +332,18 @@ function POSBilling() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to create invoice');
       setInvoice(data);
-      toast.success('Invoice created successfully');
+      toast.success('Invoice created — printing…');
       setRows([]);
       setDiscount(0); setPaymentMode('cash'); setProjectDetail(''); setIssuedDate(null);
+      setTimeout(() => {
+        if (data) printInvoiceData(data);
+      }, 400);
     } catch (e) {
       toast.error(e.message);
     } finally {
       setSaving(false);
     }
   };
-
-  const printInvoice = () => window.print();
 
   const renderProductCard = (product) => {
     const pid = getEntityId(product);
@@ -1380,10 +1463,20 @@ function POSBilling() {
                  <button
   type="button"
   className="btn-print"
-  onClick={printInvoice}
-  disabled={!invoice}
+  onClick={() => printInvoiceData(invoice)}
+  disabled={!invoice || printing}
+  title={selectedPrinter ? `Print to: ${selectedPrinter}` : 'Select a printer first'}
 >
-  <PrinterOutlined /> Print
+  {printing ? <Spin size="small" /> : <PrinterOutlined />} {printing ? 'Printing…' : 'Print'}
+</button>
+<button
+  type="button"
+  className="btn-print"
+  onClick={openPrinterDialog}
+  style={{ minWidth: 36, padding: '0 8px', marginLeft: 4, fontSize: 12 }}
+  title="Printer settings"
+>
+  ⚙
 </button>
 <button
   type="button"
@@ -1426,9 +1519,17 @@ function POSBilling() {
           onCancel={() => setInvoice(null)}
           width={760}
           footer={[
-            <Button key="print" type="primary" onClick={printInvoice} icon={<PrinterOutlined />}
+            <Button key="print" type="primary" loading={printing} onClick={() => printInvoiceData(invoice)} icon={<PrinterOutlined />}
               style={{ background: '#1a3a34', borderColor: 'transparent', borderRadius: 10 }}>
-              Print Invoice
+              {selectedPrinter ? `Print → ${selectedPrinter}` : 'Print Invoice'}
+            </Button>,
+            <Button key="preview" onClick={() => previewInvoicePDF(invoice)} icon={<FileTextOutlined />}
+              style={{ borderColor: '#1a3a34', color: '#1a3a34', borderRadius: 10 }}>
+              Preview PDF
+            </Button>,
+            <Button key="printer" onClick={openPrinterDialog}
+              style={{ borderColor: '#e5e7eb', color: '#374151', borderRadius: 10 }}>
+              ⚙ Printer
             </Button>,
             <Button key="close" onClick={() => setInvoice(null)}
               style={{ background: '#ffffff', borderColor: '#e5e7eb', color: '#374151', borderRadius: 10 }}>
@@ -1489,6 +1590,69 @@ function POSBilling() {
               <div style={{ textAlign: 'center', marginTop: 24, color: '#9ca3af', fontSize: 12, fontStyle: 'italic' }}>
                 Thank you for your business
               </div>
+            </div>
+          )}
+        </Modal>
+
+        {/* Printer Selection Modal */}
+        <Modal
+          title="Connect Printer"
+          open={printerModalOpen}
+          onCancel={() => setPrinterModalOpen(false)}
+          width={520}
+          footer={[
+            <Button key="refresh" onClick={fetchPrinters} loading={printersLoading} icon={<SearchOutlined />}
+              style={{ borderRadius: 10 }}>
+              Refresh
+            </Button>,
+            <Button key="ok" type="primary" disabled={!selectedPrinter}
+              onClick={() => { localStorage.setItem('pos_printer', selectedPrinter); setPrinterModalOpen(false); message.success(`Printer set: ${selectedPrinter}`); }}
+              style={{ background: '#1a3a34', borderColor: 'transparent', borderRadius: 10 }}>
+              Connect
+            </Button>,
+          ]}
+        >
+          {printersLoading ? (
+            <div style={{ textAlign: 'center', padding: 32 }}><Spin size="large" /><div style={{ marginTop: 12, color: '#64748b' }}>Detecting printers…</div></div>
+          ) : printers.length === 0 ? (
+            <Empty description="No printers found. Make sure your Epson L8050 is connected and the driver is installed." />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {printers.map((p) => {
+                const isEpson = /epson/i.test(p.name) || /l8050/i.test(p.name);
+                const isSelected = selectedPrinter === p.name;
+                return (
+                  <button
+                    type="button"
+                    key={p.name}
+                    onClick={() => setSelectedPrinter(p.name)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+                      border: isSelected ? '2px solid #1a3a34' : '1px solid #e5e7eb',
+                      borderRadius: 10, background: isSelected ? '#f0fdf4' : '#fff',
+                      cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+                    }}
+                  >
+                    <PrinterOutlined style={{ fontSize: 22, color: isEpson ? '#1a3a34' : '#94a3b8' }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, color: '#1e293b', fontSize: 14 }}>
+                        {p.name}
+                        {isEpson && <span style={{ marginLeft: 8, fontSize: 10, background: '#1a3a34', color: '#fff', padding: '2px 6px', borderRadius: 4 }}>RECOMMENDED</span>}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                        {p.driver || 'Unknown driver'} · {p.status}
+                        {p.port ? ` · ${p.port}` : ''}
+                      </div>
+                    </div>
+                    {isSelected && <span style={{ color: '#1a3a34', fontWeight: 700, fontSize: 18 }}>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {selectedPrinter && (
+            <div style={{ marginTop: 12, padding: '8px 12px', background: '#f8fafc', borderRadius: 8, fontSize: 12, color: '#64748b' }}>
+              Selected: <strong style={{ color: '#1a3a34' }}>{selectedPrinter}</strong>
             </div>
           )}
         </Modal>
