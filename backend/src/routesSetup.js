@@ -49,4 +49,7 @@ module.exports = function setupRoutes(app) {
 
   const printRoutes = require('./routes/printRoutes');
   app.use('/api/print', printRoutes);
+
+  const settingsRoutes = require('./routes/settingsRoutes');
+  app.use('/api/settings', settingsRoutes);
 };

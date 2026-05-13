@@ -13,6 +13,7 @@
     "migrate:atlas": "node scripts/migrateLocalToAtlas.js",
     "health": "node health.js",
     "seed": "node scripts/seeder.js",
+    "seed:products300": "node src/seedProducts300.js",
     "db:check": "node scripts/checkDatabase.js"
   },
   "engines": {
