@@ -1,12 +1,12 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable camelcase */
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import moment from 'moment';
 import Cookies from 'js-cookie';
 import Styled from 'styled-components';
 import { useSelector, useDispatch } from 'react-redux';
-import { Row, Col, Menu, message, Dropdown, Select, Modal, Table, Tag, Tabs, Divider, Skeleton, InputNumber, Typography, Space, Button as AntButton, Descriptions, Input, Form, DatePicker, Radio } from 'antd';
+import { Row, Col, Menu, message, Dropdown, Select, Modal, Table, Tag, Tabs, Divider, Skeleton, Spin, InputNumber, Typography, Space, Button as AntButton, Descriptions, Input, Form, DatePicker, Radio } from 'antd';
 import { ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Link } from 'react-router-dom';
 import { 
@@ -41,6 +41,7 @@ import {
 } from '../dashboard/dashboardStyles';
 import { formatPkr } from '../../config/currency';
 import { ScreenWrap } from '../shared/procurementScreenStyles';
+import ModernModalStyles from '../shared/modalStyles';
 
 /** Larger KPI type — aligned with supplier / procurement screens */
 const StatisticsKpiWrap = Styled.div`
@@ -83,6 +84,48 @@ function saleMoment(sale) {
 function formatSaleDateTime(sale) {
   const m = saleMoment(sale);
   return m.isValid() ? m.format('DD MMM YYYY, hh:mm A') : '—';
+}
+
+/** A4 professional layout (`report_a4`) — same contract as POS/print API */
+const SALE_ORDER_PDF_TEMPLATE = 'report_a4';
+
+function mapSaleToPrintInvoice(sale, customerList) {
+  if (!sale) return null;
+  const sid = String(sale._id || sale.id || '');
+  let customer_name = sale.customer_name;
+  if (!customer_name && sale.customer_id && Array.isArray(customerList)) {
+    const c = customerList.find((x) => String(x._id) === String(sale.customer_id));
+    if (c?.name) customer_name = c.name;
+  }
+  customer_name = customer_name || 'Walk-in Customer';
+
+  const items = (sale.items || []).map((it) => {
+    const qty = Number(it.quantity || 0);
+    const unit = Number(it.unit_price || 0);
+    const lineTotal =
+      it.line_total != null && it.line_total !== ''
+        ? Number(it.line_total)
+        : qty * unit;
+    return {
+      product_name: it.product_name || 'Item',
+      quantity: qty,
+      unit_price: unit,
+      line_total: lineTotal,
+    };
+  });
+
+  return {
+    invoice_no: sale.invoice_no || `INV-${sid.slice(-6)}`,
+    customer_name,
+    customer_phone: sale.customer_phone,
+    items,
+    total_amount: Number(sale.total_amount || 0),
+    discount_amount: Number(sale.discount_amount ?? sale.discount ?? 0),
+    tax_amount: Number(sale.tax_amount || 0),
+    net_amount: Number(sale.net_amount ?? 0),
+    sale_date: sale.sale_date || sale.createdAt,
+    document_title: 'SALE ORDER',
+  };
 }
 
 const KPI_SPARK_COLORS = ['#c4b5fd', '#fca5a5', '#86efac', '#93c5fd'];
@@ -139,6 +182,10 @@ function Sales() {
   const [printers, setPrinters] = useState([]);
   const [selectedPrinter, setSelectedPrinter] = useState(localStorage.getItem('pos_printer') || '');
   const [printersLoading, setPrintersLoading] = useState(false);
+  const [invoicePdfUrl, setInvoicePdfUrl] = useState(null);
+  const [invoicePdfLoading, setInvoicePdfLoading] = useState(false);
+  const invoicePdfReqId = useRef(0);
+  const [registerPrinting, setRegisterPrinting] = useState(false);
   const [statistics, setStatistics] = useState({
     totalSales: 0,
     totalRevenue: 0,
@@ -305,6 +352,53 @@ function Sales() {
 
   const token = Cookies.get('token');
 
+  const loadInvoicePdfPreview = useCallback(async (sale) => {
+    if (!sale) return;
+    if (!token) {
+      message.error('Please sign in');
+      return;
+    }
+    const req = ++invoicePdfReqId.current;
+    setInvoicePdfLoading(true);
+    setInvoicePdfUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    try {
+      const invoice = mapSaleToPrintInvoice(sale, customers);
+      const res = await fetch(`${API_BASE}/print/preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ invoice, template: SALE_ORDER_PDF_TEMPLATE }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || err.detail || 'Preview failed');
+      }
+      const blob = await res.blob();
+      if (invoicePdfReqId.current !== req) return;
+      setInvoicePdfUrl(URL.createObjectURL(blob));
+    } catch (e) {
+      if (invoicePdfReqId.current === req) {
+        message.error(e.message || 'Could not generate preview');
+      }
+    } finally {
+      if (invoicePdfReqId.current === req) {
+        setInvoicePdfLoading(false);
+      }
+    }
+  }, [customers, token]);
+
+  const closeInvoiceModal = useCallback(() => {
+    invoicePdfReqId.current += 1;
+    setInvoicePdfUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setInvoicePdfLoading(false);
+    setInvoiceModalVisible(false);
+  }, []);
+
   const fetchPrinters = async () => {
     setPrintersLoading(true);
     try {
@@ -330,20 +424,23 @@ function Sales() {
   const openPrinterDialog = () => { fetchPrinters(); setPrinterModalOpen(true); };
 
   const printInvoice = async (inv) => {
-    const invoiceData = inv || selectedInvoice;
-    if (!invoiceData) { message.warning('No invoice to print'); return; }
+    const raw = inv || selectedInvoice;
+    if (!raw) { message.warning('No invoice to print'); return; }
     const printer = selectedPrinter || localStorage.getItem('pos_printer');
     if (!printer) { message.info('Please select a printer first'); openPrinterDialog(); return; }
+
+    const invoicePayload = mapSaleToPrintInvoice(raw, customers);
+    if (!invoicePayload) { message.warning('No invoice to print'); return; }
 
     setPrinting(true);
     try {
       const res = await fetch(`${API_BASE}/print/invoice`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ invoice: invoiceData, printer }),
+        body: JSON.stringify({ invoice: invoicePayload, printer, template: SALE_ORDER_PDF_TEMPLATE }),
       });
       const data = await res.json();
-      if (res.ok && data.success) message.success(`Sent to ${printer}`);
+      if (res.ok && data.success) message.success(`Sale order PDF sent to ${printer}`);
       else message.error(data.error || 'Print failed');
     } catch (err) {
       message.error('Print service unavailable');
@@ -353,21 +450,24 @@ function Sales() {
   };
 
   const previewInvoicePDF = async (inv) => {
-    const invoiceData = inv || selectedInvoice;
-    if (!invoiceData) return;
-    try {
-      const res = await fetch(`${API_BASE}/print/preview`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ invoice: invoiceData }),
-      });
-      if (!res.ok) { message.error('Preview failed'); return; }
-      const blob = await res.blob();
-      window.open(URL.createObjectURL(blob), '_blank');
-    } catch (err) {
-      message.error('Could not generate preview');
-    }
+    const raw = inv || selectedInvoice;
+    if (!raw) return;
+    await loadInvoicePdfPreview(raw);
+    message.success('PDF preview updated');
   };
+
+  useEffect(() => {
+    if (!invoiceModalVisible || !selectedInvoice) {
+      setInvoicePdfUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setInvoicePdfLoading(false);
+      return undefined;
+    }
+    loadInvoicePdfPreview(selectedInvoice);
+    return undefined;
+  }, [invoiceModalVisible, selectedInvoice, loadInvoicePdfPreview]);
 
   const showModal = () => {
     setState({
@@ -598,6 +698,105 @@ function Sales() {
     message.success('PDF file downloaded');
   };
 
+  const buildSalesRegisterPayload = useCallback(() => {
+    if (!salesHistory?.length) return null;
+    const records = salesHistory.map((sale) => {
+      const customer = customers.find((c) => c._id === sale.customer_id);
+      const customerName = sale.customer_name || customer?.name || 'Walk-in Customer';
+      return {
+        invoice_no: sale.invoice_no || `INV-${String(sale._id || '').slice(-6)}`,
+        customer_name: customerName,
+        date_label: formatSaleDateTime(sale),
+        total_amount: Number(sale.total_amount || 0),
+        net_amount: Number(sale.net_amount || 0),
+        status: sale.status || '',
+      };
+    });
+    const subtitleParts = [];
+    if (activeTab === 'active') subtitleParts.push('Active sales');
+    else if (activeTab === 'history') subtitleParts.push('Sales history');
+    else if (activeTab === 'returns') subtitleParts.push('Returns');
+    else subtitleParts.push('All sales');
+    if (dateMode === 'today') subtitleParts.push('Today');
+    else if (dateMode === 'range' && dateRange?.[0] && dateRange?.[1]) {
+      subtitleParts.push(`${dateRange[0].format('DD/MM/YYYY')} – ${dateRange[1].format('DD/MM/YYYY')}`);
+    } else subtitleParts.push('All dates');
+    if (searchTerm) subtitleParts.push(`Search: "${searchTerm}"`);
+    if (sortStatus !== 'category') subtitleParts.push(`Status filter: ${sortStatus}`);
+    return {
+      records,
+      subtitle: subtitleParts.join(' · '),
+      generated_at: moment().format('DD/MM/YYYY, HH:mm'),
+    };
+  }, [salesHistory, customers, activeTab, dateMode, dateRange, searchTerm, sortStatus]);
+
+  const handlePreviewSalesRegister = useCallback(async () => {
+    const payload = buildSalesRegisterPayload();
+    if (!payload) {
+      message.warning('No sales in current view');
+      return;
+    }
+    if (!token) {
+      message.error('Please sign in');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/print/sales-register/preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || err.detail || 'Preview failed');
+      }
+      const blob = await res.blob();
+      window.open(URL.createObjectURL(blob), '_blank', 'noopener,noreferrer');
+    } catch (e) {
+      message.error(e.message || 'Could not generate register PDF');
+    }
+  }, [buildSalesRegisterPayload, token]);
+
+  const handlePrintAllSales = useCallback(() => {
+    const payload = buildSalesRegisterPayload();
+    if (!payload) {
+      message.warning('No sales in current view');
+      return;
+    }
+    const printer = selectedPrinter || localStorage.getItem('pos_printer');
+    if (!printer) {
+      message.info('Choose a printer first');
+      openPrinterDialog();
+      return;
+    }
+    if (!token) {
+      message.error('Please sign in');
+      return;
+    }
+    Modal.confirm({
+      title: 'Print full sales register?',
+      content: `Send ${payload.records.length} row(s) from the current filters to ${printer} as one multi-page A4 PDF.`,
+      okText: 'Print',
+      onOk: async () => {
+        setRegisterPrinting(true);
+        try {
+          const res = await fetch(`${API_BASE}/print/sales-register/print`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ ...payload, printer }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || data.detail || 'Print failed');
+          message.success(data.message || `Sent to ${printer}`);
+        } catch (e) {
+          message.error(e.message || 'Print failed');
+        } finally {
+          setRegisterPrinting(false);
+        }
+      },
+    });
+  }, [buildSalesRegisterPayload, selectedPrinter, token]);
+
   const columns = [
     { 
       title: '#', 
@@ -754,6 +953,20 @@ function Sales() {
               <FilePdfOutlined style={{ marginRight: 8 }} />
               PDF
             </Button>,
+            <AntButton key="preview-register" size="default" onClick={handlePreviewSalesRegister} icon={<FileTextOutlined />}>
+              Preview register
+            </AntButton>,
+            <AntButton
+              key="print-all"
+              type="primary"
+              size="default"
+              loading={registerPrinting}
+              onClick={handlePrintAllSales}
+              icon={<PrinterOutlined />}
+              style={{ background: '#2D3142', borderColor: 'transparent' }}
+            >
+              Print all (A4)
+            </AntButton>,
             // <Button disabled={!canAdd} onClick={showModal} key="1" type="primary" size="default">
             //   <FeatherIcon icon="plus" size={16} /> New Sale
             // </Button>,
@@ -842,38 +1055,74 @@ function Sales() {
           }}
         />
 
-        {/* Invoice View Modal */}
+        <ModernModalStyles />
+        {/* Invoice view: embedded A4 sale order PDF + on-screen detail */}
         <Modal
-          title={`Invoice ${selectedInvoice?.invoice_no || ''}`}
+          title={
+            selectedInvoice ? (
+              <span style={{ fontWeight: 700, color: '#0f172a' }}>
+                Sale order · {selectedInvoice.invoice_no || ''}
+              </span>
+            ) : (
+              'Sale order'
+            )
+          }
           open={invoiceModalVisible}
-          onCancel={() => setInvoiceModalVisible(false)}
-          width={800}
+          onCancel={closeInvoiceModal}
+          width={960}
+          centered
+          className="modern-modal"
           footer={[
             <AntButton key="print" type="primary" loading={printing} onClick={() => printInvoice()} icon={<PrinterOutlined />}
               style={{ background: '#2D3142', borderColor: 'transparent', borderRadius: 10 }}>
-              {selectedPrinter ? `Print → ${selectedPrinter}` : 'Print Invoice'}
+              {selectedPrinter ? `Print A4 → ${selectedPrinter}` : 'Print sale order (A4)'}
             </AntButton>,
             <AntButton key="preview" onClick={() => previewInvoicePDF()} icon={<FileTextOutlined />}
               style={{ borderColor: '#2D3142', color: '#2D3142', borderRadius: 10 }}>
-              Preview PDF
+              Refresh PDF
             </AntButton>,
             <AntButton key="printer" onClick={openPrinterDialog}
               style={{ borderColor: '#e5e7eb', color: '#374151', borderRadius: 10 }}>
               ⚙ Printer
             </AntButton>,
-            <AntButton key="close" onClick={() => setInvoiceModalVisible(false)}>
+            <AntButton key="close" onClick={closeInvoiceModal}>
               Close
-            </AntButton>
+            </AntButton>,
           ]}
         >
-          <div id="invoice-print-area">
+          <div style={{ background: '#f1f5f9' }}>
+            {invoicePdfLoading ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
+                <Spin size="large" tip="Generating sale order PDF…" />
+              </div>
+            ) : invoicePdfUrl ? (
+              <iframe
+                title="Sale order PDF"
+                src={`${invoicePdfUrl}#toolbar=0`}
+                style={{
+                  width: '100%',
+                  height: '52vh',
+                  maxHeight: 560,
+                  minHeight: 400,
+                  border: 'none',
+                  display: 'block',
+                  background: '#525659',
+                }}
+              />
+            ) : (
+              <div style={{ padding: 32, textAlign: 'center', color: '#64748b', minHeight: 200 }}>
+                PDF preview will appear here. Use Refresh PDF if it does not load.
+              </div>
+            )}
+          </div>
+          <Divider style={{ margin: 0 }} />
+          <div id="invoice-print-area" style={{ maxHeight: '40vh', overflowY: 'auto' }}>
             {selectedInvoice && (
               <div style={{ padding: 24 }}>
-                <div style={{ textAlign: 'center', marginBottom: 32 }}>
-                  <h2>INVOICE</h2>
-                  <p>{selectedInvoice.invoice_no}</p>
+                <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                  <Typography.Title level={4} style={{ marginBottom: 4 }}>On-screen detail</Typography.Title>
+                  <p style={{ margin: 0, color: '#64748b' }}>{selectedInvoice.invoice_no}</p>
                 </div>
-                
                 <Row gutter={16} style={{ marginBottom: 24 }}>
                   <Col span={12}>
                     <strong>Bill To:</strong>

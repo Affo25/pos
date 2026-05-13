@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 /* eslint-disable no-underscore-dangle */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import Cookies from 'js-cookie';
 import {
@@ -15,16 +15,12 @@ import {
   WalletOutlined, ShoppingCartOutlined,
   UserOutlined, CalendarOutlined, SearchOutlined,
   TagOutlined,
-  PauseCircleOutlined,
-  PlayCircleOutlined,
   FallOutlined,
   EditOutlined,
-  ColumnWidthOutlined,
   DollarOutlined,
 } from '@ant-design/icons';
-import { toast } from 'react-toastify';
 import { Main } from '../../config/default/styled';
-import { API_BASE } from '../../config/apiBase';
+import { API_BASE, API_ORIGIN } from '../../config/apiBase';
 import { formatPkr } from '../../config/currency';
 
 const { Search } = Input;
@@ -34,6 +30,16 @@ const API_BILLING = `${API_BASE}/sales/billing`;
 const API_PRINTERS = `${API_BASE}/print/printers`;
 const API_PRINT_INVOICE = `${API_BASE}/print/invoice`;
 const API_PRINT_PREVIEW = `${API_BASE}/print/preview`;
+const API_SETTINGS = `${API_BASE}/settings`;
+
+function invoiceTemplateLabel(t) {
+  switch (t) {
+    case 'report_a4': return 'Full A4 invoice';
+    case 'restaurant_80mm': return '80mm receipt';
+    case 'a4_80mm_strip':
+    default: return 'A4 · 80mm strip';
+  }
+}
 
 const TABS = [
   { key: 'items', label: 'Cart', icon: <ShoppingCartOutlined /> },
@@ -72,6 +78,10 @@ function POSBilling() {
   const [selectedPrinter, setSelectedPrinter] = useState(localStorage.getItem('pos_printer') || '');
   const [printersLoading, setPrintersLoading] = useState(false);
   const [printing, setPrinting] = useState(false);
+  const [invoiceBranding, setInvoiceBranding] = useState(null);
+  const [posSearchQuery, setPosSearchQuery] = useState('');
+  /** Latest query for Enter/submit (DOM ref in antd Search can be unreliable on some mobile keyboards). */
+  const posSearchQueryRef = useRef('');
 
   const token = Cookies.get('token');
 
@@ -92,38 +102,6 @@ function POSBilling() {
     return filteredProducts.filter((p) => productCategoryName(p) === activeCategory);
   }, [filteredProducts, activeCategory]);
 
-  const holdCart = () => {
-    if (!rows.length) {
-      message.info('Cart is empty');
-      return;
-    }
-    try {
-      sessionStorage.setItem('pos_hold_order', JSON.stringify(rows));
-      setRows([]);
-      message.success('Order held');
-    } catch {
-      message.error('Could not hold order');
-    }
-  };
-
-  const resumeCart = () => {
-    const raw = sessionStorage.getItem('pos_hold_order');
-    if (!raw) {
-      message.info('No held order');
-      return;
-    }
-    try {
-      const held = JSON.parse(raw);
-      if (Array.isArray(held) && held.length) {
-        setRows(held);
-        sessionStorage.removeItem('pos_hold_order');
-        message.success('Order resumed');
-      }
-    } catch {
-      message.error('Could not resume order');
-    }
-  };
-
   const clearTicket = () => {
     setRows([]);
     setDiscount(0);
@@ -140,7 +118,7 @@ function POSBilling() {
       setProducts(activeProducts);
       setFilteredProducts(activeProducts);
     } catch {
-      toast.error('Failed to load data');
+      /* silent — avoid toasts except printer success */
     } finally {
       setLoading(false);
     }
@@ -148,14 +126,40 @@ function POSBilling() {
 
   useEffect(() => { fetchInitialData(); }, []);
 
-  const handleSearch = (value) => {
-    if (!value.trim()) { setFilteredProducts(products); return; }
-    const filtered = products.filter(p =>
-      p.name?.toLowerCase().includes(value.toLowerCase()) ||
-      p.batch_number?.toLowerCase().includes(value.toLowerCase()) ||
-      p.supplier_name?.toLowerCase().includes(value.toLowerCase())
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(API_SETTINGS, { headers: { Authorization: `Bearer ${token}` } });
+        const data = await res.json();
+        if (!cancelled && res.ok && data.settings?.invoiceDesign) {
+          setInvoiceBranding(data.settings.invoiceDesign);
+        }
+      } catch {
+        /* optional branding */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [token]);
+
+  const filterProductsByQuery = (query) => {
+    const v = String(query ?? '').trim();
+    if (!v) return products;
+    const lower = v.toLowerCase();
+    return products.filter((p) =>
+      p.name?.toLowerCase().includes(lower) ||
+      p.batch_number?.toLowerCase().includes(lower) ||
+      (p.sku != null && String(p.sku).toLowerCase().includes(lower)) ||
+      p.supplier_name?.toLowerCase().includes(lower)
     );
-    setFilteredProducts(filtered);
+  };
+
+  const handleSearch = (value) => {
+    const v = typeof value === 'string' ? value : '';
+    posSearchQueryRef.current = v;
+    setPosSearchQuery(v);
+    setFilteredProducts(filterProductsByQuery(v));
   };
 
   const getEntityId = (entity) => entity?._id || entity?.id || null;
@@ -199,27 +203,64 @@ function POSBilling() {
   const addProductToCart = (product, quantity = 1) => {
     const expRaw = getProductExpiry(product);
     if (isExpiryPassed(expRaw)) {
-      toast.warning(`${product.name}: past expiry date — confirm before sale`);
+      return false;
     }
     const avail = Number(product.available_quantity);
     if (Number.isFinite(avail) && avail < quantity) {
-      toast.error(`Insufficient stock. Available: ${avail}`);
-      return;
+      return false;
     }
     const productId = getEntityId(product);
-    if (!productId) { toast.error('Invalid product'); return; }
+    if (!productId) return false;
     const existingRow = rows.find(row => row.product_id === productId);
     if (existingRow) {
       const newQty = (existingRow.quantity || 0) + quantity;
       if (Number.isFinite(avail) && newQty > avail) {
-        toast.error(`Only ${avail - existingRow.quantity} more available`);
-        return;
+        return false;
       }
       updateRow(existingRow.key, { quantity: newQty });
     } else {
       setRows(prev => [...prev, { key: Date.now(), product_id: productId, quantity, unit_price: Number(product.unit_price || 0), product_details: product }]);
     }
-    message.success(`${product.name} added`);
+    return true;
+  };
+
+  /** Enter / search icon: filter, then add if exact SKU or a single visible catalog match. */
+  const handleSearchSubmit = (value) => {
+    const q = value !== undefined && value !== null
+      ? String(value)
+      : (posSearchQueryRef.current ?? posSearchQuery ?? '');
+    posSearchQueryRef.current = q;
+    setPosSearchQuery(q);
+    const filtered = filterProductsByQuery(q);
+    setFilteredProducts(filtered);
+    const v = q.trim();
+    if (!v) return;
+
+    const lower = v.toLowerCase();
+    const skuHit = products.find(
+      (p) => p.sku != null && String(p.sku).trim().toLowerCase() === lower
+    );
+    if (skuHit) {
+      const added = addProductToCart(skuHit, 1);
+      if (added) {
+        posSearchQueryRef.current = '';
+        setPosSearchQuery('');
+        setFilteredProducts(products);
+      }
+      return;
+    }
+
+    const inCategory = activeCategory === 'All'
+      ? filtered
+      : filtered.filter((p) => productCategoryName(p) === activeCategory);
+    if (inCategory.length === 1) {
+      const added = addProductToCart(inCategory[0], 1);
+      if (added) {
+        posSearchQueryRef.current = '';
+        setPosSearchQuery('');
+        setFilteredProducts(products);
+      }
+    }
   };
 
   const removeRow = (key) => setRows(prev => prev.filter(r => r.key !== key));
@@ -244,11 +285,9 @@ function POSBilling() {
           setSelectedPrinter(epson.name);
           localStorage.setItem('pos_printer', epson.name);
         }
-      } else {
-        message.error(data.error || 'Could not load printers');
       }
-    } catch (err) {
-      message.error('Failed to connect to print service');
+    } catch {
+      /* silent */
     } finally {
       setPrintersLoading(false);
     }
@@ -260,11 +299,10 @@ function POSBilling() {
   };
 
   const printInvoiceData = async (inv) => {
-    if (!inv) { message.warning('No invoice to print'); return; }
+    if (!inv) return;
 
     const printer = selectedPrinter || localStorage.getItem('pos_printer');
     if (!printer) {
-      message.info('Please select a printer first');
       openPrinterDialog();
       return;
     }
@@ -279,11 +317,9 @@ function POSBilling() {
       const data = await res.json();
       if (res.ok && data.success) {
         message.success(`Sent to ${printer}`);
-      } else {
-        message.error(data.error || 'Print failed');
       }
-    } catch (err) {
-      message.error('Print service unavailable');
+    } catch {
+      /* silent — only success toast is shown */
     } finally {
       setPrinting(false);
     }
@@ -297,19 +333,19 @@ function POSBilling() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ invoice: inv }),
       });
-      if (!res.ok) { message.error('Preview failed'); return; }
+      if (!res.ok) return;
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank');
-    } catch (err) {
-      message.error('Could not generate preview');
+    } catch {
+      /* silent */
     }
   };
 
   const createBilling = async () => {
-    if (!rows.length) { toast.error('Please add at least one item'); return; }
+    if (!rows.length) return;
     const invalidRow = rows.find(r => !r.product_id || Number(r.quantity || 0) <= 0);
-    if (invalidRow) { toast.error('All items need valid quantities'); return; }
+    if (invalidRow) return;
     const payload = {
       customer_id: null,
       invoice_number: invoiceNumber,
@@ -332,14 +368,13 @@ function POSBilling() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to create invoice');
       setInvoice(data);
-      toast.success('Invoice created — printing…');
       setRows([]);
       setDiscount(0); setPaymentMode('cash'); setProjectDetail(''); setIssuedDate(null);
       setTimeout(() => {
         if (data) printInvoiceData(data);
       }, 400);
-    } catch (e) {
-      toast.error(e.message);
+    } catch {
+      /* silent */
     } finally {
       setSaving(false);
     }
@@ -356,6 +391,8 @@ function POSBilling() {
     const catUpper = productCategoryName(product).toUpperCase();
     const priceStr = formatPkr(Number(product.unit_price || 0));
     const stockLabel = Number.isFinite(stockNum) ? `${stockNum} left` : '—';
+    const skuTrim = product.sku != null ? String(product.sku).trim() : '';
+    const skuLabel = skuTrim ? `SKU ${skuTrim}` : null;
 
     return (
       <button
@@ -367,7 +404,10 @@ function POSBilling() {
         title={disabled ? 'Out of stock' : expired ? 'Past expiry — tap to add (confirm)' : 'Add to ticket'}
       >
         <div className="pos-product-card__cat">{catUpper}</div>
-        <div className="pos-product-card__name">{product.name}</div>
+        <div className="pos-product-card__top">
+          <div className="pos-product-card__name">{product.name}</div>
+          {skuLabel && <div className="pos-product-card__sku">{skuLabel}</div>}
+        </div>
         <div className="pos-product-card__row">
           <span className="pos-product-card__price">{priceStr}</span>
           <span className={`pos-product-card__stock${low ? ' is-low' : ''}`}>{stockLabel}</span>
@@ -501,22 +541,6 @@ function POSBilling() {
           flex: 1;
           min-width: 200px;
         }
-        .catalog-toolbar-actions {
-          display: flex;
-          gap: 8px;
-          flex-shrink: 0;
-        }
-        .btn-tea-outline {
-          border-radius: 8px !important;
-          border-color: rgba(0, 0, 0, 0.25) !important;
-          color: var(--pos-forest) !important;
-          font-weight: 600 !important;
-          background: #fff !important;
-        }
-        .btn-tea-outline:hover {
-          border-color: var(--pos-forest) !important;
-          color: var(--pos-forest) !important;
-        }
 
         .category-chips {
           display: flex;
@@ -562,6 +586,110 @@ function POSBilling() {
           .pos-product-grid { grid-template-columns: 1fr; }
         }
 
+        .pos-product-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          padding: 12px 14px 16px;
+          max-height: min(56vh, 560px);
+          overflow-y: auto;
+        }
+        /* Tabular: three-column row, no stacked overlap */
+        .pos-product-list .pos-product-card {
+          display: grid;
+          grid-template-columns: minmax(96px, 24%) minmax(0, 1fr) minmax(108px, auto);
+          grid-template-rows: auto;
+          align-items: center;
+          column-gap: 16px;
+          min-height: 84px;
+          height: auto;
+          padding: 14px 18px;
+          border-radius: 10px;
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+          flex-direction: unset;
+          text-align: left;
+          width: 100%;
+        }
+        .pos-product-list .pos-product-card:hover:not(:disabled) {
+          border-color: #cbd5e1;
+          box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
+        }
+        .pos-product-list .pos-product-card__cat {
+          grid-column: 1;
+          grid-row: 1;
+          margin: 0;
+          align-self: stretch;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          padding: 10px 8px;
+          border-radius: 8px;
+          background: #f1f5f9;
+          color: #475569;
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          line-height: 1.3;
+          word-break: break-word;
+          overflow-wrap: anywhere;
+          hyphens: auto;
+        }
+        .pos-product-list .pos-product-card__top {
+          grid-column: 2;
+          grid-row: 1;
+          flex: unset;
+          min-width: 0;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+        }
+        .pos-product-list .pos-product-card__name {
+          font-size: 15px;
+          font-weight: 600;
+          color: #0f172a;
+          line-height: 1.45;
+          margin-bottom: 6px;
+          word-break: break-word;
+          overflow-wrap: anywhere;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .pos-product-list .pos-product-card__sku {
+          margin-bottom: 0;
+          font-size: 12px;
+          line-height: 1.35;
+          color: #64748b;
+          display: -webkit-box;
+          -webkit-line-clamp: 1;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .pos-product-list .pos-product-card__row {
+          grid-column: 3;
+          grid-row: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          justify-content: center;
+          gap: 6px;
+          margin-top: 0;
+          min-width: 0;
+        }
+        .pos-product-list .pos-product-card__price {
+          font-size: 16px;
+          font-weight: 700;
+          color: var(--pos-forest);
+          white-space: nowrap;
+        }
+        .pos-product-list .pos-product-card__stock {
+          white-space: nowrap;
+        }
+
         .pos-product-card {
           display: flex;
           flex-direction: column;
@@ -575,10 +703,16 @@ function POSBilling() {
           cursor: pointer;
           transition: box-shadow 0.2s, border-color 0.2s, transform 0.15s;
           font-family: inherit;
+          width: 100%;
+          -webkit-tap-highlight-color: transparent;
         }
         .pos-product-card:hover:not(:disabled) {
           border-color: rgba(0, 0, 0, 0.35);
           box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+        }
+        .pos-product-card:focus-visible {
+          outline: 2px solid #3b82f6;
+          outline-offset: 2px;
         }
         .pos-product-card.is-disabled {
           opacity: 0.5;
@@ -596,13 +730,28 @@ function POSBilling() {
           text-transform: uppercase;
           margin-bottom: 6px;
         }
+        .pos-product-card__top {
+          flex: 1;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+        }
         .pos-product-card__name {
           font-size: 14px;
           font-weight: 600;
           color: #1e293b;
           line-height: 1.35;
-          flex: 1;
-          margin-bottom: 10px;
+          margin-bottom: 4px;
+        }
+        .pos-product-card__sku {
+          font-size: 11px;
+          font-weight: 500;
+          font-family: ui-monospace, 'Cascadia Code', 'Segoe UI Mono', monospace;
+          color: #64748b;
+          letter-spacing: 0.02em;
+          margin-bottom: 8px;
+          word-break: break-all;
         }
         .pos-product-card__row {
           display: flex;
@@ -1193,28 +1342,59 @@ function POSBilling() {
           <Col xs={24} lg={14}>
             <div className="catalog-panel">
               <div className="catalog-header">
-                <div className="catalog-title">
-                  <span className="catalog-title-dot" />
-                  Catalog
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  {invoiceBranding?.logoUrl && (
+                    <img
+                      src={`${API_ORIGIN}${invoiceBranding.logoUrl}`}
+                      alt=""
+                      style={{ height: 40, maxWidth: 120, objectFit: 'contain' }}
+                    />
+                  )}
+                  <div>
+                    <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--pos-forest)', lineHeight: 1.2 }}>
+                      {invoiceBranding?.companyName || 'Point of Sale'}
+                    </div>
+                    <div className="catalog-title" style={{ marginTop: 4, marginBottom: 0 }}>
+                      <span className="catalog-title-dot" />
+                      Catalog
+                      {invoiceBranding?.template && (
+                        <span style={{ fontSize: 11, fontWeight: 500, color: '#64748b', marginLeft: 8 }}>
+                          · PDF: {invoiceTemplateLabel(invoiceBranding.template)}
+                        </span>
+                      )}
+                    </div>
+                    {invoiceBranding?.tagline && (
+                      <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{invoiceBranding.tagline}</div>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="catalog-toolbar">
                 <Search
                   className="search-tea"
-                  placeholder="Search by name, SKU or batch…"
+                  placeholder="Search by name, SKU or batch — Enter adds if one match"
                   allowClear
+                  value={posSearchQuery}
                   prefix={<SearchOutlined style={{ color: '#64748b' }} />}
-                  onSearch={handleSearch}
-                  onChange={e => handleSearch(e.target.value)}
+                  enterKeyHint="go"
+                  onPressEnter={(e) => {
+                    /* Enter is handled in onKeyDown (real INPUT target); avoid antd also firing onSearch. */
+                    e.preventDefault();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter' && e.key !== 'NumpadEnter') return;
+                    if (String(e.target?.tagName).toUpperCase() !== 'INPUT') return;
+                    if (e.nativeEvent?.isComposing) return;
+                    e.preventDefault();
+                    const v = e.target?.value ?? posSearchQueryRef.current;
+                    handleSearchSubmit(v);
+                  }}
+                  onSearch={(v) => {
+                    const resolved = v !== undefined && v !== null ? String(v) : posSearchQueryRef.current;
+                    handleSearchSubmit(resolved);
+                  }}
+                  onChange={(e) => handleSearch(e.target.value)}
                 />
-                <div className="catalog-toolbar-actions">
-                  <Button className="btn-tea-outline" icon={<PauseCircleOutlined />} onClick={holdCart}>
-                    Hold
-                  </Button>
-                  <Button className="btn-tea-outline" icon={<PlayCircleOutlined />} onClick={resumeCart}>
-                    Resume
-                  </Button>
-                </div>
               </div>
               <div className="category-chips">
                 {categoryOptions.map((c) => (
@@ -1243,7 +1423,17 @@ function POSBilling() {
                   <Empty description="No products in this category" />
                 </div>
               ) : (
-                <div className="pos-product-grid">{displayedProducts.map(renderProductCard)}</div>
+                <div
+                  className={
+                    ['gridview', 'grid'].includes(
+                      String(invoiceBranding?.posLayout || 'tabular').toLowerCase(),
+                    )
+                      ? 'pos-product-grid'
+                      : 'pos-product-list'
+                  }
+                >
+                  {displayedProducts.map(renderProductCard)}
+                </div>
               )}
             </div>
           </Col>
@@ -1387,10 +1577,6 @@ function POSBilling() {
                 <button type="button" className="ticket-quick-btn" onClick={() => setActiveTab('payment')}>
                   <EditOutlined />
                   Notes
-                </button>
-                <button type="button" className="ticket-quick-btn" onClick={() => message.info('Split payment — coming soon')}>
-                  <ColumnWidthOutlined />
-                  Split Pay
                 </button>
                 <button
                   type="button"
@@ -1539,9 +1725,31 @@ function POSBilling() {
         >
           {invoice && (
             <div style={{ padding: '8px 0' }} id="invoice-preview">
-              <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                <div style={{ fontFamily: 'Inter, system-ui, sans-serif', fontSize: 26, fontWeight: 800, color: '#111827', letterSpacing: '-0.02em' }}>INVOICE</div>
-                <div style={{ color: '#6b7280', fontFamily: 'JetBrains Mono, monospace', fontSize: 13, marginTop: 4 }}>#{invoice.invoice_no}</div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {invoiceBranding?.logoUrl && (
+                    <img
+                      src={`${API_ORIGIN}${invoiceBranding.logoUrl}`}
+                      alt=""
+                      style={{ height: 48, maxWidth: 140, objectFit: 'contain' }}
+                    />
+                  )}
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>
+                      {invoiceBranding?.companyName || 'Invoice'}
+                    </div>
+                    {invoiceBranding?.tagline && (
+                      <div style={{ fontSize: 12, color: '#6b7280' }}>{invoiceBranding.tagline}</div>
+                    )}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontFamily: 'Inter, system-ui, sans-serif', fontSize: 22, fontWeight: 800, color: '#111827', letterSpacing: '-0.02em' }}>INVOICE</div>
+                  <div style={{ color: '#6b7280', fontFamily: 'JetBrains Mono, monospace', fontSize: 13, marginTop: 4 }}>#{invoice.invoice_no}</div>
+                  {invoiceBranding?.template && (
+                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Print layout: {invoiceTemplateLabel(invoiceBranding.template)}</div>
+                  )}
+                </div>
               </div>
 
               <Row gutter={16} style={{ marginBottom: 20 }}>
@@ -1606,7 +1814,7 @@ function POSBilling() {
               Refresh
             </Button>,
             <Button key="ok" type="primary" disabled={!selectedPrinter}
-              onClick={() => { localStorage.setItem('pos_printer', selectedPrinter); setPrinterModalOpen(false); message.success(`Printer set: ${selectedPrinter}`); }}
+              onClick={() => { localStorage.setItem('pos_printer', selectedPrinter); setPrinterModalOpen(false); }}
               style={{ background: '#2D3142', borderColor: 'transparent', borderRadius: 10 }}>
               Connect
             </Button>,

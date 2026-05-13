@@ -1,7 +1,26 @@
 const CracoLessPlugin = require('craco-less');
 const { theme } = require('./src/config/theme/themeVariables');
 
+// Dev proxy: browser → webpack dev server → Node API at `target`. MongoDB (e.g. Atlas) is configured in backend .env, not here.
+  process.env.REACT_APP_PROXY_TARGET ||
+  process.env.PROXY_TARGET ||
+  'http://127.0.0.1:5000';
+
 module.exports = {
+  devServer: {
+    proxy: {
+      '/api': {
+        target: proxyTarget,
+        changeOrigin: true,
+        secure: false,
+      },
+      '/uploads': {
+        target: proxyTarget,
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
   webpack: {
     configure: (webpackConfig, { env }) => {
       webpackConfig.resolve = webpackConfig.resolve || {};

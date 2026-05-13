@@ -142,26 +142,45 @@ function CreatePurchaseOrder({ visible, onCancel, purchaseorder, onSuccess }) {
       title: 'Product',
       dataIndex: 'name',
       key: 'name',
-      render: (text, record) => record.name || record.product_id?.name,
+      width: '28%',
+      ellipsis: true,
+      align: 'left',
+      render: (text, record) => (
+        <span style={{ fontWeight: 600, color: '#0f172a' }}>{record.name || record.product_id?.name || '—'}</span>
+      ),
     },
     {
       title: 'Quantity',
       dataIndex: 'quantity',
       key: 'quantity',
+      width: '18%',
+      align: 'center',
+      render: (q) => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{Number(q || 0)}</span>,
     },
     {
-      title: 'Price',
+      title: 'Price (PKR)',
       dataIndex: 'price',
       key: 'price',
+      width: '18%',
+      align: 'right',
+      render: (p) => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{Number(p || 0).toFixed(2)}</span>,
     },
     {
-      title: 'Total',
+      title: 'Line total',
       key: 'total',
-      render: (_, record) => (record.quantity * record.price).toFixed(2),
+      width: '18%',
+      align: 'right',
+      render: (_, record) => (
+        <span style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+          {(Number(record.quantity || 0) * Number(record.price || 0)).toFixed(2)}
+        </span>
+      ),
     },
     {
       title: 'Action',
       key: 'action',
+      width: '18%',
+      align: 'center',
       render: (_, __, index) => (
         <Button onClick={() => handleRemoveItem(index)} type="danger" shape="circle">
           <DeleteOutlined />
@@ -306,6 +325,7 @@ function CreatePurchaseOrder({ visible, onCancel, purchaseorder, onSuccess }) {
           pagination={false} 
           rowKey={(record, index) => index}
           size="middle"
+          tableLayout="fixed"
           style={{ marginTop: 20 }}
         />
         </BasicFormWrapper>

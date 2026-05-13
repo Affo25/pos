@@ -324,8 +324,11 @@ function CreateProduct({ visible, onCancel, product }) {
           ? String(rawSup._id)
           : String(rawSup ?? '').trim();
 
+      const skuTrim = values.sku != null ? String(values.sku).trim() : '';
+
       const payload = {
         name: values.name,
+        ...(skuTrim ? { sku: skuTrim } : {}),
         category: categoryId,
         batch_number: values.batch_number,
         expiry_date: values.expiry_date
@@ -352,17 +355,14 @@ function CreateProduct({ visible, onCancel, product }) {
       console.log('Sending payload:', payload);
 
       if (product) {
-        console.log(`Updating product with ID: ${product.id || product._id}`); // Try both id and _id
-       if (product && product.id) {
-  await dispatch(updateProduct({ id: product.id, data: payload }));
-} else {
-  message.error('Invalid product selected for update');
-  return;
-}
-        message.success('Product updated successfully!');
+        const pid = product.id || product._id;
+        if (!pid) {
+          message.error('Invalid product selected for update');
+          return;
+        }
+        await dispatch(updateProduct(pid, payload));
       } else {
         await dispatch(createProduct(payload));
-        message.success('Product created successfully!');
       }
 
       await dispatch(fetchAllProducts());
@@ -429,6 +429,15 @@ function CreateProduct({ visible, onCancel, product }) {
                     rules={[{ required: true, message: 'Please enter medicine name' }]}
                   >
                     <Input placeholder="Enter medicine name" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} xl={8}>
+                  <Form.Item
+                    name="sku"
+                    label="SKU"
+                    tooltip="Stock keeping unit (optional — auto-generated if left empty)"
+                  >
+                    <Input placeholder="e.g. MED-PARA-500" allowClear />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12} xl={8}>

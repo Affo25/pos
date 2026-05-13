@@ -15,6 +15,7 @@ import { ProjectHeader } from '../../config/default/style';
 import { Main } from '../../config/default/styled';
 import { API_BASE } from '../../config/apiBase';
 import { deleteProduct, fetchAllProducts } from '../../redux/products/productSlice';
+import * as productApi from '../../redux/products/productService';
 import { ScreenWrap } from '../shared/procurementScreenStyles';
 
 function Products() {
@@ -39,6 +40,8 @@ function Products() {
   const [uploadingExcel, setUploadingExcel] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
   const [showExcelUpload, setShowExcelUpload] = useState(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const { notData, visible, selectedProduct } = state;
   const { Text } = Typography;
@@ -58,6 +61,52 @@ function Products() {
 
   const handleDelete = (id) => {
     dispatch(deleteProduct(id));
+    setSelectedRowKeys((keys) => keys.filter((k) => String(k) !== String(id)));
+  };
+
+  const handleBulkDelete = () => {
+    const count = selectedRowKeys.length;
+    if (!count) return;
+    Modal.confirm({
+      title: 'Delete selected medicines?',
+      content: `This will permanently delete ${count} product(s). This cannot be undone.`,
+      okText: 'Delete',
+      okButtonProps: { danger: true },
+      cancelText: 'Cancel',
+      onOk: async () => {
+        const ids = [...selectedRowKeys];
+        setBulkDeleting(true);
+        let failed = 0;
+        const BATCH = 8;
+        try {
+          for (let i = 0; i < ids.length; i += BATCH) {
+            const slice = ids.slice(i, i + BATCH);
+            const results = await Promise.allSettled(slice.map((id) => productApi.deleteProduct(id)));
+            results.forEach((r) => {
+              if (r.status === 'rejected') failed += 1;
+            });
+          }
+          setSelectedRowKeys([]);
+          dispatch(fetchAllProducts());
+          if (failed) {
+            message.warning(`${ids.length - failed} deleted, ${failed} failed.`);
+          } else {
+            message.success(`Deleted ${ids.length} product(s).`);
+          }
+        } catch (e) {
+          message.error(e.message || 'Bulk delete failed');
+        } finally {
+          setBulkDeleting(false);
+        }
+      },
+    });
+  };
+
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: setSelectedRowKeys,
+    preserveSelectedRowKeys: true,
+    columnWidth: 48,
   };
 
   const showModal = () => {
@@ -90,7 +139,13 @@ function Products() {
 
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter((item) => (item.name || '').toLowerCase().includes(term));
+      filtered = filtered.filter((item) => {
+        const name = (item.name || '').toLowerCase();
+        const batch = (item.batch_number || '').toLowerCase();
+        const skuVal = (item.sku || '').toLowerCase();
+        const sizeVal = (item.medicine_size || item.medecine_size || '').toLowerCase();
+        return name.includes(term) || batch.includes(term) || skuVal.includes(term) || sizeVal.includes(term);
+      });
     }
 
     if (sortStatus !== 'all') {
@@ -113,6 +168,11 @@ function Products() {
   }, [products, searchTerm, sortStatus]);
 
   useEffect(() => {
+    const validIds = new Set(filteredProducts.map((p) => String(p._id || p.id)));
+    setSelectedRowKeys((keys) => keys.filter((k) => validIds.has(String(k))));
+  }, [filteredProducts]);
+
+  useEffect(() => {
     if (filteredProducts.length) {
       const start = (pagination.current - 1) * pagination.pageSize;
       const end = start + pagination.pageSize;
@@ -123,6 +183,7 @@ function Products() {
           _id,
           id,
           name,
+          sku,
           batch_number,
           expiry_date,
           category,
@@ -132,10 +193,10 @@ function Products() {
           manufacturer_license_no,
           manufacturer_registration_no,
           manufacturer,
-          medecine_size,
           image, // ✅ Get image URL from product
           imageUrl, // Alternative field name
         } = product;
+        const medicineSize = String(product.medicine_size || product.medecine_size || '').trim();
 
         // ✅ Get the image URL from multiple possible field names
         const productImage = image || imageUrl || null;
@@ -159,7 +220,51 @@ function Products() {
           key: _id || id,
           id: _id || id,
           name: <span style={{ fontWeight: 600, color: '#2D3142' }}>{name}</span>,
-          medecine_size,
+          sku_and_size: (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+              {sku ? (
+                <Tag
+                  style={{
+                    margin: 0,
+                    borderRadius: 6,
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    lineHeight: '20px',
+                    background: '#EEF2FF',
+                    color: '#3730A3',
+                    border: '1px solid #C7D2FE',
+                  }}
+                >
+                  SKU · {sku}
+                </Tag>
+              ) : (
+                <Tag style={{ margin: 0, borderRadius: 6, color: '#9CA3AF', background: '#F9FAFB', border: '1px dashed #E5E7EB' }}>
+                  SKU · —
+                </Tag>
+              )}
+              {medicineSize ? (
+                <Tag
+                  style={{
+                    margin: 0,
+                    borderRadius: 6,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    lineHeight: '20px',
+                    background: '#ECFDF5',
+                    color: '#047857',
+                    border: '1px solid #A7F3D0',
+                  }}
+                >
+                  Size · {medicineSize}
+                </Tag>
+              ) : (
+                <Tag style={{ margin: 0, borderRadius: 6, color: '#9CA3AF', background: '#F9FAFB', border: '1px dashed #E5E7EB' }}>
+                  Size · —
+                </Tag>
+              )}
+            </div>
+          ),
           batch_number,
           expiry_date: expiry_date ? moment(expiry_date).format('DD-MM-YYYY') : '-',
           category: (
@@ -268,7 +373,13 @@ function Products() {
     { title: 'Image', dataIndex: 'image', key: 'image', width: 70, align: 'center' },
     { title: '#', key: 'index', width: 50, align: 'center', render: (_, __, index) => (pagination.current - 1) * pagination.pageSize + index + 1 },
     { title: 'Medicine Name', dataIndex: 'name', key: 'name', ellipsis: true, width: 180 },
-    { title: 'Size', dataIndex: 'medecine_size', key: 'medicine_size', width: 90, ellipsis: true },
+    {
+      title: 'SKU & size',
+      dataIndex: 'sku_and_size',
+      key: 'sku_and_size',
+      width: 200,
+      ellipsis: false,
+    },
     { title: 'Batch #', dataIndex: 'batch_number', key: 'batch_number', width: 120, ellipsis: true },
     { title: 'Expiry', dataIndex: 'expiry_date', key: 'expiry_date', width: 110 },
     { title: 'Category', dataIndex: 'category', key: 'category', width: 120 },
@@ -402,13 +513,27 @@ function Products() {
 
             <div className="table-shell">
               <div className="table-toolbar">
-                <div className="table-toolbar__search">
-                  <Input
-                    prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />}
-                    placeholder="Search by medicine name"
-                    allowClear
-                    onChange={(e) => handleSearch(e.target.value)}
-                  />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+                  {selectedRowKeys.length > 0 ? (
+                    <Button
+                      type="default"
+                      danger
+                      size="default"
+                      loading={bulkDeleting}
+                      onClick={handleBulkDelete}
+                      style={{ flexShrink: 0 }}
+                    >
+                      Delete selected ({selectedRowKeys.length})
+                    </Button>
+                  ) : null}
+                  <div className="table-toolbar__search">
+                    <Input
+                      prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />}
+                      placeholder="Search by name, SKU, size, or batch"
+                      allowClear
+                      onChange={(e) => handleSearch(e.target.value)}
+                    />
+                  </div>
                 </div>
                 <div className="table-toolbar__filters">
                   <span className="table-toolbar__label">Status</span>
@@ -422,14 +547,16 @@ function Products() {
               <ProjectLists
                 columns={columns}
                 dataSource={dataSource}
-                loading={loading}
+                loading={loading || bulkDeleting}
                 total={filteredProducts.length}
                 current={pagination.current}
                 pageSize={pagination.pageSize}
                 onChange={handlePageChange}
                 onShowSizeChange={handleSizeChange}
                 size="middle"
-                scroll={{ x: 1400 }}
+                scroll={{ x: 1460 }}
+                rowKey="key"
+                rowSelection={rowSelection}
               />
             </div>
           </Col>

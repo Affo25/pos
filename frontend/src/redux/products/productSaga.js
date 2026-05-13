@@ -68,7 +68,7 @@ function* createProduct({ payload }) {
 function* updateProduct({ payload: { id, data } }) {
   try {
     yield put(operationStart());
-    yield call(productService.updateProduct, id, data);
+    yield call(productService.updateProduct, { id, data });
     toast.success('Product updated successfully');
     yield call(fetchAllProducts);
     yield put(operationSuccess());

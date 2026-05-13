@@ -9,7 +9,7 @@ import {
 } from 'antd';
 import { ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { 
-  PlusOutlined, EditOutlined, DeleteOutlined, 
+  EyeOutlined, DeleteOutlined, 
   SearchOutlined, ReloadOutlined, BarcodeOutlined,
   WarningOutlined, FileExcelOutlined, FilePdfOutlined,
   FilterOutlined,
@@ -53,29 +53,104 @@ const StockKpiWrap = Styled.div`
   }
 `;
 
-/** Keeps table + cards within viewport; stacked cells use these classes */
+/** Stock list table — one field per column (fixed layout) */
 const StockTableOuter = Styled.div`
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
 
-  .stock-cell-title {
+  .stock-td-strong {
     font-weight: 600;
     color: #0f172a;
+    font-size: 13px;
+  }
+  .stock-td-muted {
+    color: #64748b;
+    font-size: 13px;
+  }
+  &.stock-table-outer .ant-table,
+  &.stock-table-outer .ant-table-container {
+    table-layout: fixed;
+  }
+  &.stock-table-outer .ant-table-tbody > tr > td {
+    vertical-align: middle;
+  }
+`;
+
+/** Read-only medicine detail dialog */
+const StockDetailWrap = Styled.div`
+  .sd-hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 55%, #0f172a 100%);
+    color: #f8fafc;
+    padding: 22px 24px;
+    border-radius: 12px;
+    margin: -8px 0 22px;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+  }
+  .sd-hero-title {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+  }
+  .sd-hero-row {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    align-items: center;
+    font-size: 13px;
+    opacity: 0.92;
+  }
+  .sd-hero-chip {
+    background: rgba(248, 250, 252, 0.12);
+    border: 1px solid rgba(248, 250, 252, 0.2);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 12px;
+  }
+  .sd-section {
+    margin-bottom: 20px;
+  }
+  .sd-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .sd-grid {
+    display: grid;
+    grid-template-columns: minmax(120px, 150px) 1fr;
+    gap: 10px 20px;
     font-size: 14px;
-    line-height: 1.35;
+    align-items: start;
+  }
+  .sd-label {
+    color: #64748b;
+    font-weight: 500;
+  }
+  .sd-val {
+    color: #0f172a;
+    font-weight: 600;
+    text-align: right;
     word-break: break-word;
   }
-  .stock-cell-line {
-    font-size: 12px;
-    color: #64748b;
-    line-height: 1.45;
-    margin-top: 2px;
+  .sd-val-muted {
+    color: #475569;
+    font-weight: 500;
   }
-  .stock-cell-stack {
+  .sd-tags-row {
     display: flex;
-    flex-direction: column;
-    gap: 6px;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+    align-items: center;
   }
 `;
 
@@ -118,9 +193,20 @@ function expiryPresetMatch(product, preset) {
 }
 
 function renderExpiryTag(value) {
+  const dark = (bg, extra = {}) => ({
+    margin: 0,
+    fontSize: 12,
+    fontWeight: 600,
+    lineHeight: '20px',
+    borderRadius: 6,
+    border: 'none',
+    color: '#f8fafc',
+    background: bg,
+    ...extra,
+  });
   if (!value) {
     return (
-      <Tag color="default" style={{ margin: 0, fontSize: 12 }}>
+      <Tag style={dark('#475569')}>
         —
       </Tag>
     );
@@ -131,20 +217,20 @@ function renderExpiryTag(value) {
   const label = new Date(value).toLocaleDateString();
   if (expired) {
     return (
-      <Tag color="error" style={{ margin: 0, fontSize: 12 }}>
+      <Tag style={dark('#991b1b')}>
         {label} · Expired
       </Tag>
     );
   }
   if (expiringSoon) {
     return (
-      <Tag color="warning" style={{ margin: 0, fontSize: 12 }}>
+      <Tag style={dark('#b45309')}>
         {label} · Soon
       </Tag>
     );
   }
   return (
-    <Tag color="blue" style={{ margin: 0, fontSize: 12 }}>
+    <Tag style={dark('#14532d')}>
       {label}
     </Tag>
   );
@@ -167,6 +253,115 @@ function MiniSpark({ data, color }) {
   );
 }
 
+function DetailLine({ label, children, muted }) {
+  return (
+    <>
+      <div className="sd-label">{label}</div>
+      <div className={muted ? 'sd-val sd-val-muted' : 'sd-val'}>{children}</div>
+    </>
+  );
+}
+
+function StockDetailPanel({ product }) {
+  if (!product) return null;
+  const size = product.medicine_size || product.medecine_size;
+  const totalVal =
+    product.total_value ??
+    (Number(product.unit_price) || 0) * (Number(product.available_quantity) || 0);
+  const buy =
+    product.purchase_price != null && product.purchase_price !== ''
+      ? formatPkr(product.purchase_price)
+      : '—';
+  const statusActive = String(product.status || '').toLowerCase() === 'active';
+
+  return (
+    <StockDetailWrap>
+      <div className="sd-hero">
+        <h2 className="sd-hero-title">{product.name || 'Medicine'}</h2>
+        <div className="sd-hero-row">
+          <span className="sd-hero-chip">{product.sku || '—'}</span>
+          <span>{categoryDisplayLabel(product.category) || '—'}</span>
+          <Tag
+            style={{
+              margin: 0,
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: 600,
+              border: 'none',
+              color: '#f8fafc',
+              background: statusActive ? '#14532d' : '#475569',
+            }}
+          >
+            {statusActive ? 'Active' : 'Inactive'}
+          </Tag>
+        </div>
+      </div>
+
+      <div className="sd-section">
+        <div className="sd-section-title">Inventory &amp; pricing</div>
+        <div className="sd-grid">
+          <DetailLine label="Quantity">{product.available_quantity ?? '—'}</DetailLine>
+          <DetailLine label="Minimum alert">{product.minimum_stock_alert ?? '—'}</DetailLine>
+          <DetailLine label="Selling price">{formatPkr(product.unit_price)}</DetailLine>
+          <DetailLine label="Purchase price" muted>
+            {buy}
+          </DetailLine>
+          <DetailLine label="Line stock value">{formatPkr(totalVal)}</DetailLine>
+          <DetailLine label="Discount %">{product.discount ?? 0}</DetailLine>
+          <DetailLine label="GST %">{product.gst ?? 0}</DetailLine>
+        </div>
+      </div>
+
+      <div className="sd-section">
+        <div className="sd-section-title">Product &amp; supply</div>
+        <div className="sd-grid">
+          <DetailLine label="Batch">{product.batch_number || '—'}</DetailLine>
+          <DetailLine label="Expiry">
+            <div className="sd-tags-row">{renderExpiryTag(product.expiry_date)}</div>
+          </DetailLine>
+          <DetailLine label="Supplier">{product.supplier_name || '—'}</DetailLine>
+          <DetailLine label="Manufacturer">{product.manufacturer || '—'}</DetailLine>
+          <DetailLine label="Rack location">{product.rack_location || '—'}</DetailLine>
+          <DetailLine label="Size / dosage">{size || '—'}</DetailLine>
+          <DetailLine label="Prescription" muted>
+            {product.is_prescription_required ? 'Required' : 'Not required'}
+          </DetailLine>
+        </div>
+      </div>
+
+      <div className="sd-section">
+        <div className="sd-section-title">Regulatory</div>
+        <div className="sd-grid">
+          <DetailLine label="Mfg. license no." muted>
+            {product.manufacturer_license_no || '—'}
+          </DetailLine>
+          <DetailLine label="Mfg. registration no." muted>
+            {product.manufacturer_registration_no || '—'}
+          </DetailLine>
+        </div>
+      </div>
+
+      {(product.storage_instructions || product.notes) && (
+        <div className="sd-section">
+          <div className="sd-section-title">Notes</div>
+          <div className="sd-grid">
+            {product.storage_instructions ? (
+              <DetailLine label="Storage" muted>
+                {product.storage_instructions}
+              </DetailLine>
+            ) : null}
+            {product.notes ? (
+              <DetailLine label="Additional" muted>
+                {product.notes}
+              </DetailLine>
+            ) : null}
+          </div>
+        </div>
+      )}
+    </StockDetailWrap>
+  );
+}
+
 function StockManagement() {
   const [summary, setSummary] = useState(null);
   const [products, setProducts] = useState([]);
@@ -184,6 +379,7 @@ function StockManagement() {
   const [filterPrescription, setFilterPrescription] = useState('all');
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [detailProduct, setDetailProduct] = useState(null);
   const [form] = Form.useForm();
 
   const token = Cookies.get('token');
@@ -574,77 +770,175 @@ function StockManagement() {
     message.success('PDF file downloaded');
   };
 
+  const STOCK_SCROLL_X =
+    52 +
+    200 +
+    112 +
+    108 +
+    124 +
+    72 +
+    64 +
+    100 +
+    140 +
+    128 +
+    120 +
+    84 +
+    96;
+
   const columns = [
     {
       title: '#',
       key: 'sno',
-      width: 44,
+      width: 52,
       align: 'center',
       render: (_, __, index) => (pagination.current - 1) * pagination.pageSize + index + 1,
     },
     {
-      title: 'Product',
-      key: 'product_block',
+      title: 'Medicine',
+      key: 'name',
+      width: 200,
+      align: 'left',
       ellipsis: true,
       render: (_, record) => (
-        <div className="stock-cell-stack">
-          <div className="stock-cell-title">{record.name || '—'}</div>
-          <div className="stock-cell-line">Batch: {record.batch_number || '—'}</div>
-          <div className="stock-cell-line">{categoryDisplayLabel(record.category) || '—'}</div>
-        </div>
+        <span className="stock-td-strong" title={record.name || ''}>
+          {record.name || '—'}
+        </span>
       ),
     },
     {
-      title: 'Stock & prices',
-      key: 'stock_prices',
+      title: 'SKU',
+      key: 'sku',
+      width: 112,
+      align: 'left',
+      ellipsis: true,
+      render: (_, record) => (
+        <span className="stock-td-muted" style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12 }}>
+          {record.sku || '—'}
+        </span>
+      ),
+    },
+    {
+      title: 'Batch',
+      key: 'batch_number',
+      width: 108,
+      align: 'center',
+      ellipsis: true,
+      render: (_, record) => <span className="stock-td-muted">{record.batch_number || '—'}</span>,
+    },
+    {
+      title: 'Category',
+      key: 'category',
+      width: 124,
+      align: 'left',
+      ellipsis: true,
+      render: (_, record) => (
+        <span className="stock-td-muted" title={categoryDisplayLabel(record.category)}>
+          {categoryDisplayLabel(record.category) || '—'}
+        </span>
+      ),
+    },
+    {
+      title: 'Qty',
+      key: 'available_quantity',
+      width: 72,
+      align: 'center',
       render: (_, record) => {
         const value = record.available_quantity;
         const low = Number(value) <= Number(record.minimum_stock_alert || 5);
         return (
-          <div className="stock-cell-stack">
-            <div>
-              <Badge status={low ? 'error' : 'success'} />
-              <span style={{ color: low ? '#dc2626' : '#16a34a', fontWeight: 600 }}>
-                {value ?? 0} units
-              </span>
-              <span className="stock-cell-line" style={{ display: 'inline', marginLeft: 6 }}>
-                · Min alert: {record.minimum_stock_alert ?? '—'}
-              </span>
-            </div>
-            <div className="stock-cell-line">Sell: {formatPkr(record.unit_price)}</div>
-            <div className="stock-cell-line">
-              Buy:{' '}
-              {record.purchase_price != null && record.purchase_price !== ''
-                ? formatPkr(record.purchase_price)
-                : '—'}
-            </div>
-          </div>
+          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            {low ? <Badge status="error" /> : <Badge status="success" />}
+            <span
+              style={{
+                fontWeight: 600,
+                fontVariantNumeric: 'tabular-nums',
+                color: low ? '#dc2626' : '#0f172a',
+              }}
+            >
+              {value ?? 0}
+            </span>
+          </span>
         );
       },
     },
     {
-      title: 'Expiry & status',
-      key: 'expiry_status',
-      width: 150,
+      title: 'Min',
+      key: 'minimum_stock_alert',
+      width: 64,
+      align: 'center',
       render: (_, record) => (
-        <div className="stock-cell-stack">
-          {renderExpiryTag(record.expiry_date)}
-          <Tag color={record.status === 'active' ? 'success' : 'default'} style={{ margin: 0, fontSize: 12, width: 'fit-content' }}>
-            {record.status === 'active' ? 'Active' : 'Inactive'}
-          </Tag>
-        </div>
+        <span className="stock-td-muted" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          {record.minimum_stock_alert ?? '—'}
+        </span>
+      ),
+    },
+    {
+      title: 'Sell',
+      key: 'unit_price',
+      width: 100,
+      align: 'right',
+      render: (_, record) => (
+        <span className="stock-td-strong" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          {formatPkr(record.unit_price)}
+        </span>
+      ),
+    },
+    {
+      title: 'Expiry',
+      key: 'expiry_date',
+      width: 140,
+      align: 'center',
+      render: (_, record) => renderExpiryTag(record.expiry_date),
+    },
+    {
+      title: 'Supplier',
+      key: 'supplier_name',
+      width: 128,
+      align: 'left',
+      ellipsis: true,
+      render: (_, record) => (
+        <span className="stock-td-muted" title={record.supplier_name || ''}>
+          {record.supplier_name || '—'}
+        </span>
+      ),
+    },
+    {
+      title: 'Manufacturer',
+      key: 'manufacturer',
+      width: 120,
+      align: 'left',
+      ellipsis: true,
+      render: (_, record) => (
+        <span className="stock-td-muted" title={record.manufacturer || ''}>
+          {record.manufacturer || '—'}
+        </span>
+      ),
+    },
+    {
+      title: 'Size',
+      key: 'medicine_size',
+      width: 84,
+      align: 'center',
+      ellipsis: true,
+      render: (_, record) => (
+        <span className="stock-td-muted">{record.medicine_size || record.medecine_size || '—'}</span>
       ),
     },
     {
       title: '',
       key: 'action',
-      width: 88,
+      width: 96,
       align: 'center',
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Tooltip title="Edit">
-            <AntdButton type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+          <Tooltip title="View details">
+            <AntdButton
+              type="link"
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => setDetailProduct(record)}
+            />
           </Tooltip>
           <Tooltip title="Delete">
             <Popconfirm
@@ -919,8 +1213,9 @@ function StockManagement() {
                   pageSize={pagination.pageSize}
                   onChange={handlePageChange}
                   onShowSizeChange={handleSizeChange}
-                  scroll={{ x: 720 }}
+                  scroll={{ x: STOCK_SCROLL_X }}
                   rowKey={(r) => r._id || r.id}
+                  tableLayout="fixed"
                 />
               </div>
             </StockTableOuter>
@@ -928,6 +1223,33 @@ function StockManagement() {
         </Row>
 
         <ModernModalStyles />
+        <Modal
+          title={null}
+          open={detailProduct != null}
+          onCancel={() => setDetailProduct(null)}
+          className="modern-modal"
+          width={720}
+          centered
+          destroyOnClose
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <AntdButton
+                onClick={() => {
+                  const p = detailProduct;
+                  setDetailProduct(null);
+                  if (p) handleEdit(p);
+                }}
+              >
+                Edit medicine
+              </AntdButton>
+              <AntdButton type="primary" size="large" style={{ minWidth: 120 }} onClick={() => setDetailProduct(null)}>
+                Close
+              </AntdButton>
+            </div>
+          }
+        >
+          <StockDetailPanel product={detailProduct} />
+        </Modal>
         <Modal
           title={editingProduct ? 'Edit Medicine' : 'Add New Medicine'}
           open={modalVisible}

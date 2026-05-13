@@ -43,7 +43,8 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
       'pos-billing': 'POSBilling',
       'stock-management': 'StockManagement',
       suppliers: 'Suppliers',
-      purchaseOrders: 'PurchaseOrders',
+      purchaseorders: 'PurchaseOrders',
+      settings: 'Settings',
     };
 
     return menuKeys[page] ? [menuKeys[page]] : [];
@@ -137,6 +138,16 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
             </Menu.Item>
           )}
         </Menu.ItemGroup>
+
+        {canAccess('settings') && (
+          <Menu.ItemGroup title={groupTitle('Settings')}>
+            <Menu.Item key="Settings" icon={!topMenu && <FeatherIcon icon="settings" />}>
+              <NavLink onClick={toggleCollapsed} to={`${path}settings`}>
+                Invoice & branding
+              </NavLink>
+            </Menu.Item>
+          </Menu.ItemGroup>
+        )}
 
         {canAccess('users') && user?.user_type === 'superAdmin' && (
           <Menu.ItemGroup title={groupTitle('System')}>

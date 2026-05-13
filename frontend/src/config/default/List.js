@@ -17,6 +17,8 @@ function ProjectLists({
   loading = false,
   scroll,
   rowKey,
+  rowSelection,
+  tableLayout,
 }) {
   return (
     <Row gutter={25}>
@@ -33,6 +35,8 @@ function ProjectLists({
                 loading={loading}
                 scroll={scroll}
                 rowKey={rowKey}
+                rowSelection={rowSelection}
+                tableLayout={tableLayout}
               />
             </div>
           </ProjectList>
@@ -69,6 +73,8 @@ ProjectLists.propTypes = {
   loading: propTypes.bool,
   scroll: propTypes.object,
   rowKey: propTypes.oneOfType([propTypes.string, propTypes.func]),
+  rowSelection: propTypes.object,
+  tableLayout: propTypes.string,
 };
 
 export default ProjectLists;

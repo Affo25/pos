@@ -64,7 +64,7 @@ function Admin() {
         {canAccess('products') && <Route exact path={`${path}stock-management`} component={StockManagement} />}
         {canAccess('suppliers') && <Route exact path={`${path}suppliers`} component={Suppliers} />}
         {canAccess('purchaseorders') && <Route exact path={`${path}purchaseorders`} component={PurchaseOrders} />}
-        <Route exact path={`${path}settings`} component={Settings} />
+        {canAccess('settings') && <Route exact path={`${path}settings`} component={Settings} />}
       </Suspense>
     </Switch>
   );
