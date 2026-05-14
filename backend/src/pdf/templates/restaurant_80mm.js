@@ -7,19 +7,16 @@ const {
   MM_TO_PT,
   RECEIPT_WIDTH_MM,
   money,
-  dottedRule,
-  thickDashedRule,
-  vDottedLine,
-  solidRuleBlack,
   drawLogoCircular,
 } = require('../shared');
 
-const DEFAULT_POWERED = 'Code5 Tech';
-const DEFAULT_WEB = 'www.code5.com.pk';
+const BAR_GREY = '#f3f4f6';
+const HEADER_TABLE = '#374151';
+const FOOTER_MUTED = '#9ca3af';
 
 /**
- * 80mm thermal strip — layout aligned to restaurant receipt (logo, bill block,
- * Item Name | Qty | Rate | Service | Amount, totals ladder, Code5 footer).
+ * 80mm thermal receipt — layout aligned to full invoice style (header, grey bill bar,
+ * dark table head # / Item / Qty / Price / Total, totals, thank-you footer).
  */
 function generate(inv, B) {
   return new Promise((resolve, reject) => {
@@ -27,63 +24,56 @@ function generate(inv, B) {
     const filepath = path.join(TMP_DIR, filename);
 
     const items = inv.items || [];
-    const outTotal = Number(inv.total_amount || 0);
-    const extraCharges = Number(inv.extra_charges ?? inv.service_charge ?? 0);
+    const subtotal = Number(inv.total_amount || 0);
     const discAmt = Number(inv.discount_amount || 0);
     const taxAmt = Number(inv.tax_amount || 0);
     const netAmt = Number(inv.net_amount || 0);
+
     const saleDate = new Date(inv.sale_date || Date.now());
-    const fmtDate = saleDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const fmtDate = saleDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     const fmtTime = saleDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
-    const fmtDateRight = `${fmtDate} ${fmtTime}`;
+    const fmtDateLine = `${fmtDate} | ${fmtTime}`;
 
     const paymentMode = (inv.payment_mode || 'cash').toString();
     const typeLabel = paymentMode.charAt(0).toUpperCase() + paymentMode.slice(1).toLowerCase();
     const customerName = inv.customer_name || 'Walk-in';
-    const notesRaw = (inv.notes || inv.project_detail || '').toString().trim();
-    const notesDisplay = notesRaw || '—';
-
-    const tender = Number(inv.amount_tendered ?? inv.amount_paid ?? inv.tender ?? netAmt);
-    const isCash = String(inv.payment_mode || 'cash').toLowerCase() === 'cash';
-    const changeBack = isCash ? Math.max(0, tender - netAmt) : null;
 
     const wPt = RECEIPT_WIDTH_MM * MM_TO_PT;
-    const side = 12;
+    const side = 10;
     const innerW = wPt - 2 * side;
     const cx = side + innerW / 2;
 
-    const colItem = innerW * 0.38;
-    const colQty = innerW * 0.11;
-    const colRate = innerW * 0.17;
-    const colSvc = innerW * 0.17;
-    const colAmt = innerW * 0.17;
-    const xL = side;
-    const xQty = xL + colItem;
-    const xRate = xQty + colQty;
-    const xSvc = xRate + colRate;
-    const xAmt = xSvc + colSvc;
+    const wNum = 14;
+    const wQty = 22;
+    const wPrice = 48;
+    const wTotal = 50;
+    const wItem = Math.max(36, innerW - wNum - wQty - wPrice - wTotal);
+    const xNum = side;
+    const xItem = xNum + wNum;
+    const xQty = xItem + wItem;
+    const xPrice = xQty + wQty;
+    const xTotal = xPrice + wPrice;
 
-    const estNotesH = notesDisplay.length > 42 ? 22 : 14;
     const estH =
-      48 +
-      (B.logoPath ? 58 : 0) +
-      120 +
-      estNotesH +
-      items.length * 34 +
-      220 +
-      (B.address ? 28 : 0);
-    const pageH = Math.min(72 * 72, Math.max(72 * 18, estH));
+      36 +
+      (B.logoPath ? 52 : 0) +
+      88 +
+      42 +
+      22 +
+      items.length * 36 +
+      100 +
+      52;
 
+    const pageH = Math.min(72 * 72, Math.max(72 * 16, estH));
     const doc = new PDFDocument({ size: [wPt, pageH], margin: 0, bufferPages: true });
     const ws = fs.createWriteStream(filepath);
     doc.pipe(ws);
 
     let y = side;
-    const yReceiptTop = 6;
     const bottom = () => doc.page.height - side;
 
     const newPage = () => {
-      doc.addPage({ size: [wPt, 72 * 36], margin: 0 });
+      doc.addPage({ size: [wPt, 72 * 40], margin: 0 });
       y = side;
     };
 
@@ -92,154 +82,152 @@ function generate(inv, B) {
       newPage();
     };
 
+    const fillRect = (x, yy, w, h, hex) => {
+      doc.save().fillColor(hex).rect(x, yy, w, h).fill().restore();
+    };
+
+    const hr = (yy, col = '#e5e7eb', lw = 0.4) => {
+      doc.moveTo(side, yy).lineTo(side + innerW, yy).lineWidth(lw).strokeColor(col).stroke();
+    };
+
+    /* ── Header (centered) ── */
+    if (B.logoPath) {
+      ensureSpace(50);
+      y = drawLogoCircular(doc, B.logoPath, cx, y, 40);
+      y += 4;
+    }
+
+    ensureSpace(28);
+    doc.fontSize(11).font('Helvetica-Bold').fillColor(C.dark).text(B.name || 'Company', side, y, { width: innerW, align: 'center' });
+    y = doc.y + 3;
+    if (B.tagline) {
+      doc.fontSize(7.5).font('Helvetica').fillColor(C.mid).text(B.tagline, side, y, { width: innerW, align: 'center' });
+      y = doc.y + 2;
+    }
     const addrLines = (() => {
       const raw = (B.address || '').trim();
       if (!raw) return [];
       const byNl = raw.split(/\n/).map((s) => s.trim()).filter(Boolean);
-      if (byNl.length > 1) return byNl.slice(0, 3);
-      return [raw];
+      return byNl.length > 1 ? byNl.slice(0, 3) : [raw];
     })();
-
-    if (B.logoPath) {
-      ensureSpace(52);
-      y = drawLogoCircular(doc, B.logoPath, cx, y, 44);
-    }
-
-    ensureSpace(40);
-    doc.fontSize(11).font('Helvetica-Bold').fillColor(C.dark).text(B.name, side, y, { width: innerW, align: 'center' });
-    y = doc.y + 4;
-    doc.fontSize(8).font('Helvetica').fillColor(C.dark);
+    doc.fontSize(7).fillColor(C.dark);
     addrLines.forEach((line) => {
       doc.text(line, side, y, { width: innerW, align: 'center' });
-      y = doc.y + 2;
+      y = doc.y + 1;
     });
     if (B.phone) {
       doc.text(B.phone, side, y, { width: innerW, align: 'center' });
-      y = doc.y + 3;
+      y = doc.y + 1;
     }
-    y += 4;
-    y = dottedRule(doc, side, side + innerW, y);
+    if (B.email) {
+      doc.text(B.email, side, y, { width: innerW, align: 'center' });
+      y = doc.y + 1;
+    }
+    y += 3;
+    doc.fontSize(7.5).font('Helvetica').fillColor(C.mid).text(fmtDateLine, side, y, { width: innerW, align: 'center' });
+    y = doc.y + 8;
+    hr(y, '#e5e7eb');
+    y += 6;
 
-    /* Bill info — solid row separators */
-    ensureSpace(22);
-    y = solidRuleBlack(doc, side, side + innerW, y);
-    doc.fontSize(8).font('Helvetica').fillColor(C.dark);
-    const billRow1 = y;
-    doc.text(`Bill No: ${inv.invoice_no || '—'}`, side, billRow1, { width: innerW * 0.62, align: 'left' });
-    doc.text(fmtDateRight, side, billRow1, { width: innerW, align: 'right' });
-    y = billRow1 + 12;
-    y = solidRuleBlack(doc, side, side + innerW, y);
+    /* ── Grey bar: BILL TO | INVOICE ── */
+    const barH = 40;
+    ensureSpace(barH + 8);
+    fillRect(side, y, innerW, barH, BAR_GREY);
+    const barY = y;
+    const mid = side + innerW / 2;
+    const colPad = 6;
+    doc.fontSize(6.5).font('Helvetica').fillColor(C.muted).text('BILL TO', side + colPad, barY + 6, { width: innerW / 2 - colPad * 2, align: 'left' });
+    doc.text('INVOICE', mid + colPad, barY + 6, { width: innerW / 2 - colPad * 2, align: 'left' });
+    doc.fontSize(8).font('Helvetica-Bold').fillColor(C.dark);
+    doc.text(customerName, side + colPad, barY + 16, { width: innerW / 2 - colPad * 2, align: 'left' });
+    doc.text(inv.invoice_no || '—', mid + colPad, barY + 16, { width: innerW / 2 - colPad * 2, align: 'left' });
+    doc.fontSize(7).font('Helvetica').fillColor(C.mid).text(`Payment: ${typeLabel.toUpperCase()}`, mid + colPad, barY + 28, {
+      width: innerW / 2 - colPad * 2,
+      align: 'left',
+    });
+    y = barY + barH + 6;
 
-    const billRow2 = y;
-    doc.text(`Type: ${typeLabel}`, side, billRow2, { width: innerW * 0.5, align: 'left' });
-    doc.text(`Customer : ${customerName}`, side, billRow2, { width: innerW, align: 'right' });
-    y = billRow2 + 12;
-    y = solidRuleBlack(doc, side, side + innerW, y);
-
-    ensureSpace(20);
-    doc.fontSize(8).font('Helvetica').fillColor(C.dark);
-    doc.text(`Notes: ${notesDisplay}`, side, y, { width: innerW, align: 'left' });
-    y = doc.y + 4;
-    y = solidRuleBlack(doc, side, side + innerW, y);
+    /* ── Table header (charcoal + white) ── */
+    const th = 15;
+    ensureSpace(th + 6);
+    fillRect(side, y, innerW, th, HEADER_TABLE);
+    const hy = y;
+    doc.fontSize(6.5).font('Helvetica-Bold').fillColor(C.white);
+    doc.text('#', xNum, hy + 3, { width: wNum - 1, align: 'center' });
+    doc.text('Item', xItem, hy + 3, { width: wItem - 2, align: 'left' });
+    doc.text('Qty', xQty, hy + 3, { width: wQty, align: 'center' });
+    doc.text('Price', xPrice, hy + 3, { width: wPrice - 2, align: 'right' });
+    doc.text('Total', xTotal, hy + 3, { width: wTotal, align: 'right' });
+    y = hy + th;
+    hr(y, '#e5e7eb');
     y += 2;
 
-    /* Item table */
-    const th = 14;
-    ensureSpace(th + 8);
-    const tableTop = y;
-    y = solidRuleBlack(doc, side, side + innerW, tableTop);
-    const headerY = y;
-    doc.fontSize(7.2).font('Helvetica-Bold').fillColor(C.dark);
-    doc.text('Item Name', xL, headerY + 2, { width: colItem - 1, align: 'left' });
-    doc.text('Qty', xQty, headerY + 2, { width: colQty, align: 'center' });
-    doc.text('Rate', xRate, headerY + 2, { width: colRate - 1, align: 'right' });
-    doc.text('Service', xSvc, headerY + 2, { width: colSvc - 1, align: 'right' });
-    doc.text('Amount', xAmt, headerY + 2, { width: colAmt, align: 'right' });
-    const headerBot = headerY + th;
-    vDottedLine(doc, xQty, headerY, headerBot);
-    vDottedLine(doc, xRate, headerY, headerBot);
-    vDottedLine(doc, xSvc, headerY, headerBot);
-    vDottedLine(doc, xAmt, headerY, headerBot);
-    y = solidRuleBlack(doc, side, side + innerW, headerBot);
-
-    items.forEach((it) => {
+    /* ── Rows ── */
+    items.forEach((it, idx) => {
       const name = it.product_name || '—';
       const qty = Number(it.quantity || 0);
       const unit = Number(it.unit_price || 0);
       const line = Number(it.line_total != null ? it.line_total : qty * unit);
-      const lineTax = Number(it.tax || 0);
-
-      ensureSpace(30);
-      const rowTop = y;
-      doc.fontSize(7.8).font('Helvetica').fillColor(C.dark);
-      doc.text(name, xL, rowTop, { width: colItem - 2, align: 'left' });
-      const line1H = Math.max(10, doc.y - rowTop);
-      const secondY = rowTop + line1H + 1;
-      doc.fontSize(7.5);
-      doc.text(String(qty), xQty, secondY, { width: colQty, align: 'center' });
-      doc.text(money(unit), xRate, secondY, { width: colRate - 1, align: 'right' });
-      doc.text(money(lineTax), xSvc, secondY, { width: colSvc - 1, align: 'right' });
-      doc.font('Helvetica-Bold').text(money(line), xAmt, secondY, { width: colAmt, align: 'right' });
-      y = secondY + 12;
+      const rowPad = 3;
+      const nameH = doc.heightOfString(name, { width: wItem - 2, lineGap: 0.5 });
+      const rowH = Math.max(16, nameH + rowPad * 2);
+      ensureSpace(rowH + 4);
+      if (idx % 2 === 1) {
+        fillRect(side, y, innerW, rowH, '#fafafa');
+      }
+      const ry = y + rowPad;
+      doc.fontSize(7).font('Helvetica-Bold').fillColor(C.dark).text(String(idx + 1), xNum, ry, { width: wNum - 1, align: 'center' });
+      doc.font('Helvetica').text(name, xItem, ry, { width: wItem - 2, align: 'left' });
+      doc.text(String(qty), xQty, ry, { width: wQty, align: 'center' });
+      doc.text(money(unit), xPrice, ry, { width: wPrice - 2, align: 'right' });
+      doc.font('Helvetica-Bold').text(money(line), xTotal, ry, { width: wTotal, align: 'right' });
+      y += rowH;
+      hr(y, '#f3f4f6', 0.25);
+      y += 1;
     });
 
     if (items.length === 0) {
-      ensureSpace(18);
-      doc.fontSize(8).font('Helvetica').fillColor(C.muted).text('No items', side, y, { width: innerW, align: 'center' });
+      ensureSpace(20);
+      doc.fontSize(8).font('Helvetica').fillColor(C.muted).text('No line items', side, y, { width: innerW, align: 'center' });
       y = doc.y + 10;
     }
 
-    y = solidRuleBlack(doc, side, side + innerW, y);
     y += 4;
-
-    /* Totals — dotted between rows; label / value split */
-    const splitX = side + innerW * 0.56;
-    const totalRow = (label, val, opts = {}) => {
-      const { bold = false, size = 8 } = opts;
-      ensureSpace(16);
-      y = dottedRule(doc, side, side + innerW, y);
-      const ry = y;
-      const f = bold ? 'Helvetica-Bold' : 'Helvetica';
-      doc.fontSize(size).font(f).fillColor(C.dark);
-      doc.text(label, side, ry, { width: splitX - side - 4, align: 'left' });
-      vDottedLine(doc, splitX, ry, ry + 11);
-      doc.font(f).text(val, splitX + 3, ry, { width: side + innerW - (splitX + 3), align: 'right' });
-      y = ry + 12;
-    };
-
-    totalRow('Out Total', money(outTotal));
-    totalRow('Extra Charges', money(extraCharges));
-    totalRow('Discount/Promotion', discAmt > 0 ? `−${money(discAmt)}` : money(0));
-    totalRow('Total GST', money(taxAmt));
-    totalRow('Net Total', money(netAmt), { bold: true, size: 9 });
-    totalRow('Amount Paid', money(tender));
-    totalRow('Change back (Cash)', changeBack != null ? money(changeBack) : '—');
-
-    y += 4;
-    y = thickDashedRule(doc, side, side + innerW, y);
+    hr(y, C.dark, 0.6);
     y += 6;
 
-    /* Footer — powered by + website */
-    const poweredBrand = (B.receiptPoweredBy && String(B.receiptPoweredBy).trim()) || DEFAULT_POWERED;
-    ensureSpace(36);
-    doc.fontSize(8).font('Helvetica').fillColor(C.dark);
-    const pre = 'powered by ';
-    doc.font('Helvetica');
-    const wPre = doc.widthOfString(pre);
-    doc.font('Helvetica-Bold');
-    const wBrand = doc.widthOfString(poweredBrand);
-    const startPowered = cx - (wPre + wBrand) / 2;
-    doc.font('Helvetica').text(pre, startPowered, y, { continued: true, lineBreak: false });
-    doc.font('Helvetica-Bold').text(poweredBrand, { lineBreak: false });
-    y = doc.y + 5;
-    const web = (B.receiptWebsite && String(B.receiptWebsite).trim()) || DEFAULT_WEB;
-    doc.font('Helvetica').fontSize(7.5).fillColor(C.mid).text(web, side, y, { width: innerW, align: 'center' });
-    y = doc.y + 10;
+    /* ── Totals (right-aligned block) ── */
+    const labelW = innerW * 0.52;
+    const valW = innerW * 0.48;
+    const valX = side + labelW;
+    const rowTot = (label, val, opt = {}) => {
+      const { bold = false, big = false } = opt;
+      ensureSpace(big ? 16 : 13);
+      doc.fontSize(big ? 9 : 7.5).font(bold ? 'Helvetica-Bold' : 'Helvetica').fillColor(C.dark);
+      doc.text(label, side, y, { width: labelW - 4, align: 'right' });
+      doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').text(val, valX, y, { width: valW, align: 'right' });
+      y = doc.y + (big ? 4 : 3);
+    };
 
-    /* Outer border */
-    const borderPad = 3;
-    const hBorder = y - yReceiptTop + borderPad;
-    doc.rect(borderPad, yReceiptTop, wPt - 2 * borderPad, hBorder).lineWidth(0.55).strokeColor('#000000').stroke();
+    rowTot('Subtotal', money(subtotal));
+    if (discAmt > 0) rowTot('Discount', `−${money(discAmt)}`);
+    rowTot('Tax', money(taxAmt));
+    y += 2;
+    hr(y, '#d1d5db', 0.5);
+    y += 5;
+    rowTot('Grand Total', money(netAmt), { bold: true, big: true });
+
+    y += 10;
+    doc.fontSize(8).font('Helvetica-Bold').fillColor(C.dark).text(B.footerText || 'Thank you for your business!', side, y, {
+      width: innerW,
+      align: 'center',
+    });
+    y = doc.y + 6;
+    doc.fontSize(6).font('Helvetica').fillColor(FOOTER_MUTED).text('This is a computer-generated invoice.', side, y, {
+      width: innerW,
+      align: 'center',
+    });
+    y = doc.y + side;
 
     doc.end();
     ws.on('finish', () => resolve(filepath));

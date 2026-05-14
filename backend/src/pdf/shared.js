@@ -13,9 +13,27 @@ const C = {
   rowAlt: '#f8fafc',
 };
 
+/** Narrow columns: keep symbol + amount on one line (PDFKit wraps on normal spaces). */
+const MONEY_NBSP = '\u00a0';
+
+/**
+ * Parse a numeric amount that may arrive as a number or a string with currency noise.
+ */
+function parseAmount(val) {
+  if (val == null || val === '') return 0;
+  if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
+  let s = String(val).trim().replace(/,/g, '');
+  while (/^(pkr|rs\.?|₨|rupees?)\s*/i.test(s)) {
+    s = s.replace(/^(pkr|rs\.?|₨|rupees?)\s*/i, '').trim();
+  }
+  const n = Number.parseFloat(s);
+  return Number.isFinite(n) ? n : 0;
+}
+
 function money(n) {
-  const sym = process.env.INVOICE_CURRENCY_SYMBOL || 'PKR';
-  return `${sym} ${Number(n || 0).toFixed(2)}`;
+  const sym = (process.env.INVOICE_CURRENCY_SYMBOL || 'Rs').trim();
+  const num = parseAmount(n);
+  return `${sym}${MONEY_NBSP}${num.toFixed(2)}`;
 }
 
 function solidRule(doc, x1, x2, y, color = C.line, lw = 0.75) {
@@ -98,6 +116,7 @@ module.exports = {
   MM_TO_PT,
   RECEIPT_WIDTH_MM,
   money,
+  parseAmount,
   solidRule,
   dashedRule,
   dottedRule,

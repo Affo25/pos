@@ -7,6 +7,7 @@ const {
   MM_TO_PT,
   RECEIPT_WIDTH_MM,
   money,
+  parseAmount,
   dottedRule,
   thickDashedRule,
   vDottedLine,
@@ -31,11 +32,11 @@ function generate(inv, B) {
     const filepath = path.join(TMP_DIR, filename);
 
     const items = inv.items || [];
-    const outTotal = Number(inv.total_amount || 0);
-    const extraCharges = Number(inv.extra_charges ?? inv.service_charge ?? 0);
-    const discAmt = Number(inv.discount_amount || 0);
-    const taxAmt = Number(inv.tax_amount || 0);
-    const netAmt = Number(inv.net_amount || 0);
+    const outTotal = parseAmount(inv.total_amount);
+    const extraCharges = parseAmount(inv.extra_charges ?? inv.service_charge ?? 0);
+    const discAmt = parseAmount(inv.discount_amount);
+    const taxAmt = parseAmount(inv.tax_amount);
+    const netAmt = parseAmount(inv.net_amount);
     const saleDate = new Date(inv.sale_date || Date.now());
     const fmtDate = saleDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     const fmtTime = saleDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -47,7 +48,7 @@ function generate(inv, B) {
     const notesRaw = (inv.notes || inv.project_detail || '').toString().trim();
     const notesDisplay = notesRaw || '—';
 
-    const tender = Number(inv.amount_tendered ?? inv.amount_paid ?? inv.tender ?? netAmt);
+    const tender = parseAmount(inv.amount_tendered ?? inv.amount_paid ?? inv.tender ?? netAmt);
     const isCash = String(inv.payment_mode || 'cash').toLowerCase() === 'cash';
     const changeBack = isCash ? Math.max(0, tender - netAmt) : null;
 
@@ -57,11 +58,11 @@ function generate(inv, B) {
     const innerW = wPt - 2 * side;
     const cx = side + innerW / 2;
 
-    const colItem = innerW * 0.38;
-    const colQty = innerW * 0.11;
-    const colRate = innerW * 0.17;
-    const colSvc = innerW * 0.17;
-    const colAmt = innerW * 0.17;
+    const colItem = innerW * 0.36;
+    const colQty = innerW * 0.1;
+    const colRate = innerW * 0.18;
+    const colSvc = innerW * 0.15;
+    const colAmt = innerW * 0.21;
     const xL = side;
     const xQty = xL + colItem;
     const xRate = xQty + colQty;
@@ -173,22 +174,30 @@ function generate(inv, B) {
 
     items.forEach((it) => {
       const name = it.product_name || '—';
-      const qty = Number(it.quantity || 0);
-      const unit = Number(it.unit_price || 0);
-      const line = Number(it.line_total != null ? it.line_total : qty * unit);
-      const lineTax = Number(it.tax || 0);
+      const qty = parseAmount(it.quantity);
+      const unit = parseAmount(it.unit_price);
+      const line =
+        it.line_total != null && it.line_total !== ''
+          ? parseAmount(it.line_total)
+          : qty * unit;
+      const lineTax = parseAmount(it.tax);
 
       ensureSpace(30);
       const rowTop = y;
       doc.fontSize(7.8).font('Helvetica').fillColor(C.dark);
-      doc.text(name, xL, rowTop, { width: colItem - 2, align: 'left' });
-      const line1H = Math.max(10, doc.y - rowTop);
-      const secondY = rowTop + line1H + 1;
-      doc.fontSize(7.5);
-      doc.text(String(qty), xQty, secondY, { width: colQty, align: 'center' });
-      doc.text(money(unit), xRate, secondY, { width: colRate - 1, align: 'right' });
-      doc.text(money(lineTax), xSvc, secondY, { width: colSvc - 1, align: 'right' });
-      doc.font('Helvetica-Bold').text(money(line), xAmt, secondY, { width: colAmt, align: 'right' });
+      const nameOpts = { width: colItem - 2, align: 'left', lineGap: 0.5 };
+      const nameBlockH = Math.max(11, doc.heightOfString(name, nameOpts));
+      doc.text(name, xL, rowTop, nameOpts);
+      const secondY = rowTop + nameBlockH + 1;
+      doc.fontSize(7.5).font('Helvetica');
+      const moneyCell = (txt, x, w, bold) => {
+        doc.font(bold ? 'Helvetica-Bold' : 'Helvetica');
+        doc.text(txt, x, secondY, { width: w, align: 'right', lineBreak: false });
+      };
+      doc.text(String(qty), xQty, secondY, { width: colQty, align: 'center', lineBreak: false });
+      moneyCell(money(unit), xRate, colRate - 1, false);
+      moneyCell(money(lineTax), xSvc, colSvc - 1, false);
+      moneyCell(money(line), xAmt, colAmt, true);
       y = secondY + 12;
     });
 
@@ -213,13 +222,17 @@ function generate(inv, B) {
       doc.fontSize(size).font(f).fillColor(C.dark);
       doc.text(label, side, ry, { width: splitX - side - 4, align: 'left' });
       vDottedLine(doc, splitX, ry, ry + 11);
-      doc.font(f).text(val, splitX + 3, ry, { width: side + innerW - (splitX + 3), align: 'right' });
+      doc.font(f).text(val, splitX + 3, ry, {
+        width: side + innerW - (splitX + 3),
+        align: 'right',
+        lineBreak: false,
+      });
       y = ry + 12;
     };
 
     totalRow('Out Total', money(outTotal));
     totalRow('Extra Charges', money(extraCharges));
-    totalRow('Discount/Promotion', discAmt > 0 ? `−${money(discAmt)}` : money(0));
+    totalRow('Discount/Promotion', discAmt > 0 ? `\u2212\u00a0${money(discAmt)}` : money(0));
     totalRow('Total GST', money(taxAmt));
     totalRow('Net Total', money(netAmt), { bold: true, size: 9 });
     totalRow('Amount Paid', money(tender));
