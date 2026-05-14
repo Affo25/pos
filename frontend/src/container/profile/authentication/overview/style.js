@@ -318,20 +318,22 @@ const AidLoginPage = Styled.div`
 
   .aid-page-logo {
     position: absolute;
-    top: 32px;
-    left: 36px;
+    top: 28px;
+    left: 32px;
     z-index: 10;
     img {
-      height: 48px;
+      height: 72px;
       width: auto;
+      max-width: min(280px, 42vw);
       object-fit: contain;
       display: block;
     }
     @media (max-width: 480px) {
-      top: 20px;
-      left: 20px;
+      top: 18px;
+      left: 18px;
       img {
-        height: 40px;
+        height: 52px;
+        max-width: 55vw;
       }
     }
   }
@@ -390,26 +392,58 @@ const AidLoginCardBody = Styled.div`
     font-weight: 600;
     letter-spacing: 0.01em;
   }
+
+  /* Shared field chrome (email + password wrapper) */
   .ant-input,
   .ant-input-affix-wrapper {
     border-radius: 10px !important;
     border-color: #E5E7EB !important;
     transition: border-color 0.2s, box-shadow 0.2s;
+    font-size: 14px !important;
     &:hover {
       border-color: #D1D5DB !important;
     }
-    &:focus,
-    &.ant-input-affix-wrapper-focused {
-      border-color: #EF8354 !important;
-      box-shadow: 0 0 0 3px rgba(239, 131, 84, 0.12) !important;
-    }
   }
-  .ant-input-affix-wrapper {
-    padding: 8px 12px !important;
+  .ant-input:focus,
+  .ant-input-affix-wrapper-focused {
+    border-color: #EF8354 !important;
+    box-shadow: 0 0 0 3px rgba(239, 131, 84, 0.12) !important;
   }
-  .ant-input {
+
+  /* Email: single-line input */
+  .ant-form-item-control-input-content > .ant-input:not(.ant-input-affix-wrapper .ant-input) {
     padding: 10px 12px !important;
-    font-size: 14px;
+    min-height: 44px;
+    line-height: 1.5;
+  }
+
+  /* Password: same outer size as email; border lives on affix wrapper */
+  .ant-input-affix-wrapper {
+    padding: 10px 12px !important;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+  .ant-input-affix-wrapper .ant-input {
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    line-height: 1.5;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+  .ant-input-affix-wrapper .ant-input:focus {
+    box-shadow: none !important;
+  }
+  .ant-input-affix-wrapper .ant-input-suffix {
+    margin-left: 8px;
+    display: flex;
+    align-items: center;
+    color: #9ca3af;
+  }
+  .ant-input-affix-wrapper .ant-input-suffix .anticon {
+    font-size: 16px;
   }
   .aid-signin-submit.ant-btn {
     width: 100%;

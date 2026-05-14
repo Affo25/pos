@@ -19,12 +19,12 @@ const SignIn = () => {
     dispatch(loginUser({ email: username, password }));
   };
 
-  const logoSrc = `${process.env.PUBLIC_URL}/aid-plus-logo.png`;
+  const logoSrc = `${process.env.PUBLIC_URL}/logo.png`;
 
   return (
     <AidLoginPage>
       <div className="aid-page-logo">
-        <img src={logoSrc} alt="Aid+" />
+        <img src={logoSrc} alt="Aid+"/>
       </div>
 
       <AidLoginCard>

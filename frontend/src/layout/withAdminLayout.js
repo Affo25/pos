@@ -227,7 +227,7 @@ const ThemeLayout = (WrappedComponent) => {
                     to="/"
                   >
                     <img
-                      src={`${process.env.PUBLIC_URL}/aid-plus-logo.png`}
+                      src={`${process.env.PUBLIC_URL}/logo.png`}
                       alt="Aid+"
                       style={{
                         maxHeight: 44,
@@ -315,10 +315,20 @@ const ThemeLayout = (WrappedComponent) => {
                       renderTrackVertical={renderTrackVertical}
                     >
                       <div className="sidebar-brand">
-                        <Link to="/" className="sidebar-brand__title">
+                         <img
+                      src={`${process.env.PUBLIC_URL}/logo.png`}
+                      alt="Aid+"
+                      style={{
+                        maxHeight: 80,
+                        width: 'auto',
+                        objectFit: 'contain',
+                        display: 'block',
+                      }}
+                    />
+                        {/* <Link to="/" className="sidebar-brand__title">
                           Aid+
                         </Link>
-                        <div className="sidebar-brand__tagline">Pharmacy Suite</div>
+                        <div className="sidebar-brand__tagline">Pharmacy Suite</div> */}
                       </div>
                       <MenueItems
                         topMenu={topMenu}

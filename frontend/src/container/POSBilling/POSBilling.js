@@ -502,30 +502,69 @@ function POSBilling() {
           overflow: hidden;
           width: 100%;
           box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+          display: flex;
+          flex-direction: column;
+          min-height: calc(100vh - 88px);
+          max-height: calc(100vh - 64px);
+        }
+
+        .catalog-body {
+          flex: 1;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        .catalog-body .loading-state,
+        .catalog-body .pos-catalog-empty {
+          flex: 1;
+          min-height: 240px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
         }
 
         .catalog-header {
-          padding: 16px 20px 12px;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-          background: linear-gradient(180deg, #ffffff 0%, #F9FAFB 100%);
+          padding: 20px 24px;
+          border-bottom: none;
+          background: linear-gradient(135deg, #2d3142 0%, #4f5d75 100%);
         }
-
-        .catalog-title {
-          font-family: 'Inter', system-ui, sans-serif;
-          font-size: 17px;
+        .catalog-header .catalog-company {
+          font-size: 18px;
           font-weight: 700;
-          color: var(--pos-forest);
+          color: #ffffff;
+          line-height: 1.25;
+          letter-spacing: -0.01em;
+        }
+        .catalog-header .catalog-title {
+          font-family: 'Inter', system-ui, sans-serif;
           margin: 0;
           display: flex;
           align-items: center;
           gap: 10px;
+          color: rgba(255, 255, 255, 0.92);
+          font-size: 15px;
+          font-weight: 600;
         }
-
-        .catalog-title-dot {
-          width: 8px; height: 8px;
-          background: var(--pos-forest);
-          border-radius: 50%;
-          display: inline-block;
+        .catalog-header .catalog-title-dot {
+          background: #ef8354;
+          box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+        }
+        .catalog-header .catalog-header-muted {
+          font-size: 11px;
+          font-weight: 500;
+          color: rgba(255, 255, 255, 0.72);
+        }
+        .catalog-header .catalog-tagline {
+          font-size: 12px;
+          color: rgba(255, 255, 255, 0.78);
+          margin-top: 4px;
+        }
+        .catalog-header .catalog-header-logo {
+          background: rgba(255, 255, 255, 0.12);
+          border-radius: 10px;
+          padding: 6px 10px;
         }
 
         .catalog-toolbar {
@@ -571,39 +610,41 @@ function POSBilling() {
           color: #fff;
         }
 
-        .pos-product-grid {
+        .catalog-body .pos-product-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 12px;
+          gap: 14px;
           padding: 16px;
-          max-height: min(56vh, 560px);
+          flex: 1;
+          min-height: 0;
           overflow-y: auto;
         }
         @media (max-width: 1199px) {
-          .pos-product-grid { grid-template-columns: repeat(2, 1fr); }
+          .catalog-body .pos-product-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 575px) {
-          .pos-product-grid { grid-template-columns: 1fr; }
+          .catalog-body .pos-product-grid { grid-template-columns: 1fr; }
         }
 
-        .pos-product-list {
+        .catalog-body .pos-product-list {
           display: flex;
           flex-direction: column;
           gap: 12px;
           padding: 12px 14px 16px;
-          max-height: min(56vh, 560px);
+          flex: 1;
+          min-height: 0;
           overflow-y: auto;
         }
         /* Tabular: three-column row, no stacked overlap */
-        .pos-product-list .pos-product-card {
+        .catalog-body .pos-product-list .pos-product-card {
           display: grid;
           grid-template-columns: minmax(96px, 24%) minmax(0, 1fr) minmax(108px, auto);
           grid-template-rows: auto;
           align-items: center;
           column-gap: 16px;
-          min-height: 84px;
+          min-height: 100px;
           height: auto;
-          padding: 14px 18px;
+          padding: 16px 20px;
           border-radius: 10px;
           border: 1px solid #e2e8f0;
           box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
@@ -698,8 +739,8 @@ function POSBilling() {
           background: #fff;
           border: 1px solid rgba(0, 0, 0, 0.12);
           border-radius: 8px;
-          padding: 12px 14px;
-          min-height: 104px;
+          padding: 14px 16px;
+          min-height: 128px;
           cursor: pointer;
           transition: box-shadow 0.2s, border-color 0.2s, transform 0.15s;
           font-family: inherit;
@@ -857,36 +898,38 @@ function POSBilling() {
           display: flex;
           flex-direction: column;
           box-shadow: 0 2px 14px rgba(0, 0, 0, 0.07);
-          min-height: 520px;
+          min-height: calc(100vh - 132px);
+          max-height: calc(100vh - 96px);
         }
 
         .ticket-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 16px 18px 10px;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-          background: linear-gradient(180deg, #ffffff 0%, #F9FAFB 100%);
+          padding: 14px 20px;
+          border-bottom: none;
+          background: linear-gradient(135deg, #2d3142 0%, #4f5d75 100%);
         }
         .ticket-header-title {
-          font-size: 18px;
+          font-size: 17px;
           font-weight: 700;
-          color: var(--pos-forest);
+          color: #ffffff;
           margin: 0;
+          letter-spacing: -0.01em;
         }
         .ticket-clear-btn {
           border: none;
-          background: transparent;
-          color: #64748b;
+          background: rgba(255, 255, 255, 0.12);
+          color: rgba(255, 255, 255, 0.88);
           font-size: 13px;
           font-weight: 600;
           cursor: pointer;
-          padding: 4px 8px;
-          border-radius: 6px;
+          padding: 6px 12px;
+          border-radius: 8px;
         }
         .ticket-clear-btn:hover {
-          color: var(--pos-forest);
-          background: rgba(0, 0, 0, 0.06);
+          color: #ffffff;
+          background: rgba(255, 255, 255, 0.2);
         }
 
         .ticket-customer-row {
@@ -1046,6 +1089,8 @@ function POSBilling() {
         .tab-content {
           padding: 16px 20px;
           flex: 1;
+          min-height: 0;
+          overflow-y: auto;
         }
 
         /* Cart table */
@@ -1336,35 +1381,37 @@ function POSBilling() {
       `}      </style>
 
       <Main className="pos-root">
-        <Row gutter={20} style={{ alignItems: 'flex-start' }}>
+        <Row gutter={24} style={{ alignItems: 'stretch' }}>
 
           {/* ── LEFT: Catalog ── */}
-          <Col xs={24} lg={14}>
-            <div className="catalog-panel">
+          <Col xs={24} lg={14} style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="catalog-panel" style={{ flex: 1 }}>
               <div className="catalog-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                   {invoiceBranding?.logoUrl && (
-                    <img
-                      src={`${API_ORIGIN}${invoiceBranding.logoUrl}`}
-                      alt=""
-                      style={{ height: 40, maxWidth: 120, objectFit: 'contain' }}
-                    />
+                    <div className="catalog-header-logo">
+                      <img
+                        src={`${API_ORIGIN}${invoiceBranding.logoUrl}`}
+                        alt=""
+                        style={{ height: 44, maxWidth: 130, objectFit: 'contain' }}
+                      />
+                    </div>
                   )}
                   <div>
-                    <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--pos-forest)', lineHeight: 1.2 }}>
+                    <div className="catalog-company">
                       {invoiceBranding?.companyName || 'Point of Sale'}
                     </div>
-                    <div className="catalog-title" style={{ marginTop: 4, marginBottom: 0 }}>
+                    <div className="catalog-title" style={{ marginTop: 6, marginBottom: 0 }}>
                       <span className="catalog-title-dot" />
                       Catalog
                       {invoiceBranding?.template && (
-                        <span style={{ fontSize: 11, fontWeight: 500, color: '#64748b', marginLeft: 8 }}>
+                        <span className="catalog-header-muted" style={{ marginLeft: 8 }}>
                           · PDF: {invoiceTemplateLabel(invoiceBranding.template)}
                         </span>
                       )}
                     </div>
                     {invoiceBranding?.tagline && (
-                      <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{invoiceBranding.tagline}</div>
+                      <div className="catalog-tagline">{invoiceBranding.tagline}</div>
                     )}
                   </div>
                 </div>
@@ -1409,6 +1456,7 @@ function POSBilling() {
                 ))}
               </div>
 
+              <div className="catalog-body">
               {loading ? (
                 <div className="loading-state">
                   <Spin size="large" />
@@ -1435,12 +1483,13 @@ function POSBilling() {
                   {displayedProducts.map(renderProductCard)}
                 </div>
               )}
+              </div>
             </div>
           </Col>
 
           {/* ── RIGHT: Billing ── */}
-          <Col xs={24} lg={10}>
-            <div className="billing-panel">
+          <Col xs={24} lg={10} style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="billing-panel" style={{ flex: 1 }}>
 
               <div className="ticket-header">
                 <div className="ticket-header-title">The Ticket</div>
@@ -1496,7 +1545,7 @@ function POSBilling() {
               <div className="tab-content">
 
                 {activeTab === 'items' && (
-                  <div style={{ minHeight: 260 }}>
+                  <div style={{ minHeight: 200 }}>
                     <Table
                       className="cart-table"
                       columns={cartColumns}
@@ -1517,7 +1566,7 @@ function POSBilling() {
                 )}
 
                 {activeTab === 'payment' && (
-                  <div style={{ minHeight: 260 }}>
+                  <div style={{ minHeight: 200 }}>
                     <div className="payment-grid">
                       {PAYMENT_METHODS.map(m => (
                       <button
