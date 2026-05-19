@@ -4,13 +4,15 @@ const {
   createSupplier,
   getSuppliers,
   updateSupplier,
-  deleteSupplier
+  deleteSupplier,
+  getSupplierLedger,
 } = require('../controllers/supplierController');
 
 const router = express.Router();
 
 router.post('/', protect, createSupplier);
 router.get('/', protect, getSuppliers);
+router.get('/:id/ledger', protect, getSupplierLedger);
 router.put('/:id', protect, updateSupplier);
 router.delete('/:id', protect, deleteSupplier);
 

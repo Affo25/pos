@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
 import Cookies from 'js-cookie';
 import Styled from 'styled-components';
 import { 
@@ -33,6 +34,10 @@ import { formatPkr } from '../../config/currency';
 import { ScreenWrap } from '../shared/procurementScreenStyles';
 import { API_BASE } from '../../config/apiBase';
 import moment from 'moment';
+import * as productApi from '../../redux/products/productService';
+import { getComponentPermissions } from '../../config/utils/permission';
+import { useBulkDelete } from '../../hooks/useBulkDelete';
+import TableToolbarSearchRow from '../../components/bulk/TableToolbarSearchRow';
 
 const StockKpiWrap = Styled.div`
   width: 100%;
@@ -141,7 +146,7 @@ const StockDetailWrap = Styled.div`
     text-align: right;
     word-break: break-word;
   }
-  .sd-val-muted {
+  .sd-val-muted {  
     color: #475569;
     font-weight: 500;
   }
@@ -363,6 +368,21 @@ function StockDetailPanel({ product }) {
 }
 
 function StockManagement() {
+  const { login: user } = useSelector((state) => state.auth);
+  const { canDelete } = getComponentPermissions(user, 'Products');
+
+  const {
+    selectedRowKeys,
+    bulkDeleting,
+    rowSelection,
+    handleBulkDelete,
+    removeFromSelection,
+  } = useBulkDelete({
+    deleteOne: productApi.deleteProduct,
+    onSuccess: () => fetchReport(),
+    entityName: 'product',
+  });
+
   const [summary, setSummary] = useState(null);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -472,6 +492,7 @@ function StockManagement() {
       });
       if (!response.ok) throw new Error('Delete failed');
       message.success('Product deleted successfully');
+      removeFromSelection(id);
       fetchReport();
     } catch (error) {
       message.error('Failed to delete product');
@@ -1186,7 +1207,12 @@ function StockManagement() {
             <StockTableOuter className="stock-table-outer">
               <div className="table-shell">
                 <div className="table-toolbar">
-                  <div className="table-toolbar__search">
+                  <TableToolbarSearchRow
+                    showBulkDelete={canDelete}
+                    bulkCount={selectedRowKeys.length}
+                    bulkLoading={bulkDeleting}
+                    onBulkDelete={handleBulkDelete}
+                  >
                     <Input
                       placeholder="Search by medicine name, batch number, category or supplier..."
                       prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />}
@@ -1194,7 +1220,7 @@ function StockManagement() {
                       onChange={(e) => setSearchText(e.target.value)}
                       allowClear
                     />
-                  </div>
+                  </TableToolbarSearchRow>
                   <div className="table-toolbar__filters">
                     <Badge count={activeFilterCount} size="small" offset={[0, 0]} showZero={false}>
                       <AntdButton icon={<FilterOutlined />} onClick={() => setFilterModalVisible(true)}>
@@ -1207,7 +1233,7 @@ function StockManagement() {
                   size="middle"
                   columns={columns}
                   dataSource={paginatedProducts}
-                  loading={loading}
+                  loading={loading || bulkDeleting}
                   total={filteredProducts.length}
                   current={pagination.current}
                   pageSize={pagination.pageSize}
@@ -1216,6 +1242,7 @@ function StockManagement() {
                   scroll={{ x: STOCK_SCROLL_X }}
                   rowKey={(r) => r._id || r.id}
                   tableLayout="fixed"
+                  rowSelection={canDelete ? rowSelection : undefined}
                 />
               </div>
             </StockTableOuter>

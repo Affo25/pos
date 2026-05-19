@@ -2,11 +2,18 @@ const Sale = require('../models/Sale');
 const Products = require('../models/Products');
 const Customer = require('../models/Customer');
 const Return = require('../models/Return');
+const { recordPaymentFromOrder, syncPaymentsReferenceForOrder } = require('../utils/paymentHelpers');
+const { generateSaleInvoiceNo } = require('../utils/saleHelpers');
 
-const generateInvoiceNo = () => {
-  const ts = Date.now().toString().slice(-8);
-  const rand = Math.floor(Math.random() * 9000 + 1000);
-  return `INV-${ts}-${rand}`;
+exports.getNextInvoiceNumber = async (req, res) => {
+  try {
+    const adminId = req.user.user_type === 'admin' ? req.user._id : req.user.admin_id;
+    const saleDate = req.query.sale_date ? new Date(req.query.sale_date) : new Date();
+    const invoice_no = await generateSaleInvoiceNo(adminId, saleDate);
+    res.status(200).json({ invoice_no });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
 exports.createSale = async (req, res) => {
@@ -19,9 +26,54 @@ exports.createSale = async (req, res) => {
       created_by: req.user._id,
     };
 
+    const saleDate = data.sale_date ? new Date(data.sale_date) : new Date();
+    if (!data.invoice_no || !String(data.invoice_no).trim()) {
+      data.invoice_no = await generateSaleInvoiceNo(adminId, saleDate);
+    } else {
+      data.invoice_no = String(data.invoice_no).trim();
+    }
+
+    if (data.customer_id && !data.customer_name) {
+      const customer = await Customer.findById(data.customer_id);
+      if (customer) data.customer_name = customer.name;
+    }
+
     const newSale = new Sale(data);
     await newSale.save();
-    res.status(201).json(newSale);
+
+    const amountReceived = Math.max(
+      0,
+      Number(data.amount_received ?? data.amount_paid ?? 0),
+    );
+    if (amountReceived > 0) {
+      let customerId = null;
+      if (newSale.customer_id) {
+        const customer = await Customer.findById(newSale.customer_id);
+        if (customer) customerId = customer._id;
+      }
+      await recordPaymentFromOrder({
+        adminId,
+        userId: req.user._id,
+        paymentType: 'sale',
+        referenceType: 'sale_order',
+        referenceId: newSale._id,
+        referenceModel: 'Sale',
+        customerId,
+        customerName: newSale.customer_name || data.customer_name || '',
+        referenceNo: newSale.invoice_no || data.invoice_no || '',
+        paymentMethod: data.payment_method || data.payment_mode || 'cash',
+        targetPaidTotal: amountReceived,
+        orderTotal: Number(newSale.net_amount || 0),
+        branchId: data.branch || null,
+        notes: data.payment_notes || '',
+        paymentDate: data.payment_date || newSale.sale_date,
+      });
+    }
+
+    await syncPaymentsReferenceForOrder(newSale._id, 'Sale', newSale.invoice_no);
+
+    const refreshed = await Sale.findById(newSale._id);
+    res.status(201).json(refreshed);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -107,7 +159,17 @@ exports.deleteSale = async (req, res) => {
 
 exports.createBilling = async (req, res) => {
   try {
-    const { customer_id, discount_amount = 0, tax_amount = 0, sale_date, items = [] } = req.body;
+    const {
+      customer_id,
+      discount_amount = 0,
+      tax_amount = 0,
+      sale_date,
+      items = [],
+      amount_received,
+      payment_mode,
+      payment_method,
+      branch,
+    } = req.body;
 
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'At least one billing item is required' });
@@ -162,9 +224,16 @@ exports.createBilling = async (req, res) => {
     }
 
     const netAmount = totalAmount - Number(discount_amount || 0) + Number(tax_amount || 0);
+    const billDate = sale_date ? new Date(sale_date) : new Date();
+    let invoiceNo = req.body.invoice_no || req.body.invoice_number || '';
+    if (!invoiceNo || !String(invoiceNo).trim()) {
+      invoiceNo = await generateSaleInvoiceNo(adminId, billDate);
+    } else {
+      invoiceNo = String(invoiceNo).trim();
+    }
 
     const billing = new Sale({
-      invoice_no: generateInvoiceNo(),
+      invoice_no: invoiceNo,
       customer_id: customer_id || null,
       customer_name: customerName,
       items: saleItems,
@@ -173,12 +242,40 @@ exports.createBilling = async (req, res) => {
       tax_amount: Number(tax_amount || 0),
       net_amount: netAmount,
       status: 'completed',
-      sale_date: sale_date ? new Date(sale_date) : new Date(),
+      sale_date: billDate,
       admin_id: adminId,
       created_by: req.user._id,
     });
 
     await billing.save();
+
+    const received = Math.max(
+      0,
+      Number(amount_received != null ? amount_received : netAmount),
+    );
+    if (received > 0) {
+      let customerObjId = null;
+      if (customer_id) {
+        const customer = await Customer.findById(customer_id);
+        if (customer) customerObjId = customer._id;
+      }
+      await recordPaymentFromOrder({
+        adminId,
+        userId: req.user._id,
+        paymentType: 'sale',
+        referenceType: 'sale_order',
+        referenceId: billing._id,
+        referenceModel: 'Sale',
+        customerId: customerObjId,
+        customerName: billing.customer_name || customerName,
+        referenceNo: billing.invoice_no || '',
+        paymentMethod: payment_method || payment_mode || 'cash',
+        targetPaidTotal: received,
+        orderTotal: netAmount,
+        branchId: branch || null,
+        paymentDate: billing.sale_date,
+      });
+    }
 
     for (const item of saleItems) {
       const product = await Products.findById(item.product_id);
@@ -189,7 +286,10 @@ exports.createBilling = async (req, res) => {
       }
     }
 
-    res.status(201).json(billing);
+    await syncPaymentsReferenceForOrder(billing._id, 'Sale', billing.invoice_no);
+
+    const refreshedBilling = await Sale.findById(billing._id);
+    res.status(201).json(refreshedBilling);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -24,6 +24,17 @@ const CustomerSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  /** Starting receivable balance from this customer (PKR) */
+  opening_balance: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  opening_balance_note: {
+    type: String,
+    trim: true,
+    default: '',
+  },
   admin_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });

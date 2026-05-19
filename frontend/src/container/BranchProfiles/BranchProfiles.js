@@ -14,11 +14,27 @@ import { ProjectHeader } from '../../config/default/style';
 import { Main } from '../../config/default/styled';
 import { ScreenWrap } from '../shared/procurementScreenStyles';
 import { deleteBranchProfile, fetchAllBranchProfiles } from '../../redux/branchprofiles/branchprofileSlice';
+import * as branchprofileApi from '../../redux/branchprofiles/branchprofileService';
+import { useBulkDelete } from '../../hooks/useBulkDelete';
+import TableToolbarSearchRow from '../../components/bulk/TableToolbarSearchRow';
 
 function BranchProfiles() {
   const history = useHistory();
   const dispatch = useDispatch();
   const { branchprofiles, loading } = useSelector((state) => state.branchprofiles);
+
+  const {
+    selectedRowKeys,
+    bulkDeleting,
+    rowSelection,
+    handleBulkDelete,
+    removeFromSelection,
+  } = useBulkDelete({
+    deleteOne: branchprofileApi.deleteBranchProfile,
+    onSuccess: () => dispatch(fetchAllBranchProfiles()),
+    entityName: 'branch profile',
+  });
+
   const [dataSource, setDataSource] = useState([]);
 
   const [pagination, setPagination] = useState({
@@ -53,6 +69,7 @@ function BranchProfiles() {
 
   const handleDelete = (id) => {
     dispatch(deleteBranchProfile(id));
+    removeFromSelection(id);
     toast.success('Deleted successfully 🎉', {
       position: 'top-right',
       autoClose: 3000,
@@ -228,9 +245,14 @@ function BranchProfiles() {
           <Col xs={24}>
             <div className="table-shell">
               <div className="table-toolbar">
-                <div className="table-toolbar__search">
+                <TableToolbarSearchRow
+                  showBulkDelete
+                  bulkCount={selectedRowKeys.length}
+                  bulkLoading={bulkDeleting}
+                  onBulkDelete={handleBulkDelete}
+                >
                   <Input prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />} placeholder="Search branch profiles" allowClear onChange={(e) => handleSearch(e.target.value)} />
-                </div>
+                </TableToolbarSearchRow>
                 <div className="table-toolbar__filters">
                   <span className="table-toolbar__label">Status</span>
                   <Select defaultValue="category" onChange={(value) => setSortStatus(value)} style={{ minWidth: 140 }}>
@@ -243,11 +265,13 @@ function BranchProfiles() {
               <ProjectLists
                 columns={columns}
                 dataSource={dataSource}
-                loading={loading}
+                loading={loading || bulkDeleting}
                 total={branchprofiles?.length || 0}
                 pageSize={pagination.pageSize}
                 onChange={handlePageChange}
                 onShowSizeChange={handleSizeChange}
+                rowKey="key"
+                rowSelection={rowSelection}
               />
             </div>
           </Col>

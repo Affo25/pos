@@ -1,7 +1,8 @@
 /* eslint-disable camelcase */
 /* eslint-disable no-underscore-dangle */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchAllCustomers } from '../../redux/customers/customerSlice';
 import Cookies from 'js-cookie';
 import {
   Button, Col, InputNumber, Row, Select, Table,
@@ -15,13 +16,11 @@ import {
   WalletOutlined, ShoppingCartOutlined,
   UserOutlined, CalendarOutlined, SearchOutlined,
   TagOutlined,
-  FallOutlined,
-  EditOutlined,
-  DollarOutlined,
 } from '@ant-design/icons';
 import { Main } from '../../config/default/styled';
 import { API_BASE, API_ORIGIN } from '../../config/apiBase';
 import { formatPkr } from '../../config/currency';
+import { fetchNextInvoiceNumber } from '../../redux/sales/saleService';
 
 const { Search } = Input;
 
@@ -48,31 +47,39 @@ const TABS = [
 
 const PAYMENT_METHODS = [
   { key: 'cash', label: 'Cash', icon: <DollarCircleOutlined /> },
+  { key: 'cheque', label: 'Cheque', icon: <FileTextOutlined /> },
   { key: 'card', label: 'Card', icon: <CreditCardOutlined /> },
-  { key: 'bank_transfer', label: 'Bank', icon: <BankOutlined /> },
+  { key: 'bank_transfer', label: 'Bank Transfer', icon: <BankOutlined /> },
   { key: 'wallet', label: 'Wallet', icon: <WalletOutlined /> },
 ];
 
+const WALK_IN_CUSTOMER_ID = 'walk-in';
+
+function formatSaleDateParam(date) {
+  if (!date) return new Date().toISOString().slice(0, 10);
+  if (date.format) return date.format('YYYY-MM-DD');
+  if (date.toDate) return date.toDate().toISOString().slice(0, 10);
+  return new Date(date).toISOString().slice(0, 10);
+}
+
 function POSBilling() {
+  const dispatch = useDispatch();
   const { login } = useSelector((state) => state.auth);
+  const { customers, loading: customersLoading } = useSelector((state) => state.customers);
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [rows, setRows] = useState([]);
   const [saving, setSaving] = useState(false);
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [invoiceNumber] = useState(`INV-${Date.now()}`);
+  const [invoiceNumber, setInvoiceNumber] = useState('—');
   const [poNumber] = useState(`PO-${Date.now()}`);
   const [projectDetail, setProjectDetail] = useState('');
-  const [discount, setDiscount] = useState(0);
-  const [discountType, setDiscountType] = useState('percentage');
   const [paymentMode, setPaymentMode] = useState('cash');
   const [issuedDate, setIssuedDate] = useState(null);
   const [activeTab, setActiveTab] = useState('items');
   const [activeCategory, setActiveCategory] = useState('All');
-  const [customerName, setCustomerName] = useState('Walk-in');
-  const [customerModalOpen, setCustomerModalOpen] = useState(false);
-  const [customerDraft, setCustomerDraft] = useState('Walk-in');
+  const [selectedCustomerId, setSelectedCustomerId] = useState(WALK_IN_CUSTOMER_ID);
   const [printerModalOpen, setPrinterModalOpen] = useState(false);
   const [printers, setPrinters] = useState([]);
   const [selectedPrinter, setSelectedPrinter] = useState(localStorage.getItem('pos_printer') || '');
@@ -82,6 +89,19 @@ function POSBilling() {
   const [posSearchQuery, setPosSearchQuery] = useState('');
   /** Latest query for Enter/submit (DOM ref in antd Search can be unreliable on some mobile keyboards). */
   const posSearchQueryRef = useRef('');
+
+  const refreshBillNo = async (date) => {
+    try {
+      const no = await fetchNextInvoiceNumber(formatSaleDateParam(date));
+      setInvoiceNumber(no);
+    } catch {
+      setInvoiceNumber('—');
+    }
+  };
+
+  useEffect(() => {
+    refreshBillNo(issuedDate);
+  }, [issuedDate]);
 
   const token = Cookies.get('token');
 
@@ -102,9 +122,30 @@ function POSBilling() {
     return filteredProducts.filter((p) => productCategoryName(p) === activeCategory);
   }, [filteredProducts, activeCategory]);
 
+  const customerOptions = useMemo(() => {
+    const list = Array.isArray(customers) ? customers : [];
+    return [
+      { value: WALK_IN_CUSTOMER_ID, label: 'Walk-in' },
+      ...list.map((c) => ({
+        value: String(c._id || c.id),
+        label: c.name || 'Unnamed',
+      })),
+    ];
+  }, [customers]);
+
+  const selectedCustomerName = useMemo(() => {
+    if (!selectedCustomerId || selectedCustomerId === WALK_IN_CUSTOMER_ID) return 'Walk-in';
+    const c = (Array.isArray(customers) ? customers : []).find(
+      (x) => String(x._id || x.id) === String(selectedCustomerId),
+    );
+    return c?.name || 'Walk-in';
+  }, [customers, selectedCustomerId]);
+
   const clearTicket = () => {
     setRows([]);
-    setDiscount(0);
+    setProjectDetail('');
+    setPaymentMode('cash');
+    setSelectedCustomerId(WALK_IN_CUSTOMER_ID);
   };
 
   const fetchInitialData = async () => {
@@ -125,6 +166,7 @@ function POSBilling() {
   };
 
   useEffect(() => { fetchInitialData(); }, []);
+  useEffect(() => { dispatch(fetchAllCustomers()); }, [dispatch]);
 
   useEffect(() => {
     if (!token) return;
@@ -267,11 +309,10 @@ function POSBilling() {
 
   const totals = useMemo(() => {
     const subtotal = rows.reduce((sum, r) => sum + (Number(r.quantity || 0) * Number(r.unit_price || 0)), 0);
-    const discountAmount = discountType === 'percentage' ? (subtotal * discount) / 100 : discount;
-    const tax = (subtotal - discountAmount) * 0.05;
-    const net = subtotal - discountAmount + tax;
-    return { subtotal, discountAmount, tax, net };
-  }, [rows, discount, discountType]);
+    const tax = subtotal * 0.05;
+    const net = subtotal + tax;
+    return { subtotal, tax, net };
+  }, [rows]);
 
   const fetchPrinters = async () => {
     setPrintersLoading(true);
@@ -347,15 +388,17 @@ function POSBilling() {
     const invalidRow = rows.find(r => !r.product_id || Number(r.quantity || 0) <= 0);
     if (invalidRow) return;
     const payload = {
-      customer_id: null,
-      invoice_number: invoiceNumber,
+      customer_id:
+        selectedCustomerId && selectedCustomerId !== WALK_IN_CUSTOMER_ID
+          ? selectedCustomerId
+          : null,
       po_number: poNumber,
       project_detail: projectDetail,
       payment_mode: paymentMode,
-      discount_amount: Number(totals.discountAmount || 0),
+      amount_received: Number(totals.net || 0),
+      discount_amount: 0,
       tax_amount: Number(totals.tax || 0),
       sale_date: issuedDate ? issuedDate.toDate() : new Date(),
-      discount_type: discountType,
       items: rows.map(r => ({ product_id: r.product_id, quantity: Number(r.quantity || 0), unit_price: Number(r.unit_price || 0) })),
     };
     setSaving(true);
@@ -369,7 +412,11 @@ function POSBilling() {
       if (!response.ok) throw new Error(data.error || 'Failed to create invoice');
       setInvoice(data);
       setRows([]);
-      setDiscount(0); setPaymentMode('cash'); setProjectDetail(''); setIssuedDate(null);
+      setPaymentMode('cash');
+      setProjectDetail('');
+      setIssuedDate(null);
+      setSelectedCustomerId(WALK_IN_CUSTOMER_ID);
+      refreshBillNo(null);
       setTimeout(() => {
         if (data) printInvoiceData(data);
       }, 400);
@@ -906,9 +953,53 @@ function POSBilling() {
           display: flex;
           align-items: center;
           justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 10px;
           padding: 14px 20px;
           border-bottom: none;
           background: linear-gradient(135deg, #2d3142 0%, #4f5d75 100%);
+        }
+        .ticket-header-controls {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex: 1;
+          justify-content: flex-end;
+          min-width: 0;
+        }
+        .ticket-payment-select {
+          min-width: 148px;
+          max-width: 220px;
+        }
+        .ticket-payment-select .ant-select-selector {
+          background: rgba(255, 255, 255, 0.96) !important;
+          border: none !important;
+          border-radius: 8px !important;
+          height: 34px !important;
+          font-size: 13px !important;
+          font-weight: 600 !important;
+          color: #2d3142 !important;
+        }
+        .ticket-customer-select {
+          flex: 1;
+          min-width: 0;
+        }
+        .ticket-customer-select .ant-select-selector {
+          border-radius: 8px !important;
+          border-color: rgba(0, 0, 0, 0.12) !important;
+          min-height: 36px !important;
+        }
+        .ticket-note-row {
+          padding: 10px 16px;
+          border-top: 1px solid rgba(0, 0, 0, 0.06);
+          background: #fff;
+        }
+        .ticket-note-input {
+          font-size: 13px !important;
+          border-radius: 8px !important;
+        }
+        .ticket-note-input::placeholder {
+          color: #94a3b8;
         }
         .ticket-header-title {
           font-size: 17px;
@@ -1003,37 +1094,6 @@ function POSBilling() {
           display: block;
           margin-bottom: 10px;
           opacity: 0.85;
-        }
-
-        .ticket-quick-actions {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 8px;
-          padding: 12px 16px;
-          border-top: 1px solid rgba(0, 0, 0, 0.06);
-          background: #fff;
-        }
-        .ticket-quick-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 10px 8px;
-          font-size: 12px;
-          font-weight: 600;
-          color: var(--pos-forest);
-          background: var(--pos-cream);
-          border: 1px solid rgba(0, 0, 0, 0.15);
-          border-radius: 8px;
-          cursor: pointer;
-          transition: background 0.2s, border-color 0.2s;
-        }
-        .ticket-quick-btn:hover {
-          background: #fff;
-          border-color: var(--pos-forest);
-        }
-        .ticket-quick-btn .anticon {
-          font-size: 14px;
         }
 
         /* Tab nav */
@@ -1445,12 +1505,12 @@ function POSBilling() {
               </div>
               <div className="category-chips">
                 {categoryOptions.map((c) => (
-                  <button
+                 <button
                     key={c}
                     type="button"
                     className={`category-chip${activeCategory === c ? ' active' : ''}`}
                     onClick={() => setActiveCategory(c)}
-                  >
+                  > 
                     {c}
                   </button>
                 ))}
@@ -1493,33 +1553,55 @@ function POSBilling() {
 
               <div className="ticket-header">
                 <div className="ticket-header-title">The Ticket</div>
-                <button type="button" className="ticket-clear-btn" onClick={clearTicket}>
-                  Clear
-                </button>
+                <div className="ticket-header-controls">
+                  <Select
+                    className="ticket-payment-select"
+                    value={paymentMode}
+                    onChange={setPaymentMode}
+                    optionLabelProp="label"
+                    popupMatchSelectWidth={false}
+                  >
+                    {PAYMENT_METHODS.map((m) => (
+                      <Select.Option key={m.key} value={m.key} label={m.label}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                          {m.icon}
+                          {m.label}
+                        </span>
+                      </Select.Option>
+                    ))}
+                  </Select>
+                  <button type="button" className="ticket-clear-btn" onClick={clearTicket}>
+                    Clear
+                  </button>
+                </div>
               </div>
 
               <div className="ticket-customer-row">
-                <div className="ticket-customer-label">
+                <div className="ticket-customer-label" style={{ flexShrink: 0 }}>
                   <UserOutlined />
-                  <span>
-                    <strong>Customer:</strong> {customerName}
-                  </span>
+                  <strong>Customer</strong>
                 </div>
-                <button
-                  type="button"
-                  className="ticket-change-btn"
-                  onClick={() => {
-                    setCustomerDraft(customerName);
-                    setCustomerModalOpen(true);
-                  }}
-                >
-                  Change
-                </button>
+                <Select
+                  className="ticket-customer-select"
+                  showSearch
+                  placeholder="Select customer"
+                  value={selectedCustomerId}
+                  onChange={setSelectedCustomerId}
+                  loading={customersLoading}
+                  optionFilterProp="label"
+                  options={customerOptions}
+                  filterOption={(input, option) =>
+                    String(option?.label ?? '')
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                />
               </div>
 
               <div className="ticket-meta-chips">
                 <span className="ticket-chip"><FileTextOutlined />{invoiceNumber}</span>
                 <span className="ticket-chip"><TagOutlined />{poNumber}</span>
+                <span className="ticket-chip ticket-chip--muted">{selectedCustomerName}</span>
                 <span className="ticket-chip ticket-chip--muted">Cashier: {login?.name || 'Staff'}</span>
               </div>
 
@@ -1567,21 +1649,7 @@ function POSBilling() {
 
                 {activeTab === 'payment' && (
                   <div style={{ minHeight: 200 }}>
-                    <div className="payment-grid">
-                      {PAYMENT_METHODS.map(m => (
-                      <button
-  type="button"
-  key={m.key}
-  className={`pay-btn ${paymentMode === m.key ? 'active' : ''}`}
-  onClick={() => setPaymentMode(m.key)}
->
-  <span className="pay-icon">{m.icon}</span>
-  {m.label}
-</button>
-                      ))}
-                    </div>
-
-                    <div className="date-row">
+                    <div className="date-row" style={{ marginTop: 0 }}>
                       <div className="date-field">
                         <div className="date-label">Issued Date</div>
                         <div className="dark-datepicker">
@@ -1603,41 +1671,19 @@ function POSBilling() {
                         </div>
                       </div>
                     </div>
-
-                    <div style={{ marginTop: 16 }}>
-                      <div className="date-label">Notes / Project Detail</div>
-                      <Input.TextArea
-                        className="notes-area"
-                        placeholder="Optional notes…"
-                        rows={3}
-                        value={projectDetail}
-                        onChange={e => setProjectDetail(e.target.value)}
-                      />
-                    </div>
                   </div>
                 )}
               </div>
 
-              <div className="ticket-quick-actions">
-                <button type="button" className="ticket-quick-btn" onClick={() => document.querySelector('.disc-input input')?.focus()}>
-                  <FallOutlined />
-                  Discount
-                </button>
-                <button type="button" className="ticket-quick-btn" onClick={() => setActiveTab('payment')}>
-                  <EditOutlined />
-                  Notes
-                </button>
-                <button
-                  type="button"
-                  className="ticket-quick-btn"
-                  onClick={() => {
-                    setPaymentMode('cash');
-                    setActiveTab('payment');
-                  }}
-                >
-                  <DollarOutlined />
-                  Payment
-                </button>
+              <div className="ticket-note-row">
+                <Input
+                  className="ticket-note-input"
+                  placeholder="Note (optional)"
+                  value={projectDetail}
+                  onChange={(e) => setProjectDetail(e.target.value)}
+                  allowClear
+                  maxLength={200}
+                />
               </div>
 
               {/* Summary */}
@@ -1648,39 +1694,6 @@ function POSBilling() {
                   <span className="summary-label">Subtotal</span>
                   <span className="summary-value">PKR {totals.subtotal.toFixed(2)}</span>
                 </div>
-
-                <div className="discount-row">
-                  <div className="discount-left">
-                    Discount
-                    <Select
-                      className="disc-select"
-                      value={discountType}
-                      onChange={setDiscountType}
-                      style={{ width: 56 }}
-                      size="small"
-                    >
-                      <Select.Option value="percentage">%</Select.Option>
-                      <Select.Option value="fixed">PKR</Select.Option>
-                    </Select>
-                  </div>
-                  <InputNumber
-                    className="disc-input"
-                    value={discount}
-                    onChange={setDiscount}
-                    min={0}
-                    max={discountType === 'percentage' ? 100 : totals.subtotal}
-                    style={{ width: 90 }}
-                    size="small"
-                    placeholder="0"
-                  />
-                </div>
-
-                {totals.discountAmount > 0 && (
-                  <div className="summary-row">
-                    <span className="summary-label" style={{ color: '#16a34a' }}>Discount Applied</span>
-                    <span className="summary-value" style={{ color: '#16a34a' }}>−PKR {totals.discountAmount.toFixed(2)}</span>
-                  </div>
-                )}
 
                 <div className="summary-row">
                   <span className="summary-label">GST (5%)</span>
@@ -1727,24 +1740,6 @@ function POSBilling() {
             </div>
           </Col>
         </Row>
-
-        <Modal
-          title="Customer"
-          open={customerModalOpen}
-          onOk={() => {
-            setCustomerName((customerDraft || '').trim() || 'Walk-in');
-            setCustomerModalOpen(false);
-          }}
-          onCancel={() => setCustomerModalOpen(false)}
-          okText="Save"
-          cancelText="Cancel"
-        >
-          <Input
-            value={customerDraft}
-            onChange={(e) => setCustomerDraft(e.target.value)}
-            placeholder="Walk-in or customer name"
-          />
-        </Modal>
 
         {/* Invoice Modal */}
         <Modal

@@ -6,6 +6,19 @@ const userSchema = new mongoose.Schema(
 
     email: { type: String, required: true, unique: true },
 
+    phone: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    address: {
+      type: String,
+      trim: true,
+      default: "",
+      maxlength: 500,
+    },
+
     password: { type: String, required: true },
 
     plain_password: { type: String },

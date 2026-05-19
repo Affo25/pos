@@ -309,6 +309,7 @@ export const allowedPages = [
   'sales',
   'suppliers',
   'purchaseorders',
+  'payments',
 ];
 
 export const categories = [

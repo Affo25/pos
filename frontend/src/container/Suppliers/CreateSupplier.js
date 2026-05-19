@@ -1,7 +1,7 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable no-unused-vars */
 import React, { useEffect } from 'react';
-import { Form, Input, Row, Col, message } from 'antd';
+import { Form, Input, InputNumber, Row, Col, message } from 'antd';
 import propTypes from 'prop-types';
 import { useDispatch } from 'react-redux';
 
@@ -29,6 +29,8 @@ function CreateSupplier({ visible, onCancel, supplier, onSuccess }) {
           email: supplier.email,
           phone: supplier.phone,
           address: supplier.address,
+          opening_balance: supplier.opening_balance ?? 0,
+          opening_balance_note: supplier.opening_balance_note || '',
         });
       }
     }
@@ -44,6 +46,8 @@ function CreateSupplier({ visible, onCancel, supplier, onSuccess }) {
         email: values.email,
         phone: values.phone,
         address: values.address,
+        opening_balance: Number(values.opening_balance || 0),
+        opening_balance_note: values.opening_balance_note?.trim() || '',
       };
 
       if (supplier) {
@@ -123,6 +127,21 @@ function CreateSupplier({ visible, onCancel, supplier, onSuccess }) {
                 <Col span={12}>
                   <Form.Item name="address" label="Address">
                     <Input placeholder="Enter Address" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="opening_balance"
+                    label="Opening balance (PKR)"
+                    tooltip="Amount owed to this supplier before orders in the system"
+                    initialValue={0}
+                  >
+                    <InputNumber min={0} style={{ width: '100%' }} placeholder="0" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="opening_balance_note" label="Opening balance note">
+                    <Input placeholder="e.g. Brought forward from ledger" />
                   </Form.Item>
                 </Col>
               </Row>

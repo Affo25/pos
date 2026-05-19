@@ -1,5 +1,46 @@
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+
+function loadEnv() {
+  const root = __dirname;
+  require('dotenv').config({ path: path.join(root, '.env') });
+  // Fallback: some setups only edit .env.txt — load it if SMTP is still missing
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    require('dotenv').config({ path: path.join(root, '.env.txt') });
+  }
+}
+
+loadEnv();
+
+try {
+  const { getEmailStatus } = require('./src/services/emailService');
+  const emailStatus = getEmailStatus();
+  if (emailStatus.provider === 'resend' && emailStatus.resendConfigured) {
+    console.log('✅ Email: Resend API');
+  } else if (emailStatus.smtpConfigured) {
+    console.log(`✅ Email: SMTP (${process.env.SMTP_HOST || 'configured'})`);
+  } else if (emailStatus.resendConfigured) {
+    console.log('✅ Email: Resend API (auto)');
+  } else {
+    console.warn(
+      '⚠️ Email not configured — set RESEND_API_KEY (resend.com) or SMTP_USER/SMTP_PASS in backend/.env',
+    );
+  }
+} catch (e) {
+  console.warn('⚠️ Email status check skipped:', e.message);
+}
+
+try {
+  const { isWhatsAppConfigured, getMessageMode } = require('./src/services/whatsappService');
+  if (isWhatsAppConfigured()) {
+    console.log(`✅ WhatsApp Cloud API (${getMessageMode()} mode)`);
+  } else {
+    console.warn(
+      '⚠️ WhatsApp not configured — set WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID in backend/.env',
+    );
+  }
+} catch (e) {
+  console.warn('⚠️ WhatsApp status check skipped:', e.message);
+}
 
 const express = require('express');
 const app = express();

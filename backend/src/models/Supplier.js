@@ -20,6 +20,17 @@ const SupplierSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  /** Starting payable balance owed to this supplier (PKR) */
+  opening_balance: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  opening_balance_note: {
+    type: String,
+    trim: true,
+    default: '',
+  },
   admin_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });

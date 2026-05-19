@@ -25,6 +25,7 @@ import customerReducer from './customers/customerSlice';
 import saleReducer from './sales/saleSlice';
 import supplierReducer from './suppliers/supplierSlice';
 import purchaseorderReducer from './purchaseorders/purchaseorderSlice';
+import paymentReducer from './payments/paymentSlice';
 import selectedBranchReducer from './selectedBranch/selectedBranchSlice';
 import analyticsReducer from './analytics/analyticsSlice';
 
@@ -62,6 +63,7 @@ const rootReducers = combineReducers({
   sales: saleReducer,
   suppliers: supplierReducer,
   purchaseorders: purchaseorderReducer,
+  payments: paymentReducer,
   analytics: analyticsReducer,
 });
 

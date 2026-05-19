@@ -44,6 +44,8 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
       'stock-management': 'StockManagement',
       suppliers: 'Suppliers',
       purchaseorders: 'PurchaseOrders',
+      payments: 'Payments',
+      customers: 'Customers',
       settings: 'Settings',
     };
 
@@ -96,6 +98,13 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
               </NavLink>
             </Menu.Item>
           )}
+          {canAccess('customers') && (
+            <Menu.Item icon={!topMenu && <FeatherIcon icon="users" />} key="Customers">
+              <NavLink onClick={toggleCollapsed} to={`${path}customers`}>
+                Customers
+              </NavLink>
+            </Menu.Item>
+          )}
         </Menu.ItemGroup>
 
         <Menu.ItemGroup title={groupTitle('Inventory')}>
@@ -127,6 +136,13 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
             <Menu.Item icon={!topMenu && <FeatherIcon icon="shopping-bag" />} key="PurchaseOrders">
               <NavLink onClick={toggleCollapsed} to={`${path}purchaseorders`}>
                 Purchase Orders
+              </NavLink>
+            </Menu.Item>
+          )}
+          {canAccess('payments') && (
+            <Menu.Item icon={!topMenu && <FeatherIcon icon="credit-card" />} key="Payments">
+              <NavLink onClick={toggleCollapsed} to={`${path}payments`}>
+                Payments
               </NavLink>
             </Menu.Item>
           )}

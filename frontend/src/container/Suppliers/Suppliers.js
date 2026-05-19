@@ -2,7 +2,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Row, Col, Input, Select } from 'antd';
-import { TeamOutlined, MailOutlined, PhoneOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
+import {
+  TeamOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  SearchOutlined,
+  BookOutlined,
+} from '@ant-design/icons';
+import SupplierLedgerModal from './SupplierLedgerModal';
+import { formatPkr } from '../../utils/purchaseOrderCalc';
 import FeatherIcon from 'feather-icons-react';
 import CreateSupplier from './CreateSupplier';
 import { Button } from '../../components/buttons/buttons';
@@ -11,14 +21,31 @@ import ProjectLists from '../../config/default/List';
 import { ProjectHeader } from '../../config/default/style';
 import { Main } from '../../config/default/styled';
 import { deleteSupplier, fetchAllSuppliers } from '../../redux/suppliers/supplierSlice';
+import * as supplierApi from '../../redux/suppliers/supplierService';
 import { getComponentPermissions } from '../../config/utils/permission';
 import { ScreenWrap } from '../shared/procurementScreenStyles';
+import { useBulkDelete } from '../../hooks/useBulkDelete';
+import TableToolbarSearchRow from '../../components/bulk/TableToolbarSearchRow';
+
+const COL_W = 156;
 
 function Suppliers() {
   const dispatch = useDispatch();
   const { suppliers, loading } = useSelector((state) => state.suppliers);
   const { login: user } = useSelector(state => state.auth);
   const { canAdd, canEdit, canDelete } = getComponentPermissions(user, 'Suppliers');
+
+  const {
+    selectedRowKeys,
+    bulkDeleting,
+    rowSelection,
+    handleBulkDelete,
+    removeFromSelection,
+  } = useBulkDelete({
+    deleteOne: supplierApi.deleteSupplier,
+    onSuccess: () => dispatch(fetchAllSuppliers()),
+    entityName: 'supplier',
+  });
 
   const [dataSource, setDataSource] = useState([]);
 
@@ -36,7 +63,8 @@ function Suppliers() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortStatus, setSortStatus] = useState('category');
 
-  const { notData, visible, selectedSupplier } = state;
+  const { visible, selectedSupplier } = state;
+  const [ledgerSupplier, setLedgerSupplier] = useState(null);
 
   const handleEdit = (supplier) => {
     const { _id: id, ...rest } = supplier;
@@ -53,7 +81,7 @@ function Suppliers() {
 
   const handleDelete = (id) => {
     dispatch(deleteSupplier(id));
-
+    removeFromSelection(id);
   };
 
   const showModal = () => {
@@ -74,6 +102,7 @@ function Suppliers() {
 
   const handleSearch = (searchText) => {
     setSearchTerm(searchText);
+    setPagination((p) => ({ ...p, current: 1 }));
   };
 
   useEffect(() => {
@@ -130,16 +159,52 @@ function Suppliers() {
     const paginatedData = filteredSuppliers.slice(start, end);
 
     const formatted = paginatedData.map((supplier) => {
-      const { _id, id, name, email, phone, address } = supplier;
+      const { _id, id, name, email, phone, address, opening_balance: openingBalance } = supplier;
       return {
         key: _id || id,
         id: _id || id,
         name: <span style={{ fontWeight: 600, color: '#0f172a' }}>{name}</span>,
-        email: email || <span style={{ color: '#94a3b8' }}>—</span>,
-        phone: phone || <span style={{ color: '#94a3b8' }}>—</span>,
-        address: address || <span style={{ color: '#94a3b8' }}>—</span>,
+        opening_balance: (
+          <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+            {formatPkr(openingBalance || 0)}
+          </span>
+        ),
+        email: email ? (
+          <span style={{ color: '#475569' }}>{email}</span>
+        ) : (
+          <span style={{ color: '#94a3b8' }}>—</span>
+        ),
+        phone: phone ? (
+          <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{phone}</span>
+        ) : (
+          <span style={{ color: '#94a3b8' }}>—</span>
+        ),
+        address: address ? (
+          <span style={{ color: '#64748b' }}>{address}</span>
+        ) : (
+          <span style={{ color: '#94a3b8' }}>—</span>
+        ),
         action: (
           <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+            <button
+              type="button"
+              onClick={() => setLedgerSupplier(supplier)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 30,
+                height: 30,
+                borderRadius: 6,
+                border: '1px solid #BFDBFE',
+                background: '#EFF6FF',
+                cursor: 'pointer',
+                color: '#1D4ED8',
+              }}
+              title="View ledger"
+            >
+              <BookOutlined style={{ fontSize: 14 }} />
+            </button>
             <button type="button" disabled={!canEdit} onClick={() => handleEdit(supplier)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid #E5E7EB', background: '#fff', cursor: 'pointer', color: '#2D3142' }} title="Edit"><EditOutlined style={{ fontSize: 14 }} /></button>
             <button type="button" disabled={!canDelete} onClick={() => handleDelete(_id || id)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid #FEE2E2', background: '#FEF2F2', cursor: 'pointer', color: '#EF4444' }} title="Delete"><DeleteOutlined style={{ fontSize: 14 }} /></button>
           </div>
@@ -169,7 +234,7 @@ function Suppliers() {
     {
       title: '#',
       key: 'index',
-      width: 56,
+      width: 52,
       align: 'center',
       render: (text, record, index) => (pagination.current - 1) * pagination.pageSize + index + 1,
     },
@@ -177,32 +242,45 @@ function Suppliers() {
       title: 'Supplier',
       dataIndex: 'name',
       key: 'name',
+      width: COL_W,
+      align: 'center',
       ellipsis: true,
-      width: 200,
     },
     {
       title: 'Email',
       dataIndex: 'email',
       key: 'email',
+      width: COL_W,
+      align: 'center',
       ellipsis: true,
     },
     {
       title: 'Phone',
       dataIndex: 'phone',
       key: 'phone',
-      width: 160,
+      width: COL_W,
+      align: 'center',
     },
     {
       title: 'Address',
       dataIndex: 'address',
       key: 'address',
+      width: COL_W,
+      align: 'center',
       ellipsis: true,
     },
     {
-      title: 'Action',
+      title: 'Opening bal.',
+      dataIndex: 'opening_balance',
+      key: 'opening_balance',
+      width: 110,
+      align: 'center',
+    },
+    {
+      title: '',
       dataIndex: 'action',
       key: 'action',
-      width: 90,
+      width: 128,
       align: 'center',
       fixed: 'right',
     },
@@ -261,14 +339,19 @@ function Suppliers() {
 
             <div className="table-shell">
               <div className="table-toolbar">
-                <div className="table-toolbar__search">
+                <TableToolbarSearchRow
+                  showBulkDelete={canDelete}
+                  bulkCount={selectedRowKeys.length}
+                  bulkLoading={bulkDeleting}
+                  onBulkDelete={handleBulkDelete}
+                >
                   <Input
                     prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />}
                     placeholder="Search name, email, or phone"
                     allowClear
                     onChange={(e) => handleSearch(e.target.value)}
                   />
-                </div>
+                </TableToolbarSearchRow>
                 <div className="table-toolbar__filters">
                   <span className="table-toolbar__label">Status</span>
                   <Select defaultValue="category" onChange={(value) => setSortStatus(value)} style={{ minWidth: 140 }}>
@@ -281,14 +364,17 @@ function Suppliers() {
               <ProjectLists
                 columns={columns}
                 dataSource={dataSource}
-                loading={loading}
+                loading={loading || bulkDeleting}
                 total={filteredSuppliers.length}
                 current={pagination.current}
                 pageSize={pagination.pageSize}
                 onChange={handlePageChange}
                 onShowSizeChange={handleSizeChange}
                 size="middle"
-                scroll={{ x: 960 }}
+                scroll={{ x: 52 + COL_W * 4 + 110 + 128 }}
+                tableLayout="fixed"
+                rowKey="key"
+                rowSelection={canDelete ? rowSelection : undefined}
               />
             </div>
           </Col>
@@ -300,6 +386,11 @@ function Suppliers() {
           onSuccess={() => {
             dispatch(fetchAllSuppliers());
           }}
+        />
+        <SupplierLedgerModal
+          visible={ledgerSupplier != null}
+          onCancel={() => setLedgerSupplier(null)}
+          supplier={ledgerSupplier}
         />
       </Main>
     </ScreenWrap>

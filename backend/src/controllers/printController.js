@@ -4,7 +4,7 @@ const { loadBrandingForRequest } = require('../pdf/branding');
 const { generateInvoicePDF } = require('../pdf/generateInvoicePdf');
 const { generateSalesRegisterPDF } = require('../pdf/generateSalesRegisterPdf');
 
-const VALID_PDF_TEMPLATES = ['report_a4', 'restaurant_80mm', 'a4_80mm_strip'];
+const VALID_PDF_TEMPLATES = ['report_a4', 'purchase_order_a4', 'restaurant_80mm', 'a4_80mm_strip'];
 
 function applyTemplateOverride(branding, template) {
   if (template && VALID_PDF_TEMPLATES.includes(template)) {
@@ -47,14 +47,14 @@ exports.printInvoice = async (req, res) => {
 
     let branding = await loadBrandingForRequest(req);
     branding = applyTemplateOverride(branding, template);
-    const filepath = await generateInvoicePDF(invoice, branding);
+    const filepath = await generateInvoicePDF(invoice, { ...branding, printGrayscale: true });
 
     if (!printer) {
       return res.json({ success: true, message: 'PDF generated (no printer specified)', filepath });
     }
 
     const pdfToPrinter = require('pdf-to-printer');
-    await pdfToPrinter.print(filepath, { printer });
+    await pdfToPrinter.print(filepath, { printer, monochrome: true });
 
     setTimeout(() => { try { fs.unlinkSync(filepath); } catch { /* ok */ } }, 10000);
 
@@ -135,11 +135,11 @@ exports.printSalesRegister = async (req, res) => {
     const branding = await loadBrandingForRequest(req);
     const filepath = await generateSalesRegisterPDF(
       { records, subtitle, generated_at },
-      branding
+      { ...branding, printGrayscale: true },
     );
 
     const pdfToPrinter = require('pdf-to-printer');
-    await pdfToPrinter.print(filepath, { printer });
+    await pdfToPrinter.print(filepath, { printer, monochrome: true });
 
     setTimeout(() => { try { fs.unlinkSync(filepath); } catch { /* ok */ } }, 10000);
 

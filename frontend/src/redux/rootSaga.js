@@ -1,6 +1,7 @@
 import { all } from 'redux-saga/effects';
 import supplierSaga from './suppliers/supplierSaga';
 import purchaseorderSaga from './purchaseorders/purchaseorderSaga';
+import paymentSaga from './payments/paymentSaga';
 import saleSaga from './sales/saleSaga';
 import customerSaga from './customers/customerSaga';
 import subcategorySaga from './subcategorys/subcategorySaga';
@@ -31,6 +32,7 @@ export default function* rootSaga() {
     saleSaga(),
     supplierSaga(),
     purchaseorderSaga(),
+    paymentSaga(),
     analyticsSaga(),
   ]);
 }

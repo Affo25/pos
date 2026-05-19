@@ -1,26 +1,116 @@
 /* eslint-disable camelcase */
-// container/Users/CreateUser.js
 import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Form, Input, Row, Col, Select, Table, Checkbox, Tabs, Button as AntButton, Space } from 'antd';
+import {
+  Form,
+  Input,
+  InputNumber,
+  Row,
+  Col,
+  Select,
+  Table,
+  Checkbox,
+  Tabs,
+  Button as AntButton,
+  Space,
+  Divider,
+} from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
-import { KeyOutlined, ReloadOutlined,  } from '@ant-design/icons';
+import { KeyOutlined, ReloadOutlined } from '@ant-design/icons';
+import styled from 'styled-components';
 import { Button } from '../../components/buttons/buttons';
 import { Modal } from '../../components/modals/antd-modals';
 import { createUser, updateUser } from '../../redux/users/userSlice';
 import { allowedPages } from '../../config/data/data';
 import { BasicFormWrapper } from '../../config/default/styled';
 import ModernModalStyles from '../shared/modalStyles';
+import {
+  normalizePhone,
+  pkPhoneFormRules,
+  toPkNationalPart,
+  fromPkNationalDigits,
+  PK_PHONE_DEFAULT_E164,
+} from '../../utils/phoneValidation';
 
-function CreateUser({ visible, onCancel, user }) {
-  const { Option } = Select;
+const { Option } = Select;
+const { TabPane } = Tabs;
+
+const UserModalForm = styled.div`
+  padding: 0;
+
+  .ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 8px 8px 0 0;
+    border-color: #E5E7EB;
+  }
+
+  .ant-tabs-card > .ant-tabs-nav .ant-tabs-tab-active {
+    border-bottom-color: #fff;
+  }
+
+  .ant-tabs-content-holder {
+    padding-top: 4px;
+  }
+
+  .ant-tabs-tabpane {
+    padding-top: 6px;
+  }
+
+  .ant-form-item {
+    margin-bottom: 14px !important;
+  }
+
+  .ant-form-item-label > label {
+    font-weight: 600;
+    color: #374151;
+    font-size: 13px;
+  }
+
+  .ant-input,
+  .ant-input-number,
+  .ant-picker,
+  .ant-input-affix-wrapper {
+    border-radius: 8px !important;
+    border-color: #D1D5DB !important;
+    &:hover {
+      border-color: #9CA3AF !important;
+    }
+    &:focus,
+    &-focused {
+      border-color: #EF8354 !important;
+      box-shadow: 0 0 0 2px rgba(239, 131, 84, 0.12) !important;
+    }
+  }
+
+  .ant-select-selector {
+    border-radius: 8px !important;
+    border-color: #D1D5DB !important;
+    &:hover {
+      border-color: #9CA3AF !important;
+    }
+  }
+
+  .ant-select-focused .ant-select-selector {
+    border-color: #EF8354 !important;
+    box-shadow: 0 0 0 2px rgba(239, 131, 84, 0.12) !important;
+  }
+
+  .permissions-table .ant-table-thead > tr > th {
+    background: #f9fafb;
+    font-weight: 600;
+    font-size: 12px;
+    color: #64748b;
+  }
+`;
+
+function CreateUser({ visible, onCancel, user, onSuccess }) {
   const { login: loggedInUser } = useSelector((state) => state.auth);
   const [form] = Form.useForm();
   const dispatch = useDispatch();
-  const { TabPane } = Tabs;
 
-  // Ant Design date input expects YYYY-MM-DD strings.
   const toDateInputValue = (dateValue) => {
     if (!dateValue) return null;
     try {
@@ -31,7 +121,6 @@ function CreateUser({ visible, onCancel, user }) {
     }
   };
 
-  // Function to generate random license key
   const generateLicenseKey = () => {
     const prefix = 'LIC';
     const timestamp = Date.now();
@@ -40,15 +129,14 @@ function CreateUser({ visible, onCancel, user }) {
     return `${prefix}-${timestamp}-${random}-${checksum}`;
   };
 
-  // Function to handle generate license key button click
   const handleGenerateLicenseKey = () => {
     const newLicenseKey = generateLicenseKey();
     form.setFieldsValue({ license_key: newLicenseKey });
-    toast.success('License key generated successfully!');
+    toast.success('License key generated');
   };
 
-  const generatePermissions = () => {
-    return allowedPages.map((page, index) => ({
+  const generatePermissions = () =>
+    allowedPages.map((page, index) => ({
       key: `${index + 1}`,
       component: page.charAt(0).toUpperCase() + page.slice(1),
       allowed: false,
@@ -56,32 +144,20 @@ function CreateUser({ visible, onCancel, user }) {
       edit: false,
       delete: false,
     }));
-  };
 
   const [permissionsData, setPermissionsData] = useState(generatePermissions());
   const [checkAll, setCheckAll] = useState(false);
 
   const handlePermissionChange = (index, type, value) => {
     let updated = permissionsData.map((item, idx) =>
-      idx === index
-        ? {
-          ...item,
-          [type]: value,
-        }
-        : item
+      idx === index ? { ...item, [type]: value } : item,
     );
 
     if (type === 'allowed') {
       updated = updated.map((item, idx) =>
         idx === index
-          ? {
-            ...item,
-            allowed: value,
-            add: value,
-            edit: value,
-            delete: value,
-          }
-          : item
+          ? { ...item, allowed: value, add: value, edit: value, delete: value }
+          : item,
       );
     }
 
@@ -92,32 +168,27 @@ function CreateUser({ visible, onCancel, user }) {
   const handleCheckAllChange = (e) => {
     const { checked } = e.target;
     setCheckAll(checked);
-
-    const updated = permissionsData.map((item) => ({
-      ...item,
-      allowed: checked,
-      add: checked,
-      edit: checked,
-      delete: checked,
-    }));
-
-    setPermissionsData(updated);
+    setPermissionsData(
+      permissionsData.map((item) => ({
+        ...item,
+        allowed: checked,
+        add: checked,
+        edit: checked,
+        delete: checked,
+      })),
+    );
   };
 
   const permissionsColumns = [
     {
       title: (
-        <Checkbox
-          checked={checkAll}
-          onChange={handleCheckAllChange}
-          style={{ fontSize: '14px', fontWeight: 600 }}
-        >
-          Check all
+        <Checkbox checked={checkAll} onChange={handleCheckAllChange}>
+          All
         </Checkbox>
       ),
       dataIndex: 'allowed',
       key: 'allowed',
-      width: 120,
+      width: 100,
       render: (_, record, index) => (
         <Checkbox
           checked={record.allowed}
@@ -125,16 +196,17 @@ function CreateUser({ visible, onCancel, user }) {
         />
       ),
     },
-    { 
-      title: 'Component', 
-      dataIndex: 'component', 
+    {
+      title: 'Component',
+      dataIndex: 'component',
       key: 'component',
-      render: (text) => <span style={{ fontSize: '14px', fontWeight: 500 }}>{text}</span>
     },
     {
       title: 'Add',
       dataIndex: 'add',
       key: 'add',
+      width: 72,
+      align: 'center',
       render: (_, record, index) => (
         <Checkbox
           checked={record.add}
@@ -147,6 +219,8 @@ function CreateUser({ visible, onCancel, user }) {
       title: 'Edit',
       dataIndex: 'edit',
       key: 'edit',
+      width: 72,
+      align: 'center',
       render: (_, record, index) => (
         <Checkbox
           checked={record.edit}
@@ -159,6 +233,8 @@ function CreateUser({ visible, onCancel, user }) {
       title: 'Delete',
       dataIndex: 'delete',
       key: 'delete',
+      width: 72,
+      align: 'center',
       render: (_, record, index) => (
         <Checkbox
           checked={record.delete}
@@ -171,63 +247,51 @@ function CreateUser({ visible, onCancel, user }) {
 
   const getUserTypeOptions = () => {
     if (!loggedInUser) return [];
-
     const { user_type } = loggedInUser;
-
     if (user_type === 'superAdmin') return ['admin'];
     if (user_type === 'admin') return ['user'];
-
     return [];
   };
-  
+
   const resetForm = () => {
     form.resetFields();
+    form.setFieldsValue({ phone: PK_PHONE_DEFAULT_E164 });
     setPermissionsData(generatePermissions());
     setCheckAll(false);
   };
 
   useEffect(() => {
-    if (visible) {
-      resetForm();
+    if (!visible) return;
 
-      if (user) {
-        form.setFieldsValue({
-          name: user.name,
-          email: user.email,
-          user_type: user.user_type,
-          status: user.status,
-          password: user.plain_password,
-          plan: user.plan || 'free',
-          subscription_status: user.subscription_status || 'active',
-          subscription_start: toDateInputValue(user.subscription_start),
-          subscription_end: toDateInputValue(user.subscription_end),
-          license_key: user.license_key,
-          license_status: user.license_status || 'active',
-          allowed_devices: user.allowed_devices || 1,
+    resetForm();
+
+    if (user) {
+      form.setFieldsValue({
+        name: user.name,
+        email: user.email,
+        user_type: user.user_type,
+        status: user.status,
+        password: user.plain_password,
+        plan: user.plan || 'free',
+        subscription_status: user.subscription_status || 'active',
+        subscription_start: toDateInputValue(user.subscription_start),
+        subscription_end: toDateInputValue(user.subscription_end),
+        license_key: user.license_key,
+        license_status: user.license_status || 'active',
+        allowed_devices: user.allowed_devices || 1,
+        phone: user.phone ? normalizePhone(user.phone) : '',
+        address: user.address || '',
+      });
+
+      if (user.permissions && Array.isArray(user.permissions)) {
+        const updatedPermissions = generatePermissions().map((perm) => {
+          const existing = user.permissions.find(
+            (p) => p.component.toLowerCase() === perm.component.toLowerCase(),
+          );
+          return existing ? { ...perm, ...existing, allowed: true } : perm;
         });
-
-        if (user.permissions && Array.isArray(user.permissions)) {
-          const updatedPermissions = generatePermissions().map((perm) => {
-            const existing = user.permissions.find(
-              (p) => p.component.toLowerCase() === perm.component.toLowerCase()
-            );
-            return existing
-              ? {
-                ...perm,
-                ...existing,
-                allowed: true,
-              }
-              : perm;
-          });
-          setPermissionsData(updatedPermissions);
-          setCheckAll(updatedPermissions.every((p) => p.allowed));
-        } else {
-          setPermissionsData(generatePermissions());
-          setCheckAll(false);
-        }
-      } else {
-        setPermissionsData(generatePermissions());
-        setCheckAll(false);
+        setPermissionsData(updatedPermissions);
+        setCheckAll(updatedPermissions.every((p) => p.allowed));
       }
     }
   }, [user, form, visible]);
@@ -265,408 +329,268 @@ function CreateUser({ visible, onCancel, user }) {
         license_key: values.license_key,
         license_status: values.license_status,
         allowed_devices: values.allowed_devices,
+        phone: normalizePhone(values.phone),
+        address: values.address ? String(values.address).trim() : '',
       };
 
       if (user) {
-        // Keep current blocked state; updateUser expects `is_blocked`.
         userData.is_blocked = user.is_blocked ?? false;
-
         const { _id: id } = user;
         if (values.password) {
           userData.password = values.password;
         }
         await dispatch(updateUser(id || user.id, userData));
-        toast.success('User updated successfully!');
+        toast.success('User updated successfully');
       } else {
         userData.password = values.password;
         await dispatch(createUser(userData));
-        toast.success('User created successfully!');
+        toast.success('User created successfully');
       }
 
+      resetForm();
       onCancel();
+      if (onSuccess) onSuccess();
     } catch (error) {
       toast.error(error.message || 'Operation failed');
     }
   };
 
-  // Custom styles for larger text
-  const tabHeaderStyle = {
-    fontSize: '16px',
-    fontWeight: 600,
-  };
-
-  const formLabelStyle = {
-    fontSize: '14px',
-    fontWeight: 500,
-  };
-
-  // Custom header with light blue background
-  const customHeader = (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'space-between', 
-      alignItems: 'center',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
-      padding: '16px 24px',
-      margin: '-24px -24px 0 -24px',
-      borderBottom: '2px solid #91d5ff',
-      borderRadius: '8px 8px 0 0'
-    }}>
-      <div style={{ 
-        fontSize: '20px', 
-        fontWeight: 700, 
-        color: '#0050b3',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px'
-      }}>
-        <span style={{ fontSize: '24px' }}>
-          {user ? '✏️' : '➕'}
-        </span>
-        <span style={{color:"white"}}>{user ? 'Edit User' : 'Create New User'}</span>
-      </div>
-      {/* <AntButton
-        type="text"
-        icon={<CloseOutlined style={{ fontSize: '18px', color: '#0050b3' }} />}
-        onClick={() => {
-          resetForm();
-          onCancel();
-        }}
-        style={{ 
-          width: '32px', 
-          height: '32px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-      /> */}
-    </div>
-  );
-
   return (
     <>
       <ModernModalStyles />
       <Modal
-        className="modern-modal"
+        title={user ? 'Edit user' : 'Create user'}
         visible={visible}
-        width={1000}
-        footer={null}
-        closable={false}
         onCancel={() => {
-        resetForm();
-        onCancel();
-      }}
-      style={{ top: 20 }}
-      bodyStyle={{ padding: '24px', maxHeight: '70vh', overflowY: 'auto' }}
-      title={null}
-    >
-      {/* Custom Header */}
-      {customHeader}
-      
-      <div className="page-modal" style={{ marginTop: '24px' }}>
-        <BasicFormWrapper>
-          <Form 
-            form={form} 
-            layout="vertical"
-            style={{ fontSize: '15px' }}
-          >
-            <Tabs 
-              defaultActiveKey="1"
-              size="large"
-              tabBarStyle={{ 
-                marginBottom: '24px',
-                borderBottom: '2px solid #e8e8e8'
+          resetForm();
+          onCancel();
+        }}
+        width={1000}
+        className="modern-modal"
+        bodyStyle={{
+          maxHeight: '72vh',
+          overflowY: 'auto',
+        }}
+        footer={[
+          <Space key="actions" direction="horizontal" style={{ width: '100%', justifyContent: 'flex-end' }}>
+            <Button
+              key="cancel"
+              type="white"
+              onClick={() => {
+                resetForm();
+                onCancel();
               }}
             >
-              {/* Basic Information Tab */}
-              <TabPane 
-                tab={<span style={tabHeaderStyle}>📋 Basic Information</span>} 
-                key="1"
-              >
-                <Row gutter={24}>
-                  <Col span={12} className="mt-2 pb-0">
-                    <Form.Item
-                      name="name"
-                      label={<span style={formLabelStyle}>Full Name</span>}
-                      rules={[{ required: true, message: 'Please enter name' }]}
-                    >
-                      <Input 
-                        placeholder="Enter full name" 
-                        size="large"
-                        style={{ fontSize: '14px', height: '42px' }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12} className="mt-2 pb-0">
-                    <Form.Item
-                      name="email"
-                      label={<span style={formLabelStyle}>Email Address</span>}
-                      rules={[
-                        { required: true, message: 'Please enter email' },
-                        { type: 'email', message: 'Invalid email' },
-                      ]}
-                    >
-                      <Input 
-                        placeholder="Enter email address" 
-                        size="large"
-                        style={{ fontSize: '14px', height: '42px' }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12} className="mt-2 pb-0">
-                    <Form.Item
-                      name="password"
-                      label={<span style={formLabelStyle}>Password</span>}
-                      rules={user ? [] : [{ required: true, message: 'Please enter password' }]}
-                      extra={user ? "Leave blank to keep current password" : ""}
-                    >
-                      <Input.Password 
-                        placeholder={user ? "Enter new password (optional)" : "Enter password"} 
-                        size="large"
-                        style={{ fontSize: '14px', height: '42px' }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12} className="mt-2 pb-0">
-                    <Form.Item
-                      name="user_type"
-                      label={<span style={formLabelStyle}>User Type</span>}
-                      rules={[{ required: true, message: 'Please select user type' }]}
-                    >
-                      <Select 
-                        placeholder="Select user type" 
-                        size="large"
-                        style={{ fontSize: '14px' }}
+              Cancel
+            </Button>
+            <Button key="save" type="primary" onClick={handleOk}>
+              {user ? 'Update' : 'Save'}
+            </Button>
+          </Space>,
+        ]}
+      >
+        <BasicFormWrapper>
+          <UserModalForm>
+            <Form
+              form={form}
+              layout="vertical"
+              size="middle"
+              initialValues={{
+                status: 'active',
+                plan: 'free',
+                subscription_status: 'active',
+                license_status: 'active',
+                allowed_devices: 1,
+                phone: PK_PHONE_DEFAULT_E164,
+              }}
+            >
+              <Tabs defaultActiveKey="1" type="card">
+                <TabPane tab="Basic info" key="1">
+                  <Row gutter={[16, 0]}>
+                    <Col xs={24} sm={12}>
+                      <Form.Item
+                        name="name"
+                        label="Full name"
+                        rules={[{ required: true, message: 'Please enter name' }]}
                       >
-                        {getUserTypeOptions().map((type) => (
-                          <Option key={type} value={type} style={{ fontSize: '14px' }}>
-                            {type.charAt(0).toUpperCase() + type.slice(1)}
-                          </Option>
-                        ))}
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                  <Col span={12} className="mt-2 pb-0">
-                    <Form.Item
-                      name="status"
-                      label={<span style={formLabelStyle}>Account Status</span>}
-                      rules={[{ required: true, message: 'Please select status' }]}
-                    >
-                      <Select 
-                        placeholder="Select status" 
-                        size="large"
-                        style={{ fontSize: '14px' }}
+                        <Input placeholder="Enter full name" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12}>
+                      <Form.Item
+                        name="email"
+                        label="Email"
+                        rules={[
+                          { required: true, message: 'Please enter email' },
+                          { type: 'email', message: 'Invalid email' },
+                        ]}
                       >
-                        <Option value="active" style={{ fontSize: '14px' }}>✅ Active</Option>
-                        <Option value="inactive" style={{ fontSize: '14px' }}>⛔ Inactive</Option>
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </TabPane>
-
-              {/* Permissions Tab */}
-              <TabPane 
-                tab={<span style={tabHeaderStyle}>🔐 Permissions</span>} 
-                key="2"
-              >
-                <div style={{ 
-                  background: '#f0f5ff', 
-                  padding: '12px 16px', 
-                  borderRadius: '8px',
-                  marginBottom: '20px',
-                  borderLeft: '4px solid #1890ff'
-                }}>
-                  <span style={{ fontSize: '14px', color: '#1890ff', fontWeight: 500 }}>
-                    💡 Configure access permissions for each module
-                  </span>
-                </div>
-                <Table
-                  style={{ marginTop: 8 }}
-                  columns={permissionsColumns}
-                  dataSource={permissionsData}
-                  pagination={false}
-                  bordered
-                  size="middle"
-                />
-              </TabPane>
-
-              {/* Subscription & License Tab */}
-              <TabPane 
-                tab={<span style={tabHeaderStyle}>💳 Subscription & License</span>} 
-                key="3"
-              >
-                <div style={{ 
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
-                  padding: '12px 16px', 
-                  borderRadius: '8px',
-                  marginBottom: '24px',
-                  color: 'white'
-                }}>
-                  <span style={{ fontSize: '14px', fontWeight: 500 }}>
-                    🎯 Manage user subscription and license details
-                  </span>
-                </div>
-                <Row gutter={24}>
-                  <Col span={12} className="mt-2 pb-0">
-                    <Form.Item
-                      name="plan"
-                      label={<span style={formLabelStyle}>Subscription Plan</span>}
-                    >
-                      <Select 
-                        placeholder="Select plan" 
-                        size="large"
-                        style={{ fontSize: '14px' }}
+                        <Input placeholder="Enter email address" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12}>
+                      <Form.Item
+                        name="password"
+                        label="Password"
+                        rules={user ? [] : [{ required: true, message: 'Please enter password' }]}
+                        extra={user ? 'Leave blank to keep current password' : undefined}
                       >
-                        <Option value="free" style={{ fontSize: '14px' }}>🆓 Free</Option>
-                        <Option value="premium" style={{ fontSize: '14px' }}>⭐ Premium</Option>
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                  <Col span={12} className="mt-2 pb-0">
-                    <Form.Item
-                      name="subscription_status"
-                      label={<span style={formLabelStyle}>Subscription Status</span>}
-                    >
-                      <Select 
-                        placeholder="Select subscription status" 
-                        size="large"
-                        style={{ fontSize: '14px' }}
+                        <Input.Password placeholder={user ? 'New password (optional)' : 'Enter password'} />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12}>
+                      <Form.Item
+                        name="user_type"
+                        label="User type"
+                        rules={[{ required: true, message: 'Please select user type' }]}
                       >
-                        <Option value="active" style={{ fontSize: '14px' }}>🟢 Active</Option>
-                        <Option value="expired" style={{ fontSize: '14px' }}>🔴 Expired</Option>
-                        <Option value="cancelled" style={{ fontSize: '14px' }}>⚪ Cancelled</Option>
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                  <Col span={12} className="mt-2 pb-0">
-                    <Form.Item
-                      name="subscription_start"
-                      label={<span style={formLabelStyle}>Subscription Start Date</span>}
-                    >
-                      <Input 
-                        type="date" 
-                        placeholder="YYYY-MM-DD" 
-                        size="large"
-                        style={{ fontSize: '14px', height: '42px' }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12} className="mt-2 pb-0">
-                    <Form.Item
-                      name="subscription_end"
-                      label={<span style={formLabelStyle}>Subscription End Date</span>}
-                    >
-                      <Input 
-                        type="date" 
-                        placeholder="YYYY-MM-DD" 
-                        size="large"
-                        style={{ fontSize: '14px', height: '42px' }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={24} className="mt-2 pb-0">
-                    <Form.Item
-                      name="license_key"
-                      label={<span style={formLabelStyle}>License Key</span>}
-                      extra="Click the generate button to create a unique license key"
-                    >
-                      <Space.Compact style={{ width: '100%' }}>
-                        <Input 
-                          placeholder="License key will be generated automatically" 
-                          size="large"
-                          style={{ fontSize: '14px', height: '42px', fontFamily: 'monospace' }}
-                          readOnly
+                        <Select placeholder="Select user type">
+                          {getUserTypeOptions().map((type) => (
+                            <Option key={type} value={type}>
+                              {type.charAt(0).toUpperCase() + type.slice(1)}
+                            </Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12}>
+                      <Form.Item
+                        name="status"
+                        label="Account status"
+                        rules={[{ required: true, message: 'Please select status' }]}
+                      >
+                        <Select placeholder="Select status">
+                          <Option value="active">Active</Option>
+                          <Option value="inactive">Inactive</Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12}>
+                      <Form.Item
+                        name="phone"
+                        label="Phone (WhatsApp)"
+                        rules={pkPhoneFormRules}
+                        extra="Country code +92 is fixed. Enter 10 digits (e.g. 3247890891)."
+                        getValueProps={(value) => ({ value: toPkNationalPart(value) })}
+                        getValueFromEvent={(e) => {
+                          const digits = String(e?.target?.value ?? '').replace(/\D/g, '').slice(0, 10);
+                          return digits ? fromPkNationalDigits(digits) : '';
+                        }}
+                      >
+                        <Input
+                          addonBefore="+92"
+                          placeholder="3247890891"
+                          maxLength={10}
+                          inputMode="numeric"
                         />
-                        <AntButton 
-                          type="primary" 
-                          icon={<KeyOutlined />}
-                          onClick={handleGenerateLicenseKey}
-                          size="large"
-                          style={{ height: '42px' }}
-                        >
-                          Generate
-                        </AntButton>
-                        <AntButton 
-                          icon={<ReloadOutlined />}
-                          onClick={() => form.setFieldsValue({ license_key: '' })}
-                          size="large"
-                          style={{ height: '42px' }}
-                        >
-                          Clear
-                        </AntButton>
-                      </Space.Compact>
-                    </Form.Item>
-                  </Col>
-                  <Col span={12} className="mt-2 pb-0">
-                    <Form.Item
-                      name="license_status"
-                      label={<span style={formLabelStyle}>License Status</span>}
-                    >
-                      <Select 
-                        placeholder="Select license status" 
-                        size="large"
-                        style={{ fontSize: '14px' }}
-                      >
-                        <Option value="active" style={{ fontSize: '14px' }}>✅ Active</Option>
-                        <Option value="blocked" style={{ fontSize: '14px' }}>🚫 Blocked</Option>
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                  <Col span={12} className="mt-2 pb-0">
-                    <Form.Item
-                      name="allowed_devices"
-                      label={<span style={formLabelStyle}>Allowed Devices</span>}
-                      extra="Maximum number of devices that can use this account"
-                    >
-                      <Input 
-                        type="number" 
-                        min={1} 
-                        max={10}
-                        placeholder="Number of allowed devices" 
-                        size="large"
-                        style={{ fontSize: '14px', height: '42px' }}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </TabPane>
-            </Tabs>
-          </Form>
-        </BasicFormWrapper>
-      </div>
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24}>
+                      <Form.Item name="address" label="Address">
+                        <Input.TextArea rows={2} placeholder="Street, city, country" maxLength={500} showCount />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </TabPane>
 
-      {/* Footer Buttons */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'flex-end', 
-        gap: '12px',
-        padding: '16px 24px',
-        margin: '24px -24px -24px -24px',
-        borderTop: '1px solid #f0f0f0',
-        backgroundColor: '#fafafa',
-        borderRadius: '0 0 8px 8px'
-      }}>
-        <Button 
-          size="default" 
-          onClick={() => {
-            resetForm();
-            onCancel();
-          }}
-          style={{ fontSize: '14px', height: '40px', padding: '0 24px' }}
-        >
-          Cancel
-        </Button>
-        <Button 
-          size="default" 
-          type="primary" 
-          onClick={handleOk}
-          style={{ fontSize: '14px', fontWeight: 600, height: '40px', padding: '0 32px' }}
-        >
-          {user ? 'Update User' : 'Create User'}
-        </Button>
-      </div>
-    </Modal>
+                <TabPane tab="Permissions" key="2">
+                  <Table
+                    className="permissions-table"
+                    columns={permissionsColumns}
+                    dataSource={permissionsData}
+                    pagination={false}
+                    bordered
+                    size="small"
+                  />
+                </TabPane>
+
+                <TabPane tab="Subscription & license" key="3">
+                  <Row gutter={[16, 0]}>
+                    <Col xs={24} sm={12}>
+                      <Form.Item name="plan" label="Subscription plan">
+                        <Select placeholder="Select plan">
+                          <Option value="free">Free</Option>
+                          <Option value="premium">Premium</Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12}>
+                      <Form.Item name="subscription_status" label="Subscription status">
+                        <Select placeholder="Select subscription status">
+                          <Option value="active">Active</Option>
+                          <Option value="expired">Expired</Option>
+                          <Option value="cancelled">Cancelled</Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Divider plain orientation="left" style={{ fontSize: 13, color: '#64748b', margin: '10px 0' }}>
+                    Subscription period
+                  </Divider>
+
+                  <Row gutter={[16, 0]}>
+                    <Col xs={24} sm={12}>
+                      <Form.Item name="subscription_start" label="Start date">
+                        <Input type="date" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12}>
+                      <Form.Item name="subscription_end" label="End date">
+                        <Input type="date" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Divider plain orientation="left" style={{ fontSize: 13, color: '#64748b', margin: '10px 0' }}>
+                    License
+                  </Divider>
+
+                  <Row gutter={[16, 0]}>
+                    <Col span={24}>
+                      <Form.Item
+                        name="license_key"
+                        label="License key"
+                        extra="Generate a unique key or leave empty"
+                      >
+                        <Space.Compact style={{ width: '100%' }}>
+                          <Input
+                            placeholder="License key"
+                            style={{ fontFamily: 'ui-monospace, monospace' }}
+                          />
+                          <AntButton type="primary" icon={<KeyOutlined />} onClick={handleGenerateLicenseKey}>
+                            Generate
+                          </AntButton>
+                          <AntButton icon={<ReloadOutlined />} onClick={() => form.setFieldsValue({ license_key: '' })}>
+                            Clear
+                          </AntButton>
+                        </Space.Compact>
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12}>
+                      <Form.Item name="license_status" label="License status">
+                        <Select placeholder="Select license status">
+                          <Option value="active">Active</Option>
+                          <Option value="blocked">Blocked</Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12}>
+                      <Form.Item
+                        name="allowed_devices"
+                        label="Allowed devices"
+                        extra="Maximum devices for this account"
+                      >
+                        <InputNumber min={1} max={10} style={{ width: '100%' }} placeholder="Devices" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </TabPane>
+              </Tabs>
+            </Form>
+          </UserModalForm>
+        </BasicFormWrapper>
+      </Modal>
     </>
   );
 }
@@ -675,10 +599,12 @@ CreateUser.propTypes = {
   visible: PropTypes.bool.isRequired,
   onCancel: PropTypes.func.isRequired,
   user: PropTypes.object,
+  onSuccess: PropTypes.func,
 };
 
 CreateUser.defaultProps = {
   user: null,
+  onSuccess: null,
 };
 
 export default CreateUser;

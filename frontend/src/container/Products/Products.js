@@ -17,6 +17,8 @@ import { API_BASE } from '../../config/apiBase';
 import { deleteProduct, fetchAllProducts } from '../../redux/products/productSlice';
 import * as productApi from '../../redux/products/productService';
 import { ScreenWrap } from '../shared/procurementScreenStyles';
+import { useBulkDelete } from '../../hooks/useBulkDelete';
+import TableToolbarSearchRow from '../../components/bulk/TableToolbarSearchRow';
 
 function Products() {
   const dispatch = useDispatch();
@@ -40,8 +42,22 @@ function Products() {
   const [uploadingExcel, setUploadingExcel] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
   const [showExcelUpload, setShowExcelUpload] = useState(false);
-  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
-  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const {
+    selectedRowKeys,
+    setSelectedRowKeys,
+    bulkDeleting,
+    rowSelection,
+    handleBulkDelete,
+    removeFromSelection,
+  } = useBulkDelete({
+    deleteOne: productApi.deleteProduct,
+    onSuccess: () => dispatch(fetchAllProducts()),
+    entityName: 'product',
+    confirmTitle: 'Delete selected medicines?',
+    confirmContent: (count) =>
+      `This will permanently delete ${count} product(s). This cannot be undone.`,
+  });
 
   const { notData, visible, selectedProduct } = state;
   const { Text } = Typography;
@@ -61,52 +77,7 @@ function Products() {
 
   const handleDelete = (id) => {
     dispatch(deleteProduct(id));
-    setSelectedRowKeys((keys) => keys.filter((k) => String(k) !== String(id)));
-  };
-
-  const handleBulkDelete = () => {
-    const count = selectedRowKeys.length;
-    if (!count) return;
-    Modal.confirm({
-      title: 'Delete selected medicines?',
-      content: `This will permanently delete ${count} product(s). This cannot be undone.`,
-      okText: 'Delete',
-      okButtonProps: { danger: true },
-      cancelText: 'Cancel',
-      onOk: async () => {
-        const ids = [...selectedRowKeys];
-        setBulkDeleting(true);
-        let failed = 0;
-        const BATCH = 8;
-        try {
-          for (let i = 0; i < ids.length; i += BATCH) {
-            const slice = ids.slice(i, i + BATCH);
-            const results = await Promise.allSettled(slice.map((id) => productApi.deleteProduct(id)));
-            results.forEach((r) => {
-              if (r.status === 'rejected') failed += 1;
-            });
-          }
-          setSelectedRowKeys([]);
-          dispatch(fetchAllProducts());
-          if (failed) {
-            message.warning(`${ids.length - failed} deleted, ${failed} failed.`);
-          } else {
-            message.success(`Deleted ${ids.length} product(s).`);
-          }
-        } catch (e) {
-          message.error(e.message || 'Bulk delete failed');
-        } finally {
-          setBulkDeleting(false);
-        }
-      },
-    });
-  };
-
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: setSelectedRowKeys,
-    preserveSelectedRowKeys: true,
-    columnWidth: 48,
+    removeFromSelection(id);
   };
 
   const showModal = () => {
@@ -513,28 +484,19 @@ function Products() {
 
             <div className="table-shell">
               <div className="table-toolbar">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
-                  {selectedRowKeys.length > 0 ? (
-                    <Button
-                      type="default"
-                      danger
-                      size="default"
-                      loading={bulkDeleting}
-                      onClick={handleBulkDelete}
-                      style={{ flexShrink: 0 }}
-                    >
-                      Delete selected ({selectedRowKeys.length})
-                    </Button>
-                  ) : null}
-                  <div className="table-toolbar__search">
-                    <Input
-                      prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />}
-                      placeholder="Search by name, SKU, size, or batch"
-                      allowClear
-                      onChange={(e) => handleSearch(e.target.value)}
-                    />
-                  </div>
-                </div>
+                <TableToolbarSearchRow
+                  showBulkDelete
+                  bulkCount={selectedRowKeys.length}
+                  bulkLoading={bulkDeleting}
+                  onBulkDelete={handleBulkDelete}
+                >
+                  <Input
+                    prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />}
+                    placeholder="Search by name, SKU, size, or batch"
+                    allowClear
+                    onChange={(e) => handleSearch(e.target.value)}
+                  />
+                </TableToolbarSearchRow>
                 <div className="table-toolbar__filters">
                   <span className="table-toolbar__label">Status</span>
                   <Select defaultValue="all" onChange={(value) => setSortStatus(value)} style={{ minWidth: 150 }}>

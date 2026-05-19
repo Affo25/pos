@@ -56,7 +56,13 @@ const SaleSchema = new mongoose.Schema({
   ],
   total_return_amount: {
     type: Number,
-    default: 0
+    default: 0,
+  },
+  /** Cash received from customer against this sale */
+  amount_received: {
+    type: Number,
+    default: 0,
+    min: 0,
   },
   sale_date: {
     type: Date,

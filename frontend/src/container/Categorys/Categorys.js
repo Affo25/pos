@@ -11,8 +11,11 @@ import ProjectLists from '../../config/default/List';
 import { ProjectHeader } from '../../config/default/style';
 import { Main } from '../../config/default/styled';
 import { deleteCategory, fetchAllCategorys } from '../../redux/categorys/categorySlice';
+import * as categoryApi from '../../redux/categorys/categoryService';
 import { getComponentPermissions } from '../../config/utils/permission';
 import { ScreenWrap } from '../shared/procurementScreenStyles';
+import { useBulkDelete } from '../../hooks/useBulkDelete';
+import TableToolbarSearchRow from '../../components/bulk/TableToolbarSearchRow';
 
 function Categorys() {
   const dispatch = useDispatch();
@@ -38,6 +41,18 @@ function Categorys() {
 
   const { notData, visible, selectedCategory } = state;
 
+  const {
+    selectedRowKeys,
+    bulkDeleting,
+    rowSelection,
+    handleBulkDelete,
+    removeFromSelection,
+  } = useBulkDelete({
+    deleteOne: categoryApi.deleteCategory,
+    onSuccess: () => dispatch(fetchAllCategorys()),
+    entityName: 'category',
+  });
+
   const handleEdit = (category) => {
     const { _id: id, ...rest } = category;
 
@@ -53,6 +68,7 @@ function Categorys() {
 
   const handleDelete = (id) => {
     dispatch(deleteCategory(id));
+    removeFromSelection(id);
   };
 
   const showModal = () => {
@@ -227,14 +243,21 @@ function Categorys() {
           <Col xs={24}>
             <div className="table-shell">
               <div className="table-toolbar">
-                <div className="table-toolbar__search">
+                <TableToolbarSearchRow
+                  showBulkDelete={canDelete}
+                  bulkCount={selectedRowKeys.length}
+                  bulkLoading={bulkDeleting}
+                  onBulkDelete={handleBulkDelete}
+                >
+                  <div className="table-toolbar__search" style={{ display: 'contents' }}>
                   <Input
                     prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />}
                     placeholder="Search categories"
                     allowClear
                     onChange={(e) => handleSearch(e.target.value)}
                   />
-                </div>
+                  </div>
+                </TableToolbarSearchRow>
                 <div className="table-toolbar__filters">
                   <span className="table-toolbar__label">Status</span>
                   <Select defaultValue="category" onChange={(value) => setSortStatus(value)} style={{ minWidth: 140 }}>
@@ -247,7 +270,7 @@ function Categorys() {
               <ProjectLists
                 columns={columns}
                 dataSource={dataSource}
-                loading={loading}
+                loading={loading || bulkDeleting}
                 total={filteredCategories.length}
                 current={pagination.current}
                 pageSize={pagination.pageSize}
@@ -256,6 +279,7 @@ function Categorys() {
                 size="middle"
                 scroll={{ x: 520 }}
                 rowKey="key"
+                rowSelection={canDelete ? rowSelection : undefined}
               />
             </div>
           </Col>

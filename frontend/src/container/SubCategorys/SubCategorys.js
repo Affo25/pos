@@ -13,9 +13,12 @@ import ProjectLists from '../../config/default/List';
 import { ProjectHeader } from '../../config/default/style';
 import { Main } from '../../config/default/styled';
 import { deleteSubCategory, fetchAllSubCategorys } from '../../redux/subcategorys/subcategorySlice';
+import * as subcategoryApi from '../../redux/subcategorys/subcategoryService';
 import { getComponentPermissions } from '../../config/utils/permission';
 import { fetchAllCategorys } from '../../redux/categorys/categorySlice';
 import { ScreenWrap } from '../shared/procurementScreenStyles';
+import { useBulkDelete } from '../../hooks/useBulkDelete';
+import TableToolbarSearchRow from '../../components/bulk/TableToolbarSearchRow';
 
 function SubCategorys() {
   const dispatch = useDispatch();
@@ -23,6 +26,18 @@ function SubCategorys() {
   const { categorys } = useSelector((state) => state.categorys);
   const { login: user } = useSelector(state => state.auth);
   const { canAdd, canEdit, canDelete } = getComponentPermissions(user, 'SubCategorys');
+
+  const {
+    selectedRowKeys,
+    bulkDeleting,
+    rowSelection,
+    handleBulkDelete,
+    removeFromSelection,
+  } = useBulkDelete({
+    deleteOne: subcategoryApi.deleteSubCategory,
+    onSuccess: () => dispatch(fetchAllSubCategorys()),
+    entityName: 'subcategory',
+  });
 
   const [dataSource, setDataSource] = useState([]);
 
@@ -60,6 +75,7 @@ function SubCategorys() {
       await dispatch(deleteSubCategory(id)).unwrap();
       message.success(`SubCategory "${name}" deleted successfully`);
       dispatch(fetchAllSubCategorys());
+      removeFromSelection(id);
     } catch (error) {
       message.error(error.message || 'Failed to delete subcategory');
     }
@@ -241,14 +257,19 @@ function SubCategorys() {
           <Col xs={24}>
             <div className="table-shell">
               <div className="table-toolbar">
-                <div className="table-toolbar__search">
+                <TableToolbarSearchRow
+                  showBulkDelete={canDelete}
+                  bulkCount={selectedRowKeys.length}
+                  bulkLoading={bulkDeleting}
+                  onBulkDelete={handleBulkDelete}
+                >
                   <Input
                     prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />}
                     placeholder="Search subcategories"
                     allowClear
                     onChange={(e) => handleSearch(e.target.value)}
                   />
-                </div>
+                </TableToolbarSearchRow>
                 <div className="table-toolbar__filters">
                   <span className="table-toolbar__label">Status</span>
                   <Select defaultValue="category" onChange={(value) => setSortStatus(value)} style={{ minWidth: 140 }}>
@@ -261,12 +282,14 @@ function SubCategorys() {
               <ProjectLists
                 columns={columns}
                 dataSource={dataSource}
-                loading={loading}
+                loading={loading || bulkDeleting}
                 total={subcategorys?.length || 0}
                 pageSize={pagination.pageSize}
                 onChange={handlePageChange}
                 onShowSizeChange={handleSizeChange}
                 scroll={{ x: 800 }}
+                rowKey="key"
+                rowSelection={canDelete ? rowSelection : undefined}
               />
             </div>
           </Col>

@@ -256,6 +256,62 @@ export const updateUser = async (id, userData) => {
   }
 };
 
+export const fetchUserEmailPreview = async (id) => {
+  const token = Cookies.get('token');
+  const response = await fetch(`${API_BASE_URL}/${id}/email-preview`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || data.error || 'Failed to load email preview');
+  return data;
+};
+
+export const fetchUserWhatsAppPreview = async (id) => {
+  const token = Cookies.get('token');
+  const response = await fetch(`${API_BASE_URL}/${id}/whatsapp-preview`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || data.error || 'Failed to load WhatsApp preview');
+  return data;
+};
+
+export const sendUserWhatsApp = async (id) => {
+  const token = Cookies.get('token');
+  const response = await fetch(`${API_BASE_URL}/${id}/send-whatsapp`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({}),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || data.error || 'Failed to send WhatsApp');
+  return data;
+};
+
+export const sendUserEmail = async (id, body = {}) => {
+  const token = Cookies.get('token');
+  const response = await fetch(`${API_BASE_URL}/${id}/send-email`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || data.error || 'Failed to send email');
+  return data;
+};
+
 export const deleteUser = async (id) => {
   const token = Cookies.get('token');
   const url = `${API_BASE_URL}/${id}`;

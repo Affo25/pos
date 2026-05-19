@@ -1,6 +1,6 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable no-unused-vars */
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Form, Input, Row, Col, DatePicker, Select, message } from 'antd';
 import propTypes from 'prop-types';
 import { useDispatch, useSelector } from 'react-redux';
@@ -11,6 +11,7 @@ import { Button } from '../../components/buttons/buttons';
 import { createSale, updateSale } from '../../redux/sales/saleSlice';
 import { BasicFormWrapper } from '../../config/default/styled';
 import { fetchAllCustomers } from '../../redux/customers/customerSlice';
+import { fetchNextInvoiceNumber } from '../../redux/sales/saleService';
 
 const { Option } = Select;
 function CreateSale({ visible, onCancel, sale, onSuccess }) {
@@ -18,25 +19,49 @@ function CreateSale({ visible, onCancel, sale, onSuccess }) {
   const dispatch = useDispatch();
 
   const { customers } = useSelector((state) => state.customers);
+  const [billNoLoading, setBillNoLoading] = useState(false);
 
   useEffect(() => {
     dispatch(fetchAllCustomers());
   }, []);
 
   useEffect(() => {
-    if (visible) {
-      form.resetFields();
+    if (!visible) return;
+    form.resetFields();
 
-      if (sale) {
-        form.setFieldsValue({
-          customer_id: sale.customer_id,
-          total_amount: sale.total_amount,
-          discount_amount: sale.discount_amount,
-          tax_amount: sale.tax_amount,
-          sale_date: sale.sale_date ? dayjs(sale.sale_date) : null,
-        });
-      }
+    if (sale) {
+      form.setFieldsValue({
+        customer_id: sale.customer_id,
+        invoice_no: sale.invoice_no,
+        total_amount: sale.total_amount,
+        discount_amount: sale.discount_amount,
+        tax_amount: sale.tax_amount,
+        sale_date: sale.sale_date ? dayjs(sale.sale_date) : null,
+      });
+      return;
     }
+
+    const today = dayjs();
+    form.setFieldsValue({ sale_date: today });
+
+    let cancelled = false;
+    setBillNoLoading(true);
+    fetchNextInvoiceNumber(today.format('YYYY-MM-DD'))
+      .then((invoice_no) => {
+        if (!cancelled) form.setFieldsValue({ invoice_no });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          message.warning('Could not load bill number. Save will auto-generate one.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setBillNoLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [sale, visible, form]);
 
   const handleOk = async () => {
@@ -49,6 +74,7 @@ function CreateSale({ visible, onCancel, sale, onSuccess }) {
 
       const saleData = {
         customer_id: values.customer_id,
+        invoice_no: values.invoice_no,
         total_amount: total,
         discount_amount: discount,
         tax_amount: tax,
@@ -109,7 +135,32 @@ function CreateSale({ visible, onCancel, sale, onSuccess }) {
                 label="Sale Date"
                 rules={[{ required: true, message: 'Sale date is required' }]}
               >
-                <DatePicker style={{ width: '100%' }} />
+                <DatePicker
+                  style={{ width: '100%' }}
+                  onChange={(date) => {
+                    if (sale || !date) return;
+                    setBillNoLoading(true);
+                    fetchNextInvoiceNumber(date.format('YYYY-MM-DD'))
+                      .then((invoice_no) => form.setFieldsValue({ invoice_no }))
+                      .catch(() => {})
+                      .finally(() => setBillNoLoading(false));
+                  }}
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                name="invoice_no"
+                label="Bill No"
+                rules={[{ required: true, message: 'Bill number is required' }]}
+                extra={!sale ? 'Auto-generated (yyMMdd-001). You can edit before save.' : undefined}
+              >
+                <Input
+                  placeholder="yyMMdd-001"
+                  readOnly={!sale}
+                  disabled={!sale && billNoLoading}
+                />
               </Form.Item>
             </Col>
 

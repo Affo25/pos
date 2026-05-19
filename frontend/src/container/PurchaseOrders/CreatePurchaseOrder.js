@@ -1,6 +1,6 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable no-unused-vars */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Form,
   Input,
@@ -30,6 +30,9 @@ import { ProcurementFormStyles } from '../shared/procurementScreenStyles';
 import ModernModalStyles from '../shared/modalStyles';
 import { fetchAllSuppliers } from '../../redux/suppliers/supplierSlice';
 import { fetchAllProducts } from '../../redux/products/productSlice';
+import { netOrderTotal, orderItemsTotal, returnsTotal, formatPkr } from '../../utils/purchaseOrderCalc';
+import PurchaseOrderReturnModal from './PurchaseOrderReturnModal';
+import { fetchNextOrderNumber } from '../../redux/purchaseorders/purchaseorderService';
 
 const { Option } = Select;
 
@@ -41,12 +44,32 @@ function CreatePurchaseOrder({ visible, onCancel, purchaseorder, onSuccess }) {
   const { suppliers } = useSelector((state) => state.suppliers);
   const { products } = useSelector((state) => state.products);
   const [items, setItems] = useState([]);
+  const [returns, setReturns] = useState([]);
+  const [returnModalOpen, setReturnModalOpen] = useState(false);
+  const [orderNumberLoading, setOrderNumberLoading] = useState(false);
 
   const resetForm = () => {
     form.resetFields();
     itemForm.resetFields();
     setItems([]);
+    setReturns([]);
   };
+
+  const watchedStatus = Form.useWatch('status', form);
+  const watchedPaid = Form.useWatch('amount_paid', form);
+
+  const draftPo = useMemo(
+    () => ({
+      items,
+      returns,
+      status: watchedStatus || 'pending',
+    }),
+    [items, returns, watchedStatus],
+  );
+
+  const orderTotal = useMemo(() => orderItemsTotal(items), [items]);
+  const returnedTotal = useMemo(() => returnsTotal(returns), [returns]);
+  const netTotal = useMemo(() => netOrderTotal(draftPo), [draftPo]);
 
   useEffect(() => {
     dispatch(fetchAllSuppliers());
@@ -65,10 +88,41 @@ function CreatePurchaseOrder({ visible, onCancel, purchaseorder, onSuccess }) {
           ? moment(purchaseorder.order_date)
           : null,
         status: purchaseorder.status,
+        amount_paid: purchaseorder.amount_paid ?? 0,
       });
       setItems(purchaseorder.items || []);
+      setReturns(purchaseorder.returns || []);
+      return;
     }
-  }, [purchaseorder, visible]);
+
+    const today = moment();
+    form.setFieldsValue({
+      order_date: today,
+      status: 'pending',
+      amount_paid: 0,
+    });
+
+    let cancelled = false;
+    setOrderNumberLoading(true);
+    fetchNextOrderNumber(today.format('YYYY-MM-DD'))
+      .then((order_number) => {
+        if (!cancelled) {
+          form.setFieldsValue({ order_number });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          message.warning('Could not load order number. Save will auto-generate one.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setOrderNumberLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [purchaseorder, visible, form]);
 
   const handleAddItem = async () => {
     try {
@@ -111,6 +165,7 @@ function CreatePurchaseOrder({ visible, onCancel, purchaseorder, onSuccess }) {
           ? values.order_date.format('YYYY-MM-DD')
           : null,
         status: values.status,
+        amount_paid: Number(values.amount_paid || 0),
         items: items.map(item => ({
           product_id: typeof item.product_id === 'object' ? item.product_id._id : item.product_id,
           quantity: item.quantity,
@@ -232,8 +287,13 @@ function CreatePurchaseOrder({ visible, onCancel, purchaseorder, onSuccess }) {
                 name="order_number"
                 label="Order Number"
                 rules={[{ required: true, message: 'Order number is required' }]}
+                extra={!purchaseorder ? 'Auto-generated (yyMMdd-001). You can edit before save.' : undefined}
               >
-                <Input placeholder="Enter Order Number" />
+                <Input
+                  placeholder="yyMMdd-001"
+                  readOnly={!purchaseorder}
+                  disabled={!purchaseorder && orderNumberLoading}
+                />
               </Form.Item>
             </Col>
 
@@ -243,7 +303,17 @@ function CreatePurchaseOrder({ visible, onCancel, purchaseorder, onSuccess }) {
                 label="Order Date"
                 rules={[{ required: true, message: 'Order date is required' }]}
               >
-                <DatePicker style={{ width: '100%' }} />
+                <DatePicker
+                  style={{ width: '100%' }}
+                  onChange={(date) => {
+                    if (purchaseorder || !date) return;
+                    setOrderNumberLoading(true);
+                    fetchNextOrderNumber(date.format('YYYY-MM-DD'))
+                      .then((order_number) => form.setFieldsValue({ order_number }))
+                      .catch(() => {})
+                      .finally(() => setOrderNumberLoading(false));
+                  }}
+                />
               </Form.Item>
             </Col>
           </Row>
@@ -258,8 +328,77 @@ function CreatePurchaseOrder({ visible, onCancel, purchaseorder, onSuccess }) {
                 </Select>
               </Form.Item>
             </Col>
+            <Col span={8}>
+              <Form.Item
+                name="amount_paid"
+                label="Amount paid (PKR)"
+                tooltip="Payment made to supplier for this order"
+                initialValue={0}
+              >
+                <InputNumber min={0} max={netTotal} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
           </Row>
+
+          <div
+            style={{
+              marginBottom: 16,
+              padding: '12px 16px',
+              background: '#f8fafc',
+              borderRadius: 10,
+              border: '1px solid #e5e7eb',
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 20,
+              fontSize: 13,
+            }}
+          >
+            <span>
+              Order total: <strong>{formatPkr(orderTotal)}</strong>
+            </span>
+            <span>
+              Returned: <strong>{formatPkr(returnedTotal)}</strong>
+            </span>
+            <span>
+              Net: <strong>{formatPkr(netTotal)}</strong>
+            </span>
+            <span>
+              Remaining:{' '}
+              <strong style={{ color: '#b45309' }}>
+                {formatPkr(Math.max(0, netTotal - Number(watchedPaid || 0)))}
+              </strong>
+            </span>
+          </div>
         </Form>
+
+        {purchaseorder && returns.length > 0 && (
+          <>
+            <div className="section-heading" style={{ marginTop: 8 }}>
+              Returns on this order
+            </div>
+            <Table
+              size="small"
+              pagination={false}
+              dataSource={returns.map((r, i) => ({
+                key: r._id || i,
+                product: r.product_id?.name || 'Product',
+                qty: r.quantity,
+                price: r.price,
+                reason: r.reason || '—',
+              }))}
+              columns={[
+                { title: 'Product', dataIndex: 'product', key: 'product' },
+                { title: 'Qty', dataIndex: 'qty', key: 'qty', width: 64 },
+                { title: 'Price', dataIndex: 'price', key: 'price', width: 90 },
+                { title: 'Reason', dataIndex: 'reason', key: 'reason', ellipsis: true },
+              ]}
+              style={{ marginBottom: 12 }}
+            />
+            <Button type="white" size="small" onClick={() => setReturnModalOpen(true)}>
+              Record another return
+            </Button>
+          </>
+        )}
 
         <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
         <div className="section-heading">Line items</div>
@@ -331,6 +470,18 @@ function CreatePurchaseOrder({ visible, onCancel, purchaseorder, onSuccess }) {
         </BasicFormWrapper>
       </ProcurementFormStyles>
     </Modal>
+    {purchaseorder && (
+      <PurchaseOrderReturnModal
+        visible={returnModalOpen}
+        onCancel={() => setReturnModalOpen(false)}
+        purchaseorder={{ ...purchaseorder, items, returns }}
+        onSuccess={async (updatedPo) => {
+          await dispatch(fetchAllPurchaseOrders());
+          if (updatedPo?.returns) setReturns(updatedPo.returns);
+          setReturnModalOpen(false);
+        }}
+      />
+    )}
     </>
   );
 }

@@ -22,6 +22,7 @@ const UserDetails = lazy(() => import('../../container/Users/UserDetails'));
 const Profile = lazy(() => import('../../container/profile/myProfile/Profile'));
 const BranchProfiles = lazy(() => import('../../container/BranchProfiles/BranchProfiles'));
 const Settings = lazy(() => import('../../container/Settings/Settings'));
+const Payments = lazy(() => import('../../container/Payments/Payments'));
 
 function Admin() {
   const { path } = useRouteMatch();
@@ -64,6 +65,7 @@ function Admin() {
         {canAccess('products') && <Route exact path={`${path}stock-management`} component={StockManagement} />}
         {canAccess('suppliers') && <Route exact path={`${path}suppliers`} component={Suppliers} />}
         {canAccess('purchaseorders') && <Route exact path={`${path}purchaseorders`} component={PurchaseOrders} />}
+        {canAccess('payments') && <Route exact path={`${path}payments`} component={Payments} />}
         {canAccess('settings') && <Route exact path={`${path}settings`} component={Settings} />}
       </Suspense>
     </Switch>

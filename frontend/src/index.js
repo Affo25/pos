@@ -7,6 +7,30 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 // import 'react-notifications/lib/notifications.css';
 
+/* Ant Design Modal/Select + PDF preview can trigger a benign ResizeObserver warning in dev. */
+if (typeof window !== 'undefined') {
+  const roMsg = /ResizeObserver loop (completed with undelivered notifications)?/;
+  const prevOnError = window.onerror;
+  window.onerror = (message, ...rest) => {
+    if (typeof message === 'string' && roMsg.test(message)) {
+      return true;
+    }
+    if (prevOnError) {
+      return prevOnError(message, ...rest);
+    }
+    return false;
+  };
+  window.addEventListener(
+    'error',
+    (event) => {
+      if (roMsg.test(event.message || '')) {
+        event.stopImmediatePropagation();
+      }
+    },
+    true,
+  );
+}
+
 const token = Cookies.get('token');
 if (!token || token.split('.').length !== 3) {
     Cookies.remove('token');

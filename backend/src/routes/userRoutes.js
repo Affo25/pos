@@ -12,7 +12,11 @@ const {
     validateLicenseKey,
     getUserProfile,
     toggleUserBlock,
-    updateLicenseStatus
+    updateLicenseStatus,
+    getUserEmailPreview,
+    sendUserEmail,
+    getUserWhatsAppPreview,
+    sendUserWhatsApp,
 } = require('../controllers/userController');
 const { protect, checkRole } = require('../middlewares/authMiddleware');
 
@@ -29,6 +33,10 @@ router.get('/subscription-status', protect, checkSubscriptionStatus);
 // Admin only routes (require authentication + admin/superAdmin role)
 router.get('/', protect, checkRole(['superAdmin', 'admin']), getAllUsers);
 router.post('/', protect, checkRole(['superAdmin', 'admin']), createUser);
+router.get('/:id/email-preview', protect, checkRole(['superAdmin', 'admin']), getUserEmailPreview);
+router.post('/:id/send-email', protect, checkRole(['superAdmin', 'admin']), sendUserEmail);
+router.get('/:id/whatsapp-preview', protect, checkRole(['superAdmin', 'admin']), getUserWhatsAppPreview);
+router.post('/:id/send-whatsapp', protect, checkRole(['superAdmin', 'admin']), sendUserWhatsApp);
 router.put('/:id', protect, checkRole(['superAdmin', 'admin']), updateUser); // Added protect here
 router.delete('/:id', protect, checkRole(['superAdmin', 'admin']), deleteUser);
 

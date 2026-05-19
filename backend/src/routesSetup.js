@@ -46,10 +46,14 @@ module.exports = function setupRoutes(app) {
   app.use('/api/returns', returnRoutes);
   app.use('/api/suppliers', supplierRoutes);
   app.use('/api/purchaseOrders', purchaseOrderRoutes);
+  app.use('/api/purchaseorders', purchaseOrderRoutes);
 
   const printRoutes = require('./routes/printRoutes');
   app.use('/api/print', printRoutes);
 
   const settingsRoutes = require('./routes/settingsRoutes');
   app.use('/api/settings', settingsRoutes);
+
+  const paymentRoutes = require('./routes/paymentRoutes');
+  app.use('/api/payments', paymentRoutes);
 };

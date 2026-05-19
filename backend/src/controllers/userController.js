@@ -1,6 +1,50 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { normalizePhone, isValidPhone } = require("../utils/phoneValidation");
+const { sendUserCredentialsEmail, buildEmailPreview } = require("../services/emailService");
+const {
+  sendWelcomeWhatsApp,
+  buildWhatsAppPreview,
+  isWhatsAppConfigured,
+} = require("../services/whatsappService");
+
+async function assertCanManageUser(loggedInUser, targetUserId) {
+  const target = await User.findById(targetUserId);
+  if (!target) {
+    const err = new Error("User not found");
+    err.status = 404;
+    throw err;
+  }
+  if (loggedInUser.user_type === "superAdmin") {
+    return target;
+  }
+  if (
+    loggedInUser.user_type === "admin" &&
+    target.admin_id &&
+    String(target.admin_id) === String(loggedInUser._id)
+  ) {
+    return target;
+  }
+  const err = new Error("Unauthorized access");
+  err.status = 403;
+  throw err;
+}
+
+function applyPhoneAddressFields(data, body) {
+  if (body.phone !== undefined) {
+    const phone = normalizePhone(body.phone);
+    if (phone && !isValidPhone(phone)) {
+      const err = new Error("Invalid phone. Use format +923247890891");
+      err.status = 400;
+      throw err;
+    }
+    data.phone = phone;
+  }
+  if (body.address !== undefined) {
+    data.address = String(body.address || "").trim();
+  }
+}
 
 // Helper function to generate unique license key
 const generateLicenseKey = () => {
@@ -110,6 +154,8 @@ exports.createUser = async (req, res) => {
       license_key,
       license_status,
       allowed_devices,
+      phone,
+      address,
     } = req.body;
 
     if (!name || !email || !password) {
@@ -149,6 +195,8 @@ exports.createUser = async (req, res) => {
       allowed_devices: allowed_devices || 1,
       is_blocked: false,
     };
+
+    applyPhoneAddressFields(userData, { phone, address });
     
     const creatingUser = req.user;
     if (creatingUser && creatingUser.user_type === "admin") {
@@ -225,6 +273,8 @@ exports.updateUser = async (req, res) => {
       license_status,
       allowed_devices,
       is_blocked,
+      phone,
+      address,
     } = req.body;
 
     const updateData = {
@@ -242,6 +292,8 @@ exports.updateUser = async (req, res) => {
       allowed_devices,
       is_blocked,
     };
+
+    applyPhoneAddressFields(updateData, { phone, address });
 
     // Handle license key update with uniqueness check
     if (license_key) {
@@ -273,6 +325,107 @@ exports.updateUser = async (req, res) => {
     res.status(200).json(updatedUser);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getUserEmailPreview = async (req, res) => {
+  try {
+    await assertCanManageUser(req.user, req.params.id);
+    const user = await User.findById(req.params.id)
+      .select("name email plain_password")
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      _id: user._id,
+      ...buildEmailPreview(user),
+    });
+  } catch (error) {
+    res.status(error.status || 500).json({ message: error.message });
+  }
+};
+
+exports.sendUserEmail = async (req, res) => {
+  try {
+    await assertCanManageUser(req.user, req.params.id);
+    const user = await User.findById(req.params.id)
+      .select("name email plain_password")
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!user.email) {
+      return res.status(400).json({ message: "User has no email address" });
+    }
+
+    const info = await sendUserCredentialsEmail(user, {
+      subject: req.body?.subject,
+      text: req.body?.text,
+    });
+
+    res.status(200).json({
+      message: "Email sent successfully",
+      messageId: info.messageId,
+      to: user.email,
+    });
+  } catch (error) {
+    if (error.code === "SMTP_NOT_CONFIGURED" || error.code === "RESEND_NOT_CONFIGURED") {
+      return res.status(503).json({ message: error.message });
+    }
+    res.status(error.status || 500).json({ message: error.message });
+  }
+};
+
+exports.getUserWhatsAppPreview = async (req, res) => {
+  try {
+    await assertCanManageUser(req.user, req.params.id);
+    const user = await User.findById(req.params.id)
+      .select("name email phone plain_password")
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      _id: user._id,
+      ...buildWhatsAppPreview(user),
+      whatsappConfigured: isWhatsAppConfigured(),
+    });
+  } catch (error) {
+    res.status(error.status || 500).json({ message: error.message });
+  }
+};
+
+exports.sendUserWhatsApp = async (req, res) => {
+  try {
+    await assertCanManageUser(req.user, req.params.id);
+    const user = await User.findById(req.params.id)
+      .select("name email phone plain_password")
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const result = await sendWelcomeWhatsApp(user);
+
+    res.status(200).json({
+      message: "WhatsApp message sent successfully",
+      messageId: result.messageId,
+      to: result.to,
+      mode: result.mode,
+    });
+  } catch (error) {
+    if (error.code === "WHATSAPP_NOT_CONFIGURED") {
+      return res.status(503).json({ message: error.message });
+    }
+    res.status(error.status || 500).json({ message: error.message });
   }
 };
 

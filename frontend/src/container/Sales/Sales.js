@@ -6,7 +6,7 @@ import moment from 'moment';
 import Cookies from 'js-cookie';
 import Styled from 'styled-components';
 import { useSelector, useDispatch } from 'react-redux';
-import { Row, Col, Menu, message, Dropdown, Select, Modal, Table, Tag, Tabs, Divider, Skeleton, Spin, InputNumber, Typography, Space, Button as AntButton, Descriptions, Input, Form, DatePicker, Radio } from 'antd';
+import { Row, Col, Menu, message, Dropdown, Select, Modal, Table, Tag, Tabs, Divider, Skeleton, Spin, InputNumber, Typography, Space, Button as AntButton, Descriptions, Input, Form, DatePicker, Radio, Alert } from 'antd';
 import { ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Link } from 'react-router-dom';
 import { 
@@ -14,7 +14,7 @@ import {
   EyeOutlined, UndoOutlined, FileTextOutlined, PrinterOutlined,
   CheckCircleOutlined, CloseCircleOutlined,
   HistoryOutlined, ReloadOutlined,
-  FileExcelOutlined, FilePdfOutlined, SearchOutlined,
+  FileExcelOutlined, FilePdfOutlined, SearchOutlined, DownloadOutlined,
 } from '@ant-design/icons';
 import FeatherIcon from 'feather-icons-react';
 import { useHistory } from 'react-router-dom/cjs/react-router-dom.min';
@@ -30,6 +30,18 @@ import { getComponentPermissions } from '../../config/utils/permission';
 import { fetchAllCustomers } from '../../redux/customers/customerSlice';
 import { exportListToExcel, exportListToPdf } from '../../utils/listExport';
 import { API_BASE } from '../../config/apiBase';
+import { INVOICE_PDF_TEMPLATE, SALE_INVOICE_DOCUMENT_TITLE } from '../../utils/invoiceTemplates';
+import {
+  createPdfObjectUrl,
+  fetchInvoicePdfBlob,
+  saveInvoicePdfFromPreview,
+} from '../../utils/invoicePdfPreview';
+import { mapSaleToPrintInvoice, resolveSaleForReturn, maxReturnableSaleQty } from '../../utils/invoicePrintPayload';
+import SaleReturnPreviewModal from './SaleReturnPreviewModal';
+import { deferTask } from '../../utils/deferTask';
+import PdfPreviewFrame from '../../components/pdf/PdfPreviewFrame';
+import { useBulkDelete } from '../../hooks/useBulkDelete';
+import TableToolbarSearchRow from '../../components/bulk/TableToolbarSearchRow';
 import {
   KpiGrid,
   KpiCard,
@@ -42,6 +54,8 @@ import {
 import { formatPkr } from '../../config/currency';
 import { ScreenWrap } from '../shared/procurementScreenStyles';
 import ModernModalStyles from '../shared/modalStyles';
+
+const API_SETTINGS = `${API_BASE}/settings`;
 
 /** Larger KPI type — aligned with supplier / procurement screens */
 const StatisticsKpiWrap = Styled.div`
@@ -75,6 +89,7 @@ const SalesTableActions = Styled.div`
 const { TabPane } = Tabs;
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
+const { Text } = Typography;
 
 /** Prefer business sale_date, fallback to createdAt */
 function saleMoment(sale) {
@@ -84,48 +99,6 @@ function saleMoment(sale) {
 function formatSaleDateTime(sale) {
   const m = saleMoment(sale);
   return m.isValid() ? m.format('DD MMM YYYY, hh:mm A') : '—';
-}
-
-/** A4 professional layout (`report_a4`) — same contract as POS/print API */
-const SALE_ORDER_PDF_TEMPLATE = 'report_a4';
-
-function mapSaleToPrintInvoice(sale, customerList) {
-  if (!sale) return null;
-  const sid = String(sale._id || sale.id || '');
-  let customer_name = sale.customer_name;
-  if (!customer_name && sale.customer_id && Array.isArray(customerList)) {
-    const c = customerList.find((x) => String(x._id) === String(sale.customer_id));
-    if (c?.name) customer_name = c.name;
-  }
-  customer_name = customer_name || 'Walk-in Customer';
-
-  const items = (sale.items || []).map((it) => {
-    const qty = Number(it.quantity || 0);
-    const unit = Number(it.unit_price || 0);
-    const lineTotal =
-      it.line_total != null && it.line_total !== ''
-        ? Number(it.line_total)
-        : qty * unit;
-    return {
-      product_name: it.product_name || 'Item',
-      quantity: qty,
-      unit_price: unit,
-      line_total: lineTotal,
-    };
-  });
-
-  return {
-    invoice_no: sale.invoice_no || `INV-${sid.slice(-6)}`,
-    customer_name,
-    customer_phone: sale.customer_phone,
-    items,
-    total_amount: Number(sale.total_amount || 0),
-    discount_amount: Number(sale.discount_amount ?? sale.discount ?? 0),
-    tax_amount: Number(sale.tax_amount || 0),
-    net_amount: Number(sale.net_amount ?? 0),
-    sale_date: sale.sale_date || sale.createdAt,
-    document_title: 'SALE ORDER',
-  };
 }
 
 const KPI_SPARK_COLORS = ['#c4b5fd', '#fca5a5', '#86efac', '#93c5fd'];
@@ -152,6 +125,21 @@ function Sales() {
   const { login: user } = useSelector(state => state.auth);
   const { canAdd, canEdit, canDelete } = getComponentPermissions(user, 'Sales');
 
+  const {
+    selectedRowKeys,
+    bulkDeleting,
+    rowSelection,
+    handleBulkDelete,
+    removeFromSelection,
+  } = useBulkDelete({
+    deleteOne: saleService.deleteSale,
+    onSuccess: () => dispatch(fetchAllSales()),
+    entityName: 'sale',
+    confirmTitle: 'Delete selected sales?',
+    confirmContent: (count) =>
+      `This will permanently delete ${count} sale(s). This cannot be undone.`,
+  });
+
   const [dataSource, setDataSource] = useState([]);
   const [pagination, setPagination] = useState({
     current: 1,
@@ -173,6 +161,11 @@ function Sales() {
   const [returnItems, setReturnItems] = useState([]);
   const [returnReason, setReturnReason] = useState('');
   const [activeTab, setActiveTab] = useState('active');
+  const [allReturnRecords, setAllReturnRecords] = useState([]);
+  const [returnsDataSource, setReturnsDataSource] = useState([]);
+  const [returnsPagination, setReturnsPagination] = useState({ current: 1, pageSize: 10 });
+  const [returnsSearchTerm, setReturnsSearchTerm] = useState('');
+  const [returnPreview, setReturnPreview] = useState(null);
   /** today | range | all — default: today’s sales only */
   const [dateMode, setDateMode] = useState('today');
   const [dateRange, setDateRange] = useState(() => [moment().startOf('day'), moment().endOf('day')]);
@@ -184,6 +177,8 @@ function Sales() {
   const [printersLoading, setPrintersLoading] = useState(false);
   const [invoicePdfUrl, setInvoicePdfUrl] = useState(null);
   const [invoicePdfLoading, setInvoicePdfLoading] = useState(false);
+  const [invoiceBranding, setInvoiceBranding] = useState(null);
+  const [invoicePreviewError, setInvoicePreviewError] = useState(null);
   const invoicePdfReqId = useRef(0);
   const [registerPrinting, setRegisterPrinting] = useState(false);
   const [statistics, setStatistics] = useState({
@@ -249,6 +244,7 @@ function Sales() {
         try {
           await dispatch(deleteSale(id));
           message.success('Sale deleted successfully');
+          removeFromSelection(id);
           dispatch(fetchAllSales());
         } catch (error) {
           message.error('Failed to delete sale');
@@ -264,29 +260,51 @@ function Sales() {
   };
 
   const handleViewInvoice = (sale) => {
+    setInvoicePreviewError(null);
     setSelectedInvoice(getSaleByIdFromStore(sale));
     setInvoiceModalVisible(true);
   };
 
-  const handleProcessReturn = (sale) => {
-    const src = getSaleByIdFromStore(sale);
-    setSelectedReturnSale(src);
-    const rqMap = src.returned_qty_by_product || {};
-    const initialReturnItems =
-      src.items?.map((item) => {
-        const pid = String(item.product_id);
-        const returnedQty = Number(rqMap[pid] ?? rqMap[item.product_id] ?? 0);
-        const remainingQty = Math.max(0, Number(item.quantity) - returnedQty);
+  const buildReturnModalItems = (sale) => {
+    const rqMap = sale?.returned_qty_by_product || {};
+    const hasReturnTracking = Object.keys(rqMap).length > 0;
+
+    return (sale?.items || [])
+      .map((item) => {
+        const pid = String(item.product_id?._id || item.product_id);
+        const qty = Number(item.quantity || 0);
+        if (qty <= 0) return null;
+
+        const returnedQty = hasReturnTracking ? Number(rqMap[pid] ?? rqMap[item.product_id] ?? 0) : 0;
+        const remainingQty = maxReturnableSaleQty(qty, returnedQty);
+        if (remainingQty <= 0) return null;
+
+        const soldQty =
+          returnedQty > 0 && returnedQty >= qty ? qty + returnedQty : qty;
+
         return {
           ...item,
+          product_id: pid,
+          soldQty,
           returnedQty,
           remainingQty,
           returnQuantity: 0,
           returnReason: '',
           selected: false,
         };
-      }) || [];
-    setReturnItems(initialReturnItems);
+      })
+      .filter(Boolean);
+  };
+
+  const handleProcessReturn = (sale) => {
+    const src = getSaleByIdFromStore(sale);
+    const returnable = buildReturnModalItems(src);
+    if (!returnable.length) {
+      message.info('All items on this sale have already been fully returned.');
+      return;
+    }
+    setSelectedReturnSale(src);
+    setReturnItems(returnable);
     setReturnReason('');
     setReturnModalVisible(true);
   };
@@ -325,7 +343,7 @@ function Sales() {
       content: `Total return amount: ${formatPkr(refundTotal)}. Stock and invoice totals will be updated.`,
       onOk: async () => {
         try {
-          await saleService.processReturn(returnData);
+          const result = await saleService.processReturn(returnData);
           const freshList = await saleService.fetchAllSales();
           dispatch(fetchSalesSuccess(freshList));
 
@@ -339,6 +357,22 @@ function Sales() {
             );
           }
 
+          try {
+            const retList = await saleService.fetchAllReturns();
+            setAllReturnRecords(retList);
+          } catch {
+            /* keep existing return list */
+          }
+
+          const created = result?.returns || [];
+          if (updated && created.length) {
+            setReturnPreview({
+              sale: updated,
+              returnRecords: created,
+              returnReason,
+            });
+          }
+
           message.success('Return processed — invoice totals updated.');
           setReturnModalVisible(false);
           setSelectedReturnSale(null);
@@ -350,37 +384,66 @@ function Sales() {
     });
   };
 
+  const openReturnPreview = useCallback((returnRecord) => {
+    const sale = resolveSaleForReturn(returnRecord, sales);
+    if (!sale) {
+      message.warning('Sale not found for this return');
+      return;
+    }
+    setReturnPreview({
+      sale,
+      returnRecords: [returnRecord],
+      returnReason: returnRecord.reason || '',
+    });
+  }, [sales]);
+
+  const closeReturnPreview = useCallback(() => {
+    setReturnPreview(null);
+  }, []);
+
+  const filteredReturnRecords = useMemo(() => {
+    if (!returnsSearchTerm.trim()) return allReturnRecords;
+    const q = returnsSearchTerm.trim().toLowerCase();
+    return allReturnRecords.filter((ret) => {
+      const inv =
+        ret.sale_id?.invoice_no ||
+        (typeof ret.sale_id === 'object' ? ret.sale_id.invoice_no : '') ||
+        '';
+      const customer =
+        ret.sale_id?.customer_name ||
+        customers.find((c) => c._id === ret.sale_id?.customer_id)?.name ||
+        '';
+      const product = ret.product_id?.name || '';
+      return (
+        String(inv).toLowerCase().includes(q) ||
+        String(customer).toLowerCase().includes(q) ||
+        String(product).toLowerCase().includes(q) ||
+        String(ret.reason || '').toLowerCase().includes(q)
+      );
+    });
+  }, [allReturnRecords, returnsSearchTerm, customers]);
+
   const token = Cookies.get('token');
 
   const loadInvoicePdfPreview = useCallback(async (sale) => {
     if (!sale) return;
-    if (!token) {
-      message.error('Please sign in');
-      return;
-    }
     const req = ++invoicePdfReqId.current;
     setInvoicePdfLoading(true);
-    setInvoicePdfUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return null;
-    });
+    setInvoicePreviewError(null);
     try {
       const invoice = mapSaleToPrintInvoice(sale, customers);
-      const res = await fetch(`${API_BASE}/print/preview`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ invoice, template: SALE_ORDER_PDF_TEMPLATE }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || err.detail || 'Preview failed');
-      }
-      const blob = await res.blob();
+      if (!invoice) throw new Error('Could not build invoice data');
+      const blob = await fetchInvoicePdfBlob(invoice, INVOICE_PDF_TEMPLATE, token);
       if (invoicePdfReqId.current !== req) return;
-      setInvoicePdfUrl(URL.createObjectURL(blob));
+      setInvoicePdfUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return createPdfObjectUrl(blob);
+      });
     } catch (e) {
       if (invoicePdfReqId.current === req) {
-        message.error(e.message || 'Could not generate preview');
+        const msg = e.message || 'Could not generate preview';
+        setInvoicePreviewError(msg);
+        message.error(msg);
       }
     } finally {
       if (invoicePdfReqId.current === req) {
@@ -437,7 +500,7 @@ function Sales() {
       const res = await fetch(`${API_BASE}/print/invoice`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ invoice: invoicePayload, printer, template: SALE_ORDER_PDF_TEMPLATE }),
+        body: JSON.stringify({ invoice: invoicePayload, printer, template: INVOICE_PDF_TEMPLATE }),
       });
       const data = await res.json();
       if (res.ok && data.success) message.success(`Sale order PDF sent to ${printer}`);
@@ -456,18 +519,50 @@ function Sales() {
     message.success('PDF preview updated');
   };
 
+  const handleSaveInvoicePdf = async () => {
+    const raw = selectedInvoice;
+    if (!raw) {
+      message.warning('No invoice to save');
+      return;
+    }
+    const invoiceNo = raw.invoice_no || `INV-${String(raw._id || raw.id || '').slice(-6)}`;
+    const filename = `${invoiceNo}-sale-invoice-report`;
+    try {
+      const invoicePayload = mapSaleToPrintInvoice(raw, customers);
+      await saveInvoicePdfFromPreview({
+        objectUrl: invoicePdfUrl,
+        invoice: invoicePayload,
+        template: INVOICE_PDF_TEMPLATE,
+        token,
+        filename,
+      });
+      message.success('PDF saved to your downloads');
+    } catch (e) {
+      message.error(e?.message || 'Could not save PDF');
+    }
+  };
+
+  const selectedInvoiceId = selectedInvoice ? String(selectedInvoice._id || selectedInvoice.id || '') : '';
+
   useEffect(() => {
-    if (!invoiceModalVisible || !selectedInvoice) {
+    if (!invoiceModalVisible || !selectedInvoiceId) {
       setInvoicePdfUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
         return null;
       });
       setInvoicePdfLoading(false);
+      setInvoicePreviewError(null);
       return undefined;
     }
-    loadInvoicePdfPreview(selectedInvoice);
-    return undefined;
-  }, [invoiceModalVisible, selectedInvoice, loadInvoicePdfPreview]);
+    const sale =
+      (Array.isArray(sales) && sales.find((s) => String(s._id || s.id) === selectedInvoiceId)) ||
+      selectedInvoice;
+    return deferTask(() => {
+      if (invoiceModalVisible && selectedInvoiceId) {
+        loadInvoicePdfPreview(sale);
+      }
+    });
+  }, [invoiceModalVisible, selectedInvoiceId, loadInvoicePdfPreview, sales, selectedInvoice]);
 
   const showModal = () => {
     setState({
@@ -492,7 +587,30 @@ function Sales() {
   useEffect(() => {
     dispatch(fetchAllSales());
     dispatch(fetchAllCustomers());
-  }, []);
+    saleService
+      .fetchAllReturns()
+      .then(setAllReturnRecords)
+      .catch(() => setAllReturnRecords([]));
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!token) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(API_SETTINGS, { headers: { Authorization: `Bearer ${token}` } });
+        const data = await res.json();
+        if (!cancelled && res.ok && data.settings?.invoiceDesign) {
+          setInvoiceBranding(data.settings.invoiceDesign);
+        }
+      } catch {
+        /* optional branding */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   useEffect(() => {
     if (sales && Array.isArray(sales)) {
@@ -507,7 +625,9 @@ function Sales() {
       } else if (activeTab === 'all') {
         // Show all
       } else if (activeTab === 'returns') {
-        filtered = filtered.filter(item => ['returned', 'partially_returned'].includes(item.status));
+        setDataSource([]);
+        setSalesHistory([]);
+        return;
       }
 
       if (searchTerm) {
@@ -625,6 +745,193 @@ function Sales() {
       setSalesHistory(filtered);
     }
   }, [sales, pagination, searchTerm, sortStatus, customers, activeTab, canDelete, dateMode, dateRange]);
+
+  const SALE_COL_W = 156;
+
+  useEffect(() => {
+    if (activeTab !== 'returns') return;
+    if (!filteredReturnRecords.length) {
+      setReturnsDataSource([]);
+      return;
+    }
+    const start = (returnsPagination.current - 1) * returnsPagination.pageSize;
+    const end = start + returnsPagination.pageSize;
+    const paginated = filteredReturnRecords.slice(start, end);
+
+    const formatted = paginated.map((ret) => {
+      const sale = resolveSaleForReturn(ret, sales);
+      const customer =
+        ret.sale_id?.customer_name ||
+        customers.find((c) => String(c._id) === String(sale?.customer_id))?.name ||
+        'Walk-in Customer';
+      const invoiceNo =
+        ret.sale_id?.invoice_no ||
+        sale?.invoice_no ||
+        `INV-${String(ret.sale_id?._id || ret.sale_id || '').slice(-6)}`;
+      const qty = Number(ret.quantity || 0);
+      const price = Number(ret.unit_price || 0);
+      const lineTotal = Number(ret.refund_amount ?? qty * price);
+
+      return {
+        key: ret._id,
+        invoice_no: invoiceNo,
+        return_date: ret.return_date
+          ? new Date(ret.return_date).toLocaleDateString()
+          : ret.createdAt
+            ? new Date(ret.createdAt).toLocaleDateString()
+            : '—',
+        customer,
+        product: ret.product_id?.name || '—',
+        quantity: qty,
+        price,
+        line_total: lineTotal,
+        reason: ret.reason || '—',
+        action: (
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+            <button
+              type="button"
+              onClick={() => openReturnPreview(ret)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 30,
+                height: 30,
+                borderRadius: 6,
+                border: '1px solid #BFDBFE',
+                background: '#EFF6FF',
+                cursor: 'pointer',
+                color: '#1D4ED8',
+              }}
+              title="View return invoice"
+            >
+              <EyeOutlined style={{ fontSize: 14 }} />
+            </button>
+            {sale && ['completed', 'partially_returned'].includes(sale.status) && (
+              <button
+                type="button"
+                onClick={() => handleProcessReturn(sale)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 30,
+                  height: 30,
+                  borderRadius: 6,
+                  border: '1px solid #FDE68A',
+                  background: '#FFFBEB',
+                  cursor: 'pointer',
+                  color: '#B45309',
+                }}
+                title="Process another return on this sale"
+              >
+                <UndoOutlined style={{ fontSize: 14 }} />
+              </button>
+            )}
+          </div>
+        ),
+      };
+    });
+    setReturnsDataSource(formatted);
+  }, [
+    activeTab,
+    filteredReturnRecords,
+    returnsPagination,
+    sales,
+    customers,
+    openReturnPreview,
+  ]);
+
+  const returnColumns = [
+    {
+      title: '#',
+      key: 'index',
+      width: 52,
+      align: 'center',
+      render: (text, record, index) =>
+        (returnsPagination.current - 1) * returnsPagination.pageSize + index + 1,
+    },
+    {
+      title: 'Invoice No',
+      dataIndex: 'invoice_no',
+      key: 'invoice_no',
+      width: SALE_COL_W,
+      align: 'center',
+      ellipsis: true,
+      render: (text) => <span style={{ fontWeight: 600, color: '#0f172a' }}>{text}</span>,
+    },
+    {
+      title: 'Return Date',
+      dataIndex: 'return_date',
+      key: 'return_date',
+      width: SALE_COL_W,
+      align: 'center',
+    },
+    {
+      title: 'Customer',
+      dataIndex: 'customer',
+      key: 'customer',
+      width: SALE_COL_W,
+      align: 'center',
+      ellipsis: true,
+    },
+    {
+      title: 'Product',
+      dataIndex: 'product',
+      key: 'product',
+      width: SALE_COL_W,
+      align: 'center',
+      ellipsis: true,
+    },
+    {
+      title: 'Qty',
+      dataIndex: 'quantity',
+      key: 'quantity',
+      width: 80,
+      align: 'center',
+      render: (n) => (
+        <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{n}</span>
+      ),
+    },
+    {
+      title: 'Price (PKR)',
+      dataIndex: 'price',
+      key: 'price',
+      width: 110,
+      align: 'center',
+      render: (v) => (
+        <span style={{ fontVariantNumeric: 'tabular-nums' }}>{Number(v).toFixed(2)}</span>
+      ),
+    },
+    {
+      title: 'Refund (PKR)',
+      dataIndex: 'line_total',
+      key: 'line_total',
+      width: 110,
+      align: 'center',
+      render: (v) => (
+        <span style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: '#b45309' }}>
+          {Number(v).toFixed(2)}
+        </span>
+      ),
+    },
+    {
+      title: 'Reason',
+      dataIndex: 'reason',
+      key: 'reason',
+      width: SALE_COL_W,
+      align: 'center',
+      ellipsis: true,
+    },
+    {
+      title: '',
+      dataIndex: 'action',
+      key: 'action',
+      width: 100,
+      align: 'center',
+      fixed: 'right',
+    },
+  ];
 
   const handlePageChange = (page, pageSize) => {
     setPagination({
@@ -980,14 +1287,19 @@ function Sales() {
           <Col xs={24}>
             <div className="table-shell">
               <div className="table-toolbar">
-                <div className="table-toolbar__search">
+                <TableToolbarSearchRow
+                  showBulkDelete={canDelete && activeTab !== 'returns'}
+                  bulkCount={selectedRowKeys.length}
+                  bulkLoading={bulkDeleting}
+                  onBulkDelete={handleBulkDelete}
+                >
                   <Input
                     prefix={<SearchOutlined style={{ color: '#BFC0C0' }} />}
                     placeholder="Search by customer or invoice"
                     allowClear
                     onChange={(e) => handleSearch(e.target.value)}
                   />
-                </div>
+                </TableToolbarSearchRow>
                 <div className="table-toolbar__filters">
                   <span className="table-toolbar__label">Status</span>
                   <Select defaultValue="category" onChange={(value) => setSortStatus(value)} style={{ minWidth: 130 }}>
@@ -1025,23 +1337,66 @@ function Sales() {
               >
                 <TabPane tab="Active Sales" key="active" />
                 <TabPane tab="Sales History" key="history" />
-                <TabPane tab="Returns" key="returns" />
+                <TabPane tab={`Returns (${allReturnRecords.length})`} key="returns" />
                 <TabPane tab="All Sales" key="all" />
               </Tabs>
-              <SalesTableActions>
-                <ProjectLists
-                  size="middle"
-                  columns={columns}
-                  dataSource={dataSource}
-                  loading={loading}
-                  total={salesHistory?.length || 0}
-                  current={pagination.current}
-                  pageSize={pagination.pageSize}
-                  onChange={handlePageChange}
-                  onShowSizeChange={handleSizeChange}
-                  scroll={{ x: 1100 }}
-                />
-              </SalesTableActions>
+              {activeTab === 'returns' ? (
+                <>
+                  <div className="table-toolbar" style={{ marginTop: 8 }}>
+                    <div className="table-toolbar__search">
+                      <Input
+                        prefix={<SearchOutlined style={{ color: '#BFC0C0' }} />}
+                        placeholder="Search by invoice, customer, product or reason"
+                        allowClear
+                        value={returnsSearchTerm}
+                        onChange={(e) => {
+                          setReturnsSearchTerm(e.target.value);
+                          setReturnsPagination((p) => ({ ...p, current: 1 }));
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <SalesTableActions>
+                    <ProjectLists
+                      size="middle"
+                      columns={returnColumns}
+                      dataSource={returnsDataSource}
+                      loading={loading}
+                      total={filteredReturnRecords.length}
+                      current={returnsPagination.current}
+                      pageSize={returnsPagination.pageSize}
+                      onChange={(page, pageSize) =>
+                        setReturnsPagination({ current: page, pageSize })
+                      }
+                      onShowSizeChange={(_, size) =>
+                        setReturnsPagination({ current: 1, pageSize: size })
+                      }
+                      scroll={{ x: 52 + SALE_COL_W * 4 + 80 + 110 + 110 + 100 }}
+                      tableLayout="fixed"
+                      locale={{
+                        emptyText: 'No returns recorded yet. Process a return from an active sale.',
+                      }}
+                    />
+                  </SalesTableActions>
+                </>
+              ) : (
+                <SalesTableActions>
+                  <ProjectLists
+                    size="middle"
+                    columns={columns}
+                    dataSource={dataSource}
+                    loading={loading || bulkDeleting}
+                    total={salesHistory?.length || 0}
+                    current={pagination.current}
+                    pageSize={pagination.pageSize}
+                    onChange={handlePageChange}
+                    onShowSizeChange={handleSizeChange}
+                    scroll={{ x: 1100 }}
+                    rowKey="key"
+                    rowSelection={canDelete ? rowSelection : undefined}
+                  />
+                </SalesTableActions>
+              )}
             </div>
           </Col>
         </Row>
@@ -1056,26 +1411,39 @@ function Sales() {
         />
 
         <ModernModalStyles />
-        {/* Invoice view: embedded A4 sale order PDF + on-screen detail */}
+        {/* Invoice view: embedded A4 sale order PDF only */}
         <Modal
           title={
             selectedInvoice ? (
-              <span style={{ fontWeight: 700, color: '#0f172a' }}>
-                Sale order · {selectedInvoice.invoice_no || ''}
-              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontWeight: 700, color: '#ffffff', fontSize: 16 }}>
+                  {SALE_INVOICE_DOCUMENT_TITLE} · {selectedInvoice.invoice_no || ''}
+                </span>
+              </div>
             ) : (
-              'Sale order'
+              SALE_INVOICE_DOCUMENT_TITLE
             )
           }
           open={invoiceModalVisible}
           onCancel={closeInvoiceModal}
-          width={960}
+          width={980}
           centered
+          destroyOnClose
+          bodyStyle={{ padding: 0 }}
           className="modern-modal"
           footer={[
+            <AntButton
+              key="save"
+              onClick={handleSaveInvoicePdf}
+              icon={<DownloadOutlined />}
+              disabled={invoicePdfLoading}
+              style={{ borderColor: '#059669', color: '#059669', borderRadius: 10 }}
+            >
+              Save PDF
+            </AntButton>,
             <AntButton key="print" type="primary" loading={printing} onClick={() => printInvoice()} icon={<PrinterOutlined />}
               style={{ background: '#2D3142', borderColor: 'transparent', borderRadius: 10 }}>
-              {selectedPrinter ? `Print A4 → ${selectedPrinter}` : 'Print sale order (A4)'}
+              {selectedPrinter ? `Print → ${selectedPrinter}` : 'Print invoice'}
             </AntButton>,
             <AntButton key="preview" onClick={() => previewInvoicePDF()} icon={<FileTextOutlined />}
               style={{ borderColor: '#2D3142', color: '#2D3142', borderRadius: 10 }}>
@@ -1090,162 +1458,39 @@ function Sales() {
             </AntButton>,
           ]}
         >
-          <div style={{ background: '#f1f5f9' }}>
-            {invoicePdfLoading ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
-                <Spin size="large" tip="Generating sale order PDF…" />
-              </div>
-            ) : invoicePdfUrl ? (
-              <iframe
-                title="Sale order PDF"
-                src={`${invoicePdfUrl}#toolbar=0`}
-                style={{
-                  width: '100%',
-                  height: '52vh',
-                  maxHeight: 560,
-                  minHeight: 400,
-                  border: 'none',
-                  display: 'block',
-                  background: '#525659',
-                }}
+          <div style={{ background: '#f1f5f9', minHeight: 480, position: 'relative' }}>
+            {invoicePreviewError && (
+              <Alert
+                type="error"
+                showIcon
+                message="Could not load PDF preview"
+                description={invoicePreviewError}
+                style={{ margin: 12 }}
               />
-            ) : (
-              <div style={{ padding: 32, textAlign: 'center', color: '#64748b', minHeight: 200 }}>
-                PDF preview will appear here. Use Refresh PDF if it does not load.
-              </div>
             )}
-          </div>
-          <Divider style={{ margin: 0 }} />
-          <div id="invoice-print-area" style={{ maxHeight: '40vh', overflowY: 'auto' }}>
-            {selectedInvoice && (
-              <div style={{ padding: 24 }}>
-                <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                  <Typography.Title level={4} style={{ marginBottom: 4 }}>On-screen detail</Typography.Title>
-                  <p style={{ margin: 0, color: '#64748b' }}>{selectedInvoice.invoice_no}</p>
+            {invoicePdfUrl ? (
+              <PdfPreviewFrame url={invoicePdfUrl} title={SALE_INVOICE_DOCUMENT_TITLE} />
+            ) : (
+              !invoicePreviewError &&
+              !invoicePdfLoading && (
+                <div style={{ padding: 48, textAlign: 'center', color: '#64748b', minHeight: 480 }}>
+                  PDF preview will appear here. Use Refresh PDF if it does not load.
                 </div>
-                <Row gutter={16} style={{ marginBottom: 24 }}>
-                  <Col span={12}>
-                    <strong>Bill To:</strong>
-                    <div>{selectedInvoice.customer_name || 'Walk-in Customer'}</div>
-                    {selectedInvoice.customer_phone && <div>{selectedInvoice.customer_phone}</div>}
-                  </Col>
-                  <Col span={12} style={{ textAlign: 'right' }}>
-                    <div>
-                      <strong>Date & time:</strong> {formatSaleDateTime(selectedInvoice)}
-                    </div>
-                    <div><strong>Status:</strong> {selectedInvoice.status}</div>
-                  </Col>
-                </Row>
-                
-                <Table
-                  dataSource={selectedInvoice.items}
-                  pagination={false}
-                  size="small"
-                  rowKey={(row, i) => `inv-${row.product_id}-${i}`}
-                  columns={[
-                    { title: 'Item', dataIndex: 'product_name', key: 'product_name' },
-                    { title: 'Qty', dataIndex: 'quantity', key: 'quantity', align: 'center' },
-                    {
-                      title: 'Unit',
-                      dataIndex: 'unit_price',
-                      key: 'unit_price',
-                      align: 'right',
-                      render: (v) => formatPkr(v),
-                    },
-                    {
-                      title: 'Line total',
-                      dataIndex: 'line_total',
-                      key: 'line_total',
-                      align: 'right',
-                      render: (v) => formatPkr(v),
-                    },
-                  ]}
-                />
-
-                {Number(selectedInvoice.total_return_amount) > 0 &&
-                  Array.isArray(selectedInvoice.return_items) &&
-                  selectedInvoice.return_items.length > 0 && (
-                    <>
-                      <Divider orientation="left">Returns</Divider>
-                      <Table
-                        dataSource={selectedInvoice.return_items.map((row, idx) => {
-                          const pid = String(row.product_id || '');
-                          const line = selectedInvoice.items?.find(
-                            (it) => String(it.product_id) === pid
-                          );
-                          return { ...row, key: `ret-${idx}`, productLabel: line?.product_name || pid };
-                        })}
-                        pagination={false}
-                        size="small"
-                        rowKey={(row) => row.key}
-                        columns={[
-                          { title: 'Product', dataIndex: 'productLabel', key: 'productLabel', ellipsis: true },
-                          { title: 'Qty', dataIndex: 'quantity', key: 'quantity', align: 'center' },
-                          {
-                            title: 'Refund',
-                            dataIndex: 'refund_amount',
-                            key: 'refund_amount',
-                            align: 'right',
-                            render: (v) => formatPkr(v),
-                          },
-                        ]}
-                      />
-                    </>
-                  )}
-
-                <Divider />
-
-                <Row justify="end">
-                  <Col span={10}>
-                    <Row>
-                      <Col span={12}>Subtotal (lines):</Col>
-                      <Col span={12} style={{ textAlign: 'right' }}>
-                        {formatPkr(selectedInvoice.total_amount)}
-                      </Col>
-                    </Row>
-                    {Number(selectedInvoice.discount_amount ?? selectedInvoice.discount ?? 0) > 0 && (
-                      <Row>
-                        <Col span={12}>Discount:</Col>
-                        <Col span={12} style={{ textAlign: 'right' }}>
-                          {formatPkr(selectedInvoice.discount_amount ?? selectedInvoice.discount)}
-                        </Col>
-                      </Row>
-                    )}
-                    <Row>
-                      <Col span={12}>Tax:</Col>
-                      <Col span={12} style={{ textAlign: 'right' }}>
-                        {formatPkr(selectedInvoice.tax_amount)}
-                      </Col>
-                    </Row>
-                    {Number(selectedInvoice.total_return_amount) > 0 && (
-                      <Row>
-                        <Col span={12}>Returns / refunds:</Col>
-                        <Col span={12} style={{ textAlign: 'right', color: '#b45309' }}>
-                          −{formatPkr(selectedInvoice.total_return_amount)}
-                        </Col>
-                      </Row>
-                    )}
-                    <Divider style={{ margin: '8px 0' }} />
-                    <Row>
-                      <Col span={12}>
-                        <strong>Net (after returns):</strong>
-                      </Col>
-                      <Col span={12} style={{ textAlign: 'right' }}>
-                        <strong>
-                          {formatPkr(
-                            Number(selectedInvoice.net_amount ?? 0)
-                          )}
-                        </strong>
-                      </Col>
-                    </Row>
-                  </Col>
-                </Row>
-                
-                <Divider />
-                
-                <div style={{ textAlign: 'center', marginTop: 24 }}>
-                  <p>Thank you for your business!</p>
-                </div>
+              )
+            )}
+            {invoicePdfLoading && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'rgba(241, 245, 249, 0.88)',
+                  zIndex: 2,
+                }}
+              >
+                <Spin size="large" tip={`Generating ${SALE_INVOICE_DOCUMENT_TITLE}…`} />
               </div>
             )}
           </div>
@@ -1257,9 +1502,14 @@ function Sales() {
           open={returnModalVisible}
           onCancel={() => setReturnModalVisible(false)}
           width={800}
-          okText="Process Return"
-          cancelText="Cancel"
-          onOk={handleReturnSubmit}
+          footer={[
+            <AntButton key="cancel" onClick={() => setReturnModalVisible(false)}>
+              Cancel
+            </AntButton>,
+            <AntButton key="submit" type="primary" onClick={handleReturnSubmit}>
+              Process Return
+            </AntButton>,
+          ]}
         >
           {selectedReturnSale && (
             <div>
@@ -1313,10 +1563,10 @@ function Sales() {
                   { title: 'Product', dataIndex: 'product_name', key: 'product_name' },
                   {
                     title: 'Sold',
-                    dataIndex: 'quantity',
-                    key: 'quantity',
+                    key: 'soldQty',
                     align: 'center',
                     width: 72,
+                    render: (_, record) => record.soldQty ?? record.quantity ?? 0,
                   },
                   {
                     title: 'Already returned',
@@ -1459,6 +1709,14 @@ function Sales() {
             </div>
           )}
         </Modal>
+
+        <SaleReturnPreviewModal
+          visible={returnPreview != null}
+          onCancel={closeReturnPreview}
+          sale={returnPreview?.sale}
+          returnRecords={returnPreview?.returnRecords}
+          returnReason={returnPreview?.returnReason || ''}
+        />
       </Main>
     </ScreenWrap>
   );

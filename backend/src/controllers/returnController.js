@@ -1,6 +1,7 @@
 const Return = require('../models/Return');
 const Sale = require('../models/Sale');
 const Products = require('../models/Products');
+const { applyReturnsToSaleLineItems, maxReturnableQty } = require('../utils/saleHelpers');
 
 exports.createReturn = async (req, res) => {
   try {
@@ -52,22 +53,19 @@ exports.createReturn = async (req, res) => {
         continue;
       }
 
-      // Check if quantity exceeds sold quantity
-      if (quantity > saleItem.quantity) {
-        errors.push(`Return quantity for ${saleItem.product_name} cannot exceed sold quantity (${saleItem.quantity})`);
-        continue;
-      }
-
-      // Check for existing returns for this product
       const existingReturns = await Return.find({
         sale_id,
         product_id,
         status: { $in: ['pending', 'approved'] }
       });
-      
+
       const totalAlreadyReturned = existingReturns.reduce((sum, r) => sum + r.quantity, 0);
-      if (totalAlreadyReturned + quantity > saleItem.quantity) {
-        errors.push(`Total return quantity for ${saleItem.product_name} exceeds sold quantity. Already returned: ${totalAlreadyReturned}`);
+      const maxReturnable = maxReturnableQty(saleItem.quantity, totalAlreadyReturned);
+
+      if (quantity > maxReturnable) {
+        errors.push(
+          `Return quantity for ${saleItem.product_name} cannot exceed ${maxReturnable} (already returned: ${totalAlreadyReturned})`,
+        );
         continue;
       }
 
@@ -126,16 +124,10 @@ exports.createReturn = async (req, res) => {
       const current = returnMap.get(key) || 0;
       returnMap.set(key, current + ret.quantity);
     });
-    
-    // Check if all items are fully returned
-    let allItemsFullyReturned = true;
-    for (const saleItem of sale.items) {
-      const returnedQuantity = returnMap.get(saleItem.product_id.toString()) || 0;
-      if (returnedQuantity < saleItem.quantity) {
-        allItemsFullyReturned = false;
-        break;
-      }
-    }
+
+    applyReturnsToSaleLineItems(sale, returnMap);
+
+    const allItemsFullyReturned = sale.items.length === 0;
     
     // Update sale status
     if (allItemsFullyReturned) {

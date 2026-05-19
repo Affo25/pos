@@ -5,6 +5,17 @@ import { API_BASE } from '../../config/apiBase';
 const API_BASE_URL = `${API_BASE}/sales`;
 const getToken = () => Cookies.get('token');
 
+export const fetchNextInvoiceNumber = async (saleDate) => {
+  const token = getToken();
+  const qs = saleDate ? `?sale_date=${encodeURIComponent(saleDate)}` : '';
+  const response = await fetch(`${API_BASE_URL}/next-invoice-number${qs}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Failed to fetch bill number');
+  return data.invoice_no;
+};
+
 export const fetchAllSales = async () => {
   const token = getToken();
   const url = API_BASE_URL;
@@ -50,6 +61,17 @@ export const updateSale = async (id, saleData) => {
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'Failed to update sale');
   return data;
+};
+
+export const fetchAllReturns = async (params = {}) => {
+  const token = getToken();
+  const qs = new URLSearchParams({ limit: String(params.limit || 500), ...params }).toString();
+  const response = await fetch(`${API_BASE}/returns?${qs}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Failed to fetch returns');
+  return data.returns || [];
 };
 
 export const processReturn = async (returnData) => {
