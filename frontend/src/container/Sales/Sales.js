@@ -1260,20 +1260,21 @@ function Sales() {
               <FilePdfOutlined style={{ marginRight: 8 }} />
               PDF
             </Button>,
-            <AntButton key="preview-register" size="default" onClick={handlePreviewSalesRegister} icon={<FileTextOutlined />}>
+            <Button key="preview-register" outlined type="info" size="default" onClick={handlePreviewSalesRegister}>
+              <FileTextOutlined style={{ marginRight: 8 }} />
               Preview register
-            </AntButton>,
-            <AntButton
+            </Button>,
+            <Button
               key="print-all"
-              type="primary"
+              outlined
+              type="dark"
               size="default"
               loading={registerPrinting}
               onClick={handlePrintAllSales}
-              icon={<PrinterOutlined />}
-              style={{ background: '#2D3142', borderColor: 'transparent' }}
             >
+              <PrinterOutlined style={{ marginRight: 8 }} />
               Print all (A4)
-            </AntButton>,
+            </Button>,
             // <Button disabled={!canAdd} onClick={showModal} key="1" type="primary" size="default">
             //   <FeatherIcon icon="plus" size={16} /> New Sale
             // </Button>,

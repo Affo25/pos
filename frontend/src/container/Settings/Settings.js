@@ -27,6 +27,7 @@ const TEMPLATE_OPTIONS = [
   { value: 'report_a4', label: 'Full A4 report (green modern)' },
   { value: 'a4_80mm_strip', label: 'A4 page · 80mm left column (pharmacy style)' },
   { value: 'restaurant_80mm', label: '80mm narrow receipt (restaurant / thermal)' },
+  { value: 'pos_receipt', label: 'POS receipt (classic duplicate style)' },
 ];
 
 function templateLabel(value) {
@@ -194,7 +195,7 @@ function InvoicePreviewCompact({ settings, logoUrl, template }) {
   const defaultLogo =
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 28'%3E%3Crect width='80' height='28' fill='%232d3142' rx='4'/%3E%3Ctext x='8' y='18' fill='white' font-weight='bold' font-size='11'%3ELOGO%3C/text%3E%3C/svg%3E";
 
-  const narrowReceipt = template === 'restaurant_80mm';
+  const narrowReceipt = template === 'restaurant_80mm' || template === 'pos_receipt';
   const subtotal = 250;
   const discount = 10;
   const total = subtotal - discount;

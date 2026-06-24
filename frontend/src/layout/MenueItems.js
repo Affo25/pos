@@ -83,6 +83,16 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
           </Menu.Item>
         </Menu.ItemGroup>
 
+        {canAccess('users') && user?.user_type === 'superAdmin' && (
+          <Menu.ItemGroup title={groupTitle('System')}>
+            <Menu.Item key="Users" icon={!topMenu && <FeatherIcon icon="users" />}>
+              <NavLink onClick={toggleCollapsed} to={`${path}users`}>
+                Users
+              </NavLink>
+            </Menu.Item>
+          </Menu.ItemGroup>
+        )}
+
         <Menu.ItemGroup title={groupTitle('Sales')}>
           {canAccess('sales') && (
             <Menu.Item icon={!topMenu && <FeatherIcon icon="shopping-cart" />} key="POSBilling">
@@ -165,15 +175,6 @@ function MenuItems({ darkMode, toggleCollapsed, topMenu }) {
           </Menu.ItemGroup>
         )}
 
-        {canAccess('users') && user?.user_type === 'superAdmin' && (
-          <Menu.ItemGroup title={groupTitle('System')}>
-            <Menu.Item key="Users" icon={!topMenu && <FeatherIcon icon="users" />}>
-              <NavLink onClick={toggleCollapsed} to={`${path}users`}>
-                Users
-              </NavLink>
-            </Menu.Item>
-          </Menu.ItemGroup>
-        )}
       </Menu>
     </>
   );

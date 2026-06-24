@@ -35,6 +35,7 @@ function invoiceTemplateLabel(t) {
   switch (t) {
     case 'report_a4': return 'Full A4 invoice';
     case 'restaurant_80mm': return '80mm receipt';
+    case 'pos_receipt': return 'POS receipt';
     case 'a4_80mm_strip':
     default: return 'A4 · 80mm strip';
   }
@@ -417,9 +418,6 @@ function POSBilling() {
       setIssuedDate(null);
       setSelectedCustomerId(WALK_IN_CUSTOMER_ID);
       refreshBillNo(null);
-      setTimeout(() => {
-        if (data) printInvoiceData(data);
-      }, 400);
     } catch {
       /* silent */
     } finally {
@@ -516,6 +514,102 @@ function POSBilling() {
     },
   ];
 
+  const renderPosReceiptPreview = (inv) => {
+    const saleDate = new Date(inv.sale_date || Date.now());
+    const fmtDate = saleDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const fmtTime = saleDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const paymentModeLabel = String(inv.payment_mode || 'cash').toUpperCase();
+    const paid = Number(inv.amount_tendered ?? inv.amount_paid ?? inv.amount_received ?? inv.net_amount ?? 0);
+    const net = Number(inv.net_amount || 0);
+    const change = paymentModeLabel === 'CASH' ? Math.max(0, paid - net) : 0;
+
+    return (
+      <div
+        style={{
+          maxWidth: 360,
+          margin: '0 auto',
+          border: '1px solid #d1d5db',
+          background: '#fff',
+          padding: 12,
+          color: '#111827',
+          fontFamily: "'Courier New', monospace",
+        }}
+      >
+        <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 16 }}>
+          {invoiceBranding?.companyName || 'STORE'}
+        </div>
+        {invoiceBranding?.phone && (
+          <div style={{ textAlign: 'center', fontWeight: 600, marginTop: 2 }}>
+            Mob: {invoiceBranding.phone}
+          </div>
+        )}
+        {invoiceBranding?.address && (
+          <div style={{ textAlign: 'center', fontSize: 12, marginTop: 2 }}>
+            {invoiceBranding.address}
+          </div>
+        )}
+        <div style={{ borderTop: '1px solid #111', margin: '8px 0' }} />
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+          <span>{fmtDate}</span>
+          <span>{fmtTime}</span>
+          <span>{login?.name || 'Cashier'}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginTop: 2 }}>
+          <span>Customer: {inv.customer_name || 'Walk-in'}</span>
+          <span>No: {inv.invoice_no}</span>
+        </div>
+
+        <div style={{ textAlign: 'center', fontWeight: 700, marginTop: 8 }}>DUPLICATE</div>
+
+        <div style={{ borderTop: '1px solid #111', borderBottom: '1px solid #111', marginTop: 6, padding: '4px 0' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr .5fr .45fr .7fr .45fr', fontSize: 11, fontWeight: 700 }}>
+            <span>Description</span>
+            <span style={{ textAlign: 'right' }}>Rate</span>
+            <span style={{ textAlign: 'right' }}>Qty</span>
+            <span style={{ textAlign: 'right' }}>Amount</span>
+            <span style={{ textAlign: 'right' }}>Srv</span>
+          </div>
+        </div>
+
+        <div>
+          {(inv.items || []).map((item, idx) => (
+            <div key={`${item.product_id || idx}-${idx}`} style={{ display: 'grid', gridTemplateColumns: '1.4fr .5fr .45fr .7fr .45fr', fontSize: 11, padding: '4px 0' }}>
+              <span title={item.product_name}>{String(item.product_name || 'Item').slice(0, 20)}</span>
+              <span style={{ textAlign: 'right' }}>{Number(item.unit_price || 0).toFixed(1)}</span>
+              <span style={{ textAlign: 'right' }}>{Number(item.quantity || 0).toFixed(1)}</span>
+              <span style={{ textAlign: 'right' }}>{Number(item.line_total || 0).toFixed(1)}</span>
+              <span style={{ textAlign: 'right' }}>{Number(item.tax || 0).toFixed(1)}</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ borderTop: '1px solid #111', marginTop: 4, paddingTop: 4, fontSize: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>Items: {(inv.items || []).length}</span>
+            <span>Sub Total: {Number(inv.subtotal || 0).toFixed(2)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
+            <span>Grand Total</span>
+            <strong>{net.toFixed(2)}</strong>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
+            <span>Payment {paymentModeLabel}</span>
+            <span>{paid.toFixed(2)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
+            <span>Change</span>
+            <span>{change.toFixed(2)}</span>
+          </div>
+        </div>
+
+        <div style={{ borderTop: '1px solid #111', marginTop: 6, paddingTop: 6, textAlign: 'center', fontWeight: 700, fontSize: 12 }}>
+          RUPEES {Math.round(net)} ONLY
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <style>{`
@@ -545,7 +639,7 @@ function POSBilling() {
         .catalog-panel {
           background: #ffffff;
           border: 1px solid rgba(0, 0, 0, 0.12);
-          border-radius: 12px;
+          border-radius: 8px;
           overflow: hidden;
           width: 100%;
           box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
@@ -573,15 +667,28 @@ function POSBilling() {
         }
 
         .catalog-header {
-          padding: 20px 24px;
-          border-bottom: none;
-          background: linear-gradient(135deg, #2d3142 0%, #4f5d75 100%);
+          padding: 12px 16px;
+          border-bottom: 1px solid #e5e7eb;
+          background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        }
+        .catalog-header-main {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .catalog-header-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
         }
         .catalog-header .catalog-company {
-          font-size: 18px;
+          font-size: 16px;
           font-weight: 700;
-          color: #ffffff;
-          line-height: 1.25;
+          color: #1f2937;
+          line-height: 1.2;
           letter-spacing: -0.01em;
         }
         .catalog-header .catalog-title {
@@ -589,29 +696,30 @@ function POSBilling() {
           margin: 0;
           display: flex;
           align-items: center;
-          gap: 10px;
-          color: rgba(255, 255, 255, 0.92);
-          font-size: 15px;
+          gap: 8px;
+          color: #475467;
+          font-size: 13px;
           font-weight: 600;
         }
         .catalog-header .catalog-title-dot {
-          background: #ef8354;
-          box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+          background: #2d3142;
+          box-shadow: 0 0 0 2px rgba(45, 49, 66, 0.12);
         }
         .catalog-header .catalog-header-muted {
           font-size: 11px;
           font-weight: 500;
-          color: rgba(255, 255, 255, 0.72);
+          color: #667085;
         }
         .catalog-header .catalog-tagline {
-          font-size: 12px;
-          color: rgba(255, 255, 255, 0.78);
-          margin-top: 4px;
+          font-size: 11px;
+          color: #667085;
+          margin-top: 0;
         }
         .catalog-header .catalog-header-logo {
-          background: rgba(255, 255, 255, 0.12);
-          border-radius: 10px;
-          padding: 6px 10px;
+          background: #f8fafc;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 4px 8px;
         }
 
         .catalog-toolbar {
@@ -940,7 +1048,7 @@ function POSBilling() {
         .billing-panel {
           background: #ffffff;
           border: 1px solid rgba(0, 0, 0, 0.12);
-          border-radius: 12px;
+          border-radius: 8px;
           overflow: hidden;
           display: flex;
           flex-direction: column;
@@ -956,8 +1064,8 @@ function POSBilling() {
           flex-wrap: wrap;
           gap: 10px;
           padding: 14px 20px;
-          border-bottom: none;
-          background: linear-gradient(135deg, #2d3142 0%, #4f5d75 100%);
+          border-bottom: 1px solid #e5e7eb;
+          background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
         }
         .ticket-header-controls {
           display: flex;
@@ -972,8 +1080,8 @@ function POSBilling() {
           max-width: 220px;
         }
         .ticket-payment-select .ant-select-selector {
-          background: rgba(255, 255, 255, 0.96) !important;
-          border: none !important;
+          background: #ffffff !important;
+          border: 1px solid #e5e7eb !important;
           border-radius: 8px !important;
           height: 34px !important;
           font-size: 13px !important;
@@ -1004,14 +1112,14 @@ function POSBilling() {
         .ticket-header-title {
           font-size: 17px;
           font-weight: 700;
-          color: #ffffff;
+          color: #1f2937;
           margin: 0;
           letter-spacing: -0.01em;
         }
         .ticket-clear-btn {
-          border: none;
-          background: rgba(255, 255, 255, 0.12);
-          color: rgba(255, 255, 255, 0.88);
+          border: 1px solid #d0d5dd;
+          background: #ffffff;
+          color: #344054;
           font-size: 13px;
           font-weight: 600;
           cursor: pointer;
@@ -1019,8 +1127,9 @@ function POSBilling() {
           border-radius: 8px;
         }
         .ticket-clear-btn:hover {
-          color: #ffffff;
-          background: rgba(255, 255, 255, 0.2);
+          color: #1f2937;
+          border-color: #98a2b3;
+          background: #f9fafb;
         }
 
         .ticket-customer-row {
@@ -1441,37 +1550,37 @@ function POSBilling() {
       `}      </style>
 
       <Main className="pos-root">
-        <Row gutter={24} style={{ alignItems: 'stretch' }}>
+        <Row gutter={0} style={{ alignItems: 'stretch' }}>
 
           {/* ── LEFT: Catalog ── */}
-          <Col xs={24} lg={14} style={{ display: 'flex', flexDirection: 'column' }}>
+          <Col xs={24} lg={16} style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="catalog-panel" style={{ flex: 1 }}>
               <div className="catalog-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <div className="catalog-header-main">
                   {invoiceBranding?.logoUrl && (
                     <div className="catalog-header-logo">
                       <img
                         src={`${API_ORIGIN}${invoiceBranding.logoUrl}`}
                         alt=""
-                        style={{ height: 44, maxWidth: 130, objectFit: 'contain' }}
+                        style={{ height: 34, maxWidth: 110, objectFit: 'contain' }}
                       />
                     </div>
                   )}
-                  <div>
+                  <div className="catalog-header-row">
                     <div className="catalog-company">
                       {invoiceBranding?.companyName || 'Point of Sale'}
                     </div>
-                    <div className="catalog-title" style={{ marginTop: 6, marginBottom: 0 }}>
+                    <div className="catalog-title">
                       <span className="catalog-title-dot" />
                       Catalog
-                      {invoiceBranding?.template && (
-                        <span className="catalog-header-muted" style={{ marginLeft: 8 }}>
-                          · PDF: {invoiceTemplateLabel(invoiceBranding.template)}
-                        </span>
-                      )}
                     </div>
+                    {invoiceBranding?.template && (
+                      <span className="catalog-header-muted">
+                        PDF: {invoiceTemplateLabel(invoiceBranding.template)}
+                      </span>
+                    )}
                     {invoiceBranding?.tagline && (
-                      <div className="catalog-tagline">{invoiceBranding.tagline}</div>
+                      <span className="catalog-tagline">{invoiceBranding.tagline}</span>
                     )}
                   </div>
                 </div>
@@ -1548,7 +1657,7 @@ function POSBilling() {
           </Col>
 
           {/* ── RIGHT: Billing ── */}
-          <Col xs={24} lg={10} style={{ display: 'flex', flexDirection: 'column' }}>
+          <Col xs={24} lg={8} style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="billing-panel" style={{ flex: 1 }}>
 
               <div className="ticket-header">
@@ -1769,6 +1878,10 @@ function POSBilling() {
         >
           {invoice && (
             <div style={{ padding: '8px 0' }} id="invoice-preview">
+              {invoiceBranding?.template === 'pos_receipt' ? (
+                renderPosReceiptPreview(invoice)
+              ) : (
+                <>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   {invoiceBranding?.logoUrl && (
@@ -1842,6 +1955,8 @@ function POSBilling() {
               <div style={{ textAlign: 'center', marginTop: 24, color: '#9ca3af', fontSize: 12, fontStyle: 'italic' }}>
                 Thank you for your business
               </div>
+              </>
+              )}
             </div>
           )}
         </Modal>

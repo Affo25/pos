@@ -14,6 +14,7 @@
  * will be HTML (index.html) and JSON parsing will fail with "Unexpected token '<'".
  */
 const DEFAULT_ORIGIN = 'http://localhost:5000';
+const PRODUCTION_API_ORIGIN = 'https://pos-app-backend-opal.vercel.app';
 
 function normalizeApiOrigin(raw) {
   let s = String(raw ?? '')
@@ -76,7 +77,12 @@ function resolveApiEndpoints() {
   if (useDevRelativeApi()) {
     return { API_ORIGIN: '', API_BASE: '/api' };
   }
-  const origin = normalizeApiOrigin(process.env.REACT_APP_API_URL);
+  const raw = process.env.REACT_APP_API_URL;
+  const fallback =
+    !String(raw ?? '').trim() && process.env.NODE_ENV === 'production'
+      ? PRODUCTION_API_ORIGIN
+      : undefined;
+  const origin = normalizeApiOrigin(raw || fallback);
   return { API_ORIGIN: origin, API_BASE: `${origin}/api` };
 }
 

@@ -287,32 +287,32 @@ const AidLoginPage = Styled.div`
   overflow: hidden;
 
   background:
-    radial-gradient(ellipse 80% 60% at 10% 90%, rgba(99, 102, 241, 0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 70% 50% at 90% 10%, rgba(59, 130, 246, 0.07) 0%, transparent 55%),
-    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(139, 92, 246, 0.04) 0%, transparent 50%),
-    linear-gradient(160deg, #f8f9fc 0%, #f0f2f7 30%, #e8ecf4 60%, #f5f6fa 100%);
+    radial-gradient(ellipse 75% 60% at 90% 10%, rgba(99, 102, 241, 0.1) 0%, transparent 55%),
+    radial-gradient(ellipse 65% 55% at 5% 90%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 45% at 50% 50%, rgba(239, 131, 84, 0.06) 0%, transparent 45%),
+    linear-gradient(160deg, #f8fafc 0%, #f1f5f9 35%, #e8ecf4 65%, #f5f7fb 100%);
 
   &::before {
     content: '';
     position: absolute;
-    top: -200px;
-    right: -150px;
-    width: 500px;
-    height: 500px;
+    top: -160px;
+    right: -120px;
+    width: 480px;
+    height: 480px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.07) 0%, transparent 70%);
     pointer-events: none;
   }
 
   &::after {
     content: '';
     position: absolute;
-    bottom: -180px;
-    left: -120px;
-    width: 450px;
-    height: 450px;
+    bottom: -150px;
+    left: -100px;
+    width: 440px;
+    height: 440px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.06) 0%, transparent 70%);
     pointer-events: none;
   }
 
@@ -343,7 +343,7 @@ const AidLoginCard = Styled.div`
   width: 100%;
   max-width: 380px;
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 8px;
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.04),
     0 8px 32px rgba(0, 0, 0, 0.06);

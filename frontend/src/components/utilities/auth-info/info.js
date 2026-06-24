@@ -82,11 +82,6 @@ function AuthInfo() {
           </span>
         </button>
       </Popover>
-
-      <button type="button" className="shell-logout-btn" onClick={SignOut}>
-        <FeatherIcon icon="log-out" size={16} />
-        <span>Logout</span>
-      </button>
     </InfoWraper>
   );
 }
