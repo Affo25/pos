@@ -39,6 +39,13 @@ const userSchema = new mongoose.Schema(
       enum: ["active", "inactive"],
       default: "active",
     },
+    resetOtp: String,
+    resetOtpExpiry: Date,
+    resetOtpVerified: {
+      type: Boolean,
+      default: false,
+    },
+    resetOtpVerifiedAt: Date,
 
     permissions: {
       type: [

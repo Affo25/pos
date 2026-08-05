@@ -191,4 +191,5 @@ const darkTheme = {
   backgroundColor: '#111827',
 };
 
-export { theme, darkTheme };
+
+module.exports = { theme, darkTheme };

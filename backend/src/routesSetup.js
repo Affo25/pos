@@ -29,10 +29,8 @@ module.exports = function setupRoutes(app) {
   });
 
   const fs = require('fs');
-  const uploadsDir = path.join(__dirname, '..', 'uploads');
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
+  const { getUploadsRoot, ensureDir } = require('./config/uploadsPath');
+  const uploadsDir = ensureDir(getUploadsRoot());
 
   app.use('/uploads', express.static(uploadsDir));
   app.use('/api/analytics', analyticsRoutes);
@@ -50,6 +48,9 @@ module.exports = function setupRoutes(app) {
 
   const printRoutes = require('./routes/printRoutes');
   app.use('/api/print', printRoutes);
+
+  const publicPrintRoutes = require('./routes/publicPrintRoutes');
+  app.use('/api/public/print', publicPrintRoutes);
 
   const settingsRoutes = require('./routes/settingsRoutes');
   app.use('/api/settings', settingsRoutes);

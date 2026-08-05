@@ -1,13 +1,6 @@
 const path = require('path');
-
-function loadEnv() {
-  const root = __dirname;
-  require('dotenv').config({ path: path.join(root, '.env') });
-  // Fallback: some setups only edit .env.txt — load it if SMTP is still missing
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    require('dotenv').config({ path: path.join(root, '.env.txt') });
-  }
-}
+const { loadEnv } = require('./src/loadEnv');
+const { createApp } = require('./src/createApp');
 
 loadEnv();
 
@@ -42,22 +35,18 @@ try {
   console.warn('⚠️ WhatsApp status check skipped:', e.message);
 }
 
-const express = require('express');
-const app = express();
-app.set('trust proxy', 1);
+try {
+  const epsonPrinter = require('./src/services/epsonPrinterService');
+  if (epsonPrinter.isWindows()) {
+    console.log('✅ Public Epson print API: /api/public/print (Windows, no API key)');
+  } else {
+    console.warn('⚠️ Public print API requires Windows — direct printing unavailable on this OS');
+  }
+} catch (e) {
+  console.warn('⚠️ Print API status check skipped:', e.message);
+}
 
-// Register liveness routes before heavy imports so the port can accept /health immediately (Railway).
-const sendHealth = (req, res) => {
-  res.set('Cache-Control', 'no-store');
-  res.status(200).json({ status: 'ok', uptime: process.uptime() });
-};
-app.get('/health', sendHealth);
-app.head('/health', (req, res) => res.status(200).end());
-app.get('/api/health', sendHealth);
-app.get('/', (req, res) => {
-  res.set('Cache-Control', 'no-store');
-  res.status(200).type('text/plain').send('ok');
-});
+const app = createApp();
 
 const rawPort = process.env.PORT || '5000';
 const PORT = Number.parseInt(rawPort, 10);
@@ -77,17 +66,3 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`📡 Environment: ${NODE_ENV}`);
   console.log('✅ Health: GET/HEAD /health, GET /api/health');
 });
-
-try {
-  require('./src/routesSetup')(app);
-  console.log('✅ API routes mounted');
-} catch (err) {
-  console.error('❌ Failed to mount API routes:', err);
-  process.exit(1);
-}
-
-const connectDB = require('./src/config/db');
-console.log('🔄 Connecting to MongoDB…');
-connectDB()
-  .then(() => console.log('✅ MongoDB ready'))
-  .catch((err) => console.error('❌ MongoDB connection failed:', err.message));

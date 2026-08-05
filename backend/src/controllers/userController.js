@@ -1,6 +1,8 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const transporter = require("../config/emailService");
 const { normalizePhone, isValidPhone } = require("../utils/phoneValidation");
 const { sendUserCredentialsEmail, buildEmailPreview } = require("../services/emailService");
 const {
@@ -49,6 +51,72 @@ function applyPhoneAddressFields(data, body) {
 // Helper function to generate unique license key
 const generateLicenseKey = () => {
   return 'LIC-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+};
+
+const OTP_EXPIRY_MINUTES = 10;
+
+const generateResetOtp = () => {
+  return String(crypto.randomInt(100000, 1000000));
+};
+
+const buildOtpHash = (otp) => {
+  const secret = process.env.JWT_SECRET || "inventory-reset-otp-secret";
+  return crypto.createHmac("sha256", secret).update(String(otp)).digest("hex");
+};
+
+const buildResetOtpEmailTemplate = ({ name, otp }) => {
+  const appName = "Aid+ Inventory";
+  const supportEmail = process.env.SMTP_USER || "support@aidplus.app";
+  const year = new Date().getFullYear();
+
+  return `
+    <div style="margin:0;padding:0;background:#f3f6fb;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f6fb;padding:28px 12px;">
+        <tr>
+          <td align="center">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e7edf6;box-shadow:0 10px 30px rgba(16,24,40,0.08);">
+              <tr>
+                <td style="background:linear-gradient(135deg,#2d3142 0%,#4f5d75 100%);padding:22px 28px;">
+                  <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:0.2px;">${appName}</h1>
+                  <p style="margin:6px 0 0;color:#dbe3f0;font-size:13px;">Password Reset Verification</p>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="padding:28px;">
+                  <p style="margin:0 0 10px;color:#0f172a;font-size:15px;">Hi ${name || "there"},</p>
+                  <p style="margin:0 0 18px;color:#475467;font-size:14px;line-height:1.7;">
+                    Use the one-time password below to reset your account password. This code is valid for
+                    <strong>${OTP_EXPIRY_MINUTES} minutes</strong>.
+                  </p>
+
+                  <div style="margin:0 0 18px;padding:16px;border:1px dashed #c7d7ee;border-radius:12px;background:#f8fbff;text-align:center;">
+                    <p style="margin:0 0 8px;color:#667085;font-size:12px;letter-spacing:0.4px;text-transform:uppercase;">Your OTP Code</p>
+                    <p style="margin:0;color:#111827;font-size:34px;font-weight:800;letter-spacing:8px;">${otp}</p>
+                  </div>
+
+                  <p style="margin:0 0 16px;color:#667085;font-size:13px;line-height:1.6;">
+                    If you did not request a password reset, you can safely ignore this email. Your account remains secure.
+                  </p>
+
+                  <div style="padding-top:14px;border-top:1px solid #eef2f8;">
+                    <p style="margin:0;color:#98a2b3;font-size:12px;line-height:1.6;">
+                      Need help? Contact us at
+                      <a href="mailto:${supportEmail}" style="color:#2d3142;text-decoration:none;font-weight:600;">${supportEmail}</a>
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            </table>
+
+            <p style="margin:14px 0 0;color:#98a2b3;font-size:11px;">
+              © ${year} ${appName}. All rights reserved.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </div>
+  `;
 };
 
 exports.loginUser = async (req, res) => {
@@ -113,6 +181,122 @@ exports.logoutUser = async (req, res) => {
     res.status(200).json({ message: "User logged out successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+exports.sendResetOtp = async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "No user found with this email" });
+    }
+
+    const otp = generateResetOtp();
+    const otpHash = buildOtpHash(otp);
+    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+
+    user.resetOtp = otpHash;
+    user.resetOtpExpiry = otpExpiry;
+    user.resetOtpVerified = false;
+    user.resetOtpVerifiedAt = null;
+    await user.save();
+
+    const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+    await transporter.sendMail({
+      from: `"Inventory Management" <${from}>`,
+      to: user.email,
+      subject: "Your Password Reset OTP",
+      text: `Your OTP for password reset is ${otp}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`,
+      html: buildResetOtpEmailTemplate({ name: user.name, otp }),
+    });
+
+    return res.status(200).json({ message: "OTP sent to email successfully" });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+exports.verifyResetOtp = async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const otp = String(req.body?.otp || "").trim();
+
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "No user found with this email" });
+    }
+
+    if (!user.resetOtp || !user.resetOtpExpiry) {
+      return res.status(400).json({ message: "OTP not requested. Please request OTP first." });
+    }
+
+    if (new Date() > new Date(user.resetOtpExpiry)) {
+      return res.status(400).json({ message: "OTP has expired. Please request a new OTP." });
+    }
+
+    const otpHash = buildOtpHash(otp);
+    if (otpHash !== user.resetOtp) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    user.resetOtpVerified = true;
+    user.resetOtpVerifiedAt = new Date();
+    await user.save();
+
+    return res.status(200).json({ message: "OTP verified successfully" });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+exports.resetPasswordWithOtp = async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const newPassword = String(req.body?.newPassword || "");
+    const confirmPassword = String(req.body?.confirmPassword || "");
+
+    if (!email || !newPassword || !confirmPassword) {
+      return res.status(400).json({ message: "Email, newPassword and confirmPassword are required" });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: "Passwords do not match" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "No user found with this email" });
+    }
+
+    if (!user.resetOtpVerified) {
+      return res.status(400).json({ message: "OTP is not verified" });
+    }
+
+    if (!user.resetOtpExpiry || new Date() > new Date(user.resetOtpExpiry)) {
+      return res.status(400).json({ message: "OTP session expired. Please request OTP again." });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.plain_password = newPassword;
+    user.resetOtp = null;
+    user.resetOtpExpiry = null;
+    user.resetOtpVerified = false;
+    user.resetOtpVerifiedAt = null;
+    await user.save();
+
+    return res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
   }
 };
 

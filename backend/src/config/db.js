@@ -3,73 +3,64 @@ const dns = require('dns');
 
 dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
 
+let cached = global.mongoose;
+
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
 const connectDB = async () => {
-    try {
-        // Support multiple environment variable names
-        const mongoURI = process.env.MONGO_URI || 
-                        process.env.MONGODB_URI || 
-                        process.env.MONGODB_URL ||
-                        process.env.DATABASE_URL;
-        
-        if (!mongoURI) {
-            console.error('❌ No MongoDB URI found. Set MONGO_URI (or MONGODB_URI) in Railway Variables.');
-            console.error('Server stays up for /health; API routes need a database connection.');
-            return;
-        }
+  if (cached.conn && mongoose.connection.readyState === 1) {
+    return cached.conn;
+  }
 
-        // Hide sensitive info in logs
-        const sanitizedURI = mongoURI.replace(/(mongodb\+srv:\/\/)([^:]+):([^@]+)@/, '$1***:***@');
-        console.log(`🔄 Connecting to MongoDB: ${sanitizedURI}`);
+  if (!cached.promise) {
+    const mongoURI =
+      process.env.MONGO_URI ||
+      process.env.MONGODB_URI ||
+      process.env.MONGODB_URL ||
+      process.env.DATABASE_URL;
 
-        const conn = await mongoose.connect(mongoURI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000, // Timeout after 5 seconds
-            socketTimeoutMS: 45000, // Close sockets after 45 seconds
-            family: 4, // Use IPv4, skip trying IPv6
-            retryWrites: true,
-            retryReads: true,
-            maxPoolSize: 10, // Maintain up to 10 socket connections
-            minPoolSize: 2,
-            connectTimeoutMS: 10000, // Give up initial connection after 10 seconds
-            heartbeatFrequencyMS: 30000, // Check connection every 30 seconds
-        });
-        
+    if (!mongoURI) {
+      console.error('❌ No MongoDB URI found. Set MONGO_URI (or MONGODB_URI) in environment variables.');
+      console.error('Server stays up for /health; API routes need a database connection.');
+      return null;
+    }
+
+    const sanitizedURI = mongoURI.replace(/(mongodb\+srv:\/\/)([^:]+):([^@]+)@/, '$1***:***@');
+    console.log(`🔄 Connecting to MongoDB: ${sanitizedURI}`);
+
+    cached.promise = mongoose
+      .connect(mongoURI, {
+        serverSelectionTimeoutMS: 10000,
+        socketTimeoutMS: 45000,
+        maxPoolSize: process.env.VERCEL ? 5 : 10,
+        minPoolSize: process.env.VERCEL ? 1 : 2,
+        connectTimeoutMS: 10000,
+        heartbeatFrequencyMS: 30000,
+      })
+      .then((conn) => {
         console.log('✅ MongoDB connected successfully');
         console.log(`📦 Database: ${conn.connection.name}`);
-        console.log(`🌐 Host: ${conn.connection.host}`);
-        console.log(`🔢 Port: ${conn.connection.port}`);
-        
-        // Handle connection events
-        mongoose.connection.on('connected', () => {
-            console.log('🟢 MongoDB connection established');
-        });
-
-        mongoose.connection.on('error', (err) => {
-            console.error('🔴 MongoDB connection error:', err.message);
-        });
-
-        mongoose.connection.on('disconnected', () => {
-            console.log('🟡 MongoDB connection disconnected');
-        });
-
-        mongoose.connection.on('reconnected', () => {
-            console.log('🔄 MongoDB reconnected');
-        });
-
         return conn;
-        
-    } catch (error) {
+      })
+      .catch((error) => {
+        cached.promise = null;
         console.error('❌ MongoDB connection failed:', error.message);
-        
-        // Don't exit immediately in production, retry
-        if (process.env.NODE_ENV === 'production') {
-            console.log('🔄 Retrying connection in 5 seconds...');
-            setTimeout(connectDB, 5000);
-        } else {
-            process.exit(1);
+        if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+          process.exit(1);
         }
-    }
+        throw error;
+      });
+  }
+
+  try {
+    cached.conn = await cached.promise;
+  } catch {
+    cached.conn = null;
+  }
+
+  return cached.conn;
 };
 
 // Graceful shutdown

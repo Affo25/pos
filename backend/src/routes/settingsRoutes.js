@@ -1,16 +1,13 @@
 const path = require('path');
-const fs = require('fs');
 const express = require('express');
 const multer = require('multer');
 const { protect } = require('../middlewares/authMiddleware');
 const settingsController = require('../controllers/settingsController');
+const { getInvoiceLogosDir } = require('../config/uploadsPath');
 
 const router = express.Router();
 
-const logoDir = path.join(__dirname, '..', '..', 'uploads', 'invoice-logos');
-if (!fs.existsSync(logoDir)) {
-  fs.mkdirSync(logoDir, { recursive: true });
-}
+const logoDir = getInvoiceLogosDir();
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, logoDir),

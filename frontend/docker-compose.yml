@@ -1,0 +1,16 @@
+# Optional local run / Dokploy Compose (frontend only)
+# docker compose up -d --build
+# Set REACT_APP_API_URL to your backend public URL before building.
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_API_URL: ${REACT_APP_API_URL}
+        REACT_APP_BASE_URL: ${REACT_APP_BASE_URL:-}
+        REACT_APP_API_ENDPOINT: ${REACT_APP_API_ENDPOINT:-}
+    ports:
+      - "${PORT:-80}:80"
+    restart: unless-stopped

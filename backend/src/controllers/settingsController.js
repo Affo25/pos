@@ -54,7 +54,7 @@ exports.updateSettings = async (req, res) => {
     const doc = await getOrCreateSettings(ownerId);
     const { invoiceDesign } = req.body || {};
     if (invoiceDesign && typeof invoiceDesign === 'object') {
-      const allowedTemplates = ['report_a4', 'restaurant_80mm', 'a4_80mm_strip'];
+      const allowedTemplates = ['report_a4', 'restaurant_80mm', 'a4_80mm_strip', 'pos_receipt'];
       for (const k of INVOICE_KEYS) {
         if (Object.prototype.hasOwnProperty.call(invoiceDesign, k)) {
           let v = invoiceDesign[k];

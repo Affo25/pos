@@ -17,6 +17,9 @@ const {
     sendUserEmail,
     getUserWhatsAppPreview,
     sendUserWhatsApp,
+    sendResetOtp,
+    verifyResetOtp,
+    resetPasswordWithOtp,
 } = require('../controllers/userController');
 const { protect, checkRole } = require('../middlewares/authMiddleware');
 
@@ -24,6 +27,9 @@ const { protect, checkRole } = require('../middlewares/authMiddleware');
 router.post('/login', loginUser);
 router.post('/logout', logoutUser);
 router.post('/validate-license', validateLicenseKey);
+router.post('/send-reset-otp', sendResetOtp);
+router.post('/verify-reset-otp', verifyResetOtp);
+router.post('/reset-password', resetPasswordWithOtp);
 
 // Protected routes (require authentication)
 router.get('/profile', protect, getUserProfile); // You need to add this function
